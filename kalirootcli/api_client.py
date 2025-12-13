@@ -13,7 +13,7 @@ from typing import Optional, Dict, Any
 logger = logging.getLogger(__name__)
 
 # API Server URL - Change this to your Render URL
-API_BASE_URL = os.getenv("KRCLI_API_URL", "https://kr-cli.onrender.com")
+API_BASE_URL = os.getenv("KRCLI_API_URL", "https://kalirootcli.onrender.com")
 
 
 class APIClient:
