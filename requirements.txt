@@ -1,8 +1,20 @@
-supabase>=2.0.0
+# Core dependencies with Termux-compatible versions
+supabase==1.0.3
+gotrue==1.0.2
+postgrest==0.10.6
+storage3==0.5.3
+httpx>=0.23.0,<0.24.0
+realtime==1.0.0
+
+# AI
 groq>=0.4.0
+
+# Utilities
 requests>=2.31.0
 rich>=13.0.0
 bcrypt>=4.1.0
 python-dotenv>=1.0.0
+
+# Server (optional - for webhook)
 fastapi>=0.109.0
 uvicorn>=0.27.0
