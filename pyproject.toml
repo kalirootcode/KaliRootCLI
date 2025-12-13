@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kalirootcli"
-version = "1.0.0"
+version = "1.1.0"
 description = "Advanced Cybersecurity CLI Assistant for Termux & Kali Linux"
 readme = "README.md"
 license = {text = "MIT"}
@@ -31,16 +31,8 @@ classifiers = [
 ]
 requires-python = ">=3.8"
 dependencies = [
-    "supabase==1.0.3",
-    "gotrue==1.0.2",
-    "postgrest==0.10.6",
-    "storage3==0.5.3",
-    "httpx>=0.23.0,<0.24.0",
-    "realtime==1.0.0",
-    "groq>=0.4.0",
     "requests>=2.31.0",
     "rich>=13.0.0",
-    "bcrypt>=4.1.0",
     "python-dotenv>=1.0.0",
 ]
 

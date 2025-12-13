@@ -1,0 +1,9 @@
+# Server Dependencies (for Render deployment)
+fastapi>=0.109.0
+uvicorn>=0.27.0
+supabase>=2.0.0
+groq>=0.4.0
+bcrypt>=4.1.0
+python-dotenv>=1.0.0
+pyjwt>=2.8.0
+requests>=2.31.0
