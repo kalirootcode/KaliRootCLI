@@ -1,7 +1,12 @@
 """
-KaliRoot CLI - Terminal Cybersecurity Assistant
-For Termux and Kali Linux
+KaliRoot CLI - Advanced Cybersecurity Assistant
+Terminal-based AI assistant for Termux & Kali Linux.
 """
 
 __version__ = "1.0.0"
-__author__ = "KaliRoot Team"
+__author__ = "KaliRootCode"
+__license__ = "MIT"
+
+from .main import main
+
+__all__ = ["main", "__version__"]
