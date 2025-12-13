@@ -1,152 +1,92 @@
 """
-Authentication module for KaliRoot CLI
-Handles user registration, login, and session management.
+Authentication module for KR-CLI v2.0
+Handles user registration with email verification, login, and session management.
+Uses Supabase Auth via API backend.
 """
 
 import os
-import json
+import re
 import logging
-import bcrypt
 from typing import Optional
 from getpass import getpass
 
+from .api_client import api_client
 from .distro_detector import detector
-from .database_manager import register_user, get_user_by_username
 
 logger = logging.getLogger(__name__)
 
 
+def is_valid_email(email: str) -> bool:
+    """Validate email format."""
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(pattern, email))
+
+
 class AuthManager:
-    """Manages user authentication and sessions."""
+    """Manages user authentication and sessions via API."""
     
     def __init__(self):
-        self.session_file = detector.get_session_file()
-        self._current_user: Optional[dict] = None
-    
-    def hash_password(self, password: str) -> str:
-        """Hash a password using bcrypt."""
-        salt = bcrypt.gensalt()
-        hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
-        return hashed.decode('utf-8')
-    
-    def verify_password(self, password: str, password_hash: str) -> bool:
-        """Verify a password against its hash."""
-        try:
-            return bcrypt.checkpw(
-                password.encode('utf-8'),
-                password_hash.encode('utf-8')
-            )
-        except Exception:
-            return False
-    
-    def save_session(self, user_data: dict) -> bool:
-        """Save user session to local file."""
-        try:
-            session_data = {
-                "id": user_data.get("id"),
-                "username": user_data.get("username"),
-                "logged_in": True
-            }
-            
-            with open(self.session_file, 'w') as f:
-                json.dump(session_data, f)
-            
-            self._current_user = session_data
-            logger.info(f"Session saved for user: {session_data.get('username')}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error saving session: {e}")
-            return False
-    
-    def load_session(self) -> Optional[dict]:
-        """Load user session from local file."""
-        try:
-            if not os.path.exists(self.session_file):
-                return None
-            
-            with open(self.session_file, 'r') as f:
-                session_data = json.load(f)
-            
-            if session_data.get("logged_in"):
-                self._current_user = session_data
-                return session_data
-            
-            return None
-            
-        except Exception as e:
-            logger.error(f"Error loading session: {e}")
-            return None
-    
-    def logout(self) -> bool:
-        """Remove session and log out."""
-        try:
-            if os.path.exists(self.session_file):
-                os.remove(self.session_file)
-            
-            self._current_user = None
-            logger.info("User logged out")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error during logout: {e}")
-            return False
-    
-    @property
-    def current_user(self) -> Optional[dict]:
-        """Get current logged-in user."""
-        if self._current_user is None:
-            self._current_user = self.load_session()
-        return self._current_user
+        pass  # Session managed by api_client
     
     def is_logged_in(self) -> bool:
         """Check if user is logged in."""
-        return self.current_user is not None
+        return api_client.is_logged_in()
+    
+    @property
+    def current_user(self) -> Optional[dict]:
+        """Get current logged-in user info."""
+        if not api_client.is_logged_in():
+            return None
+        return {
+            "id": api_client.user_id,
+            "email": api_client.email
+        }
+    
+    def logout(self) -> bool:
+        """Log out current user."""
+        api_client.logout()
+        return True
     
     def interactive_register(self) -> Optional[dict]:
         """
-        Interactive registration flow.
+        Interactive registration flow with email verification.
         
         Returns:
             dict with user data if successful, None if failed
         """
-        from .ui.display import console, print_error, print_success, print_info
+        from .ui.display import console, print_error, print_success, print_info, print_warning
         
-        console.print("\n[bold cyan]📝 REGISTRO DE USUARIO[/bold cyan]\n")
+        console.print("\n[bold cyan]📝 REGISTRO DE USUARIO[/bold cyan]")
+        console.print("[dim]Se requiere verificación por correo electrónico[/dim]\n")
         
-        # Get username
+        # Get email
         while True:
-            username = console.input("[cyan]Username: [/cyan]").strip().lower()
+            email = console.input("[cyan]📧 Email: [/cyan]").strip().lower()
             
-            if not username:
-                print_error("El username no puede estar vacío")
+            if not email:
+                print_error("El email no puede estar vacío")
                 continue
             
-            if len(username) < 3:
-                print_error("El username debe tener al menos 3 caracteres")
-                continue
-            
-            if not username.isalnum():
-                print_error("El username solo puede contener letras y números")
-                continue
-            
-            # Check if username exists
-            existing = get_user_by_username(username)
-            if existing:
-                print_error("Este username ya está registrado")
+            if not is_valid_email(email):
+                print_error("Formato de email inválido")
                 continue
             
             break
         
+        # Get username (optional)
+        username = console.input("[cyan]👤 Username (opcional, Enter para usar email): [/cyan]").strip()
+        if not username:
+            username = email.split("@")[0]
+        
         # Get password
         while True:
-            password = getpass("Password: ")
+            password = getpass("🔐 Password: ")
             
             if len(password) < 6:
                 print_error("La contraseña debe tener al menos 6 caracteres")
                 continue
             
-            password_confirm = getpass("Confirmar password: ")
+            password_confirm = getpass("🔐 Confirmar password: ")
             
             if password != password_confirm:
                 print_error("Las contraseñas no coinciden")
@@ -154,18 +94,22 @@ class AuthManager:
             
             break
         
-        # Register user
+        # Register user via API
         print_info("Registrando usuario...")
         
-        password_hash = self.hash_password(password)
-        result = register_user(username, password_hash)
+        result = api_client.register(email, password, username)
         
-        if result:
-            print_success(f"¡Usuario '{username}' registrado exitosamente!")
-            self.save_session(result)
-            return result
+        if result.get("success"):
+            console.print("\n[bold green]✅ ¡REGISTRO EXITOSO![/bold green]\n")
+            console.print(f"📧 Enviamos un correo de verificación a: [cyan]{email}[/cyan]")
+            console.print("\n[yellow]⚠️  IMPORTANTE:[/yellow]")
+            console.print("1. Revisa tu bandeja de entrada (y spam)")
+            console.print("2. Haz clic en el enlace de verificación")
+            console.print("3. Regresa aquí para iniciar sesión\n")
+            
+            return {"email": email, "needs_verification": True}
         else:
-            print_error("Error al registrar usuario. Intenta con otro username.")
+            print_error(result.get("error", "Error en el registro"))
             return None
     
     def interactive_login(self) -> Optional[dict]:
@@ -175,44 +119,42 @@ class AuthManager:
         Returns:
             dict with user data if successful, None if failed
         """
-        from .ui.display import console, print_error, print_success, print_warning
+        from .ui.display import console, print_error, print_success, print_warning, print_info
         
         console.print("\n[bold cyan]🔐 INICIAR SESIÓN[/bold cyan]\n")
         
-        # Get username
-        username = console.input("[cyan]Username: [/cyan]").strip().lower()
+        # Get email
+        email = console.input("[cyan]📧 Email: [/cyan]").strip().lower()
         
-        if not username:
-            print_error("Username es requerido")
+        if not email:
+            print_error("Email es requerido")
             return None
         
         # Get password
-        password = getpass("Password: ")
+        password = getpass("🔐 Password: ")
         
-        # Get user from database
-        user = get_user_by_username(username)
+        # Login via API
+        print_info("Conectando...")
+        result = api_client.login(email, password)
         
-        if not user:
-            print_error("Usuario no encontrado")
+        if result.get("success"):
+            print_success(f"¡Bienvenido de vuelta!")
+            return result.get("data")
+        else:
+            error = result.get("error", "")
+            print_error(error)
+            
+            # Offer to resend verification if that's the issue
+            if "verifi" in error.lower():
+                resend = console.input("\n¿Reenviar correo de verificación? [s/N]: ").strip().lower()
+                if resend == "s":
+                    res = api_client.resend_verification(email)
+                    if res.get("success"):
+                        print_info("Correo de verificación reenviado. Revisa tu bandeja.")
+                    else:
+                        print_error("No se pudo reenviar el correo")
+            
             return None
-        
-        # Verify password
-        if not self.verify_password(password, user.get("password_hash", "")):
-            print_error("Contraseña incorrecta")
-            return None
-        
-        # Save session
-        session_data = {
-            "id": user["id"],
-            "username": user["username"],
-            "credit_balance": user.get("credit_balance", 0),
-            "subscription_status": user.get("subscription_status", "free")
-        }
-        
-        self.save_session(session_data)
-        print_success(f"¡Bienvenido de vuelta, {username}!")
-        
-        return session_data
     
     def interactive_auth(self) -> Optional[dict]:
         """
@@ -224,10 +166,13 @@ class AuthManager:
         from .ui.display import console, print_error
         
         while True:
-            console.print("\n[bold yellow]¿Ya tienes cuenta?[/bold yellow]\n")
-            console.print("  [cyan]1.[/cyan] Iniciar sesión")
-            console.print("  [cyan]2.[/cyan] Registrarse")
-            console.print("  [cyan]0.[/cyan] Salir\n")
+            console.print("\n[bold yellow]═══════════════════════════════════════[/bold yellow]")
+            console.print("[bold yellow]         AUTENTICACIÓN KR-CLI          [/bold yellow]")
+            console.print("[bold yellow]═══════════════════════════════════════[/bold yellow]\n")
+            
+            console.print("  [cyan]1.[/cyan] 🔐 Iniciar sesión")
+            console.print("  [cyan]2.[/cyan] 📝 Registrarse (email verificado)")
+            console.print("  [cyan]0.[/cyan] ❌ Salir\n")
             
             choice = console.input("[bold]Opción: [/bold]").strip()
             
@@ -237,8 +182,9 @@ class AuthManager:
                     return result
             elif choice == "2":
                 result = self.interactive_register()
-                if result:
+                if result and not result.get("needs_verification"):
                     return result
+                # If needs verification, loop back to login
             elif choice == "0":
                 return None
             else:

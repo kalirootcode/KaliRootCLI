@@ -1,4 +1,5 @@
 .env
+.env.template
 *.pyc
 __pycache__/
 *.pyo

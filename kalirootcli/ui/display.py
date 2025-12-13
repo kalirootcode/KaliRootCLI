@@ -43,13 +43,14 @@ def print_banner() -> None:
     ██╔═██╗██╔══██║██║     ██║██╔══██╗██║   ██║██║   ██║   ██║   
     ██║  ██╗██║  ██║███████╗██║██║  ██║╚██████╔╝╚██████╔╝   ██║   
     ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝╚═╝  ╚═╝ ╚═════╝  ╚═════╝    ╚═╝   
-             >>> ADVANCED SECURITY OPERATIONS CLI <<<
+        >>> ADVANCED SECURITY OPERATIONS CLI v2.0 <<<
     """
     console.print(Panel(
         Text(banner, style="bold cyan", justify="center"),
         box=box.HEAVY,
         border_style="blue",
-        title="[bold white]v1.0.0[/bold white]"
+        title="[bold white]v2.0.0[/bold white]",
+        subtitle="[dim]Web Search │ Agent │ Planner[/dim]"
     ))
 
 
@@ -84,20 +85,71 @@ def print_panel(content: str, title: str = "", style: str = "cyan") -> None:
     ))
 
 
-def print_ai_response(response: str, mode: str = "CONSULTATION") -> None:
-    """Print AI response in a styled panel based on mode."""
-    color = "green" if mode == "OPERATIONAL" else "cyan"
-    icon = "💀" if mode == "OPERATIONAL" else "🤖"
+def print_ai_response(response: str, mode: str = "CONSULTATION", command: str = None) -> None:
+    """
+    Print AI response with colored formatting (no panel/frame).
     
-    console.print("\n")
-    console.print(Panel(
-        response,
-        title=f"[bold {color}]{icon} KALIROOT AI [{mode}][/bold {color}]",
-        border_style=color,
-        box=box.ROUNDED,
-        padding=(1, 2)
-    ))
-    console.print("\n")
+    Args:
+        response: The AI response text
+        mode: CONSULTATION or OPERATIONAL/OPERATIVO
+        command: Optional command that was analyzed (shown in blue)
+    """
+    import re
+    
+    # Handle both English and Spanish mode names
+    is_premium = mode.upper() in ["OPERATIONAL", "OPERATIVO"]
+    mode_color = "green" if is_premium else "cyan"
+    icon = "💀" if is_premium else "🤖"
+    display_mode = "OPERATIVO" if is_premium else "CONSULTA"
+    
+    console.print()
+    
+    # Header with command in blue if provided
+    if command:
+        console.print(f"{icon} [bold blue]{command}[/bold blue] [{mode_color}][{display_mode}][/{mode_color}]")
+    else:
+        console.print(f"{icon} [bold {mode_color}]KALIROOT AI[/bold {mode_color}] [{mode_color}][{display_mode}][/{mode_color}]")
+    
+    console.print()
+    
+    # Process and colorize the response
+    lines = response.split('\n')
+    
+    for line in lines:
+        # Section headers (numbered or with **)
+        if re.match(r'^\*\*\d+\.', line) or re.match(r'^\d+\.', line):
+            # Main section header - yellow
+            console.print(f"[bold yellow]{line}[/bold yellow]")
+        elif line.strip().startswith('**') and line.strip().endswith('**'):
+            # Bold section - cyan
+            clean = line.replace('**', '')
+            console.print(f"[bold cyan]{clean}[/bold cyan]")
+        elif line.strip().startswith('* **'):
+            # Sub-item with bold - green bullet
+            parts = line.split('**')
+            if len(parts) >= 3:
+                prefix = parts[0].replace('*', '•')
+                key = parts[1]
+                rest = ''.join(parts[2:])
+                console.print(f"[green]{prefix}[/green][bold white]{key}[/bold white]{rest}")
+            else:
+                console.print(f"[green]{line}[/green]")
+        elif line.strip().startswith('* ') or line.strip().startswith('- '):
+            # Bullet points - green
+            console.print(f"[green]{line}[/green]")
+        elif line.strip().startswith('+') or line.strip().startswith('  +'):
+            # Sub-bullets - dim cyan
+            console.print(f"[dim cyan]{line}[/dim cyan]")
+        elif '`' in line:
+            # Lines with code/commands - highlight backticks
+            # Replace `command` with styled version
+            formatted = re.sub(r'`([^`]+)`', r'[bold magenta]\1[/bold magenta]', line)
+            console.print(formatted)
+        else:
+            # Regular text
+            console.print(line)
+    
+    console.print()
 
 
 def clear_screen() -> None:
