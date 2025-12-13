@@ -1,11 +1,13 @@
 """
 Menu system for KaliRoot CLI
-Handles all interactive menus.
+Professional interactive dashboards.
 """
 
-from typing import Optional, Callable
 from rich.table import Table
 from rich import box
+from rich.layout import Layout
+from rich.console import Console
+from rich.panel import Panel
 
 from .display import (
     console, 
@@ -14,19 +16,16 @@ from .display import (
     print_divider,
     print_error,
     print_success,
-    print_warning,
-    print_info,
+    print_panel,
     print_ai_response,
     get_input,
     confirm,
-    clear_screen,
-    print_panel,
-    show_loading
+    show_loading,
+    print_info
 )
 
-
 class MainMenu:
-    """Main menu handler."""
+    """Professional Main Dashboard."""
     
     def __init__(self, user_id: str, username: str):
         self.user_id = user_id
@@ -34,45 +33,25 @@ class MainMenu:
         self._running = True
     
     def show(self) -> None:
-        """Show and handle main menu."""
-        from ..subscription import SubscriptionManager, get_plan_comparison, get_credits_packages_display
-        from ..ai_handler import get_ai_response
+        """Show and handle main dashboard."""
+        from ..subscription import SubscriptionManager, get_plan_comparison
+        from ..ai_handler import AIHandler
         from ..distro_detector import detector
-        from ..database_manager import get_user_profile
-        from ..config import CREDIT_PACKAGES
         
         sub_manager = SubscriptionManager(self.user_id)
         
         while self._running:
-            # Get fresh status
+            # Refresh context
             sub_manager.refresh()
-            status = sub_manager.get_status_display()
+            ai_handler = AIHandler(self.user_id)
+            mode = ai_handler.get_mode()
             
-            # Show menu
-            console.print("\n")
-            console.print(f"[bold cyan]╔{'═' * 48}╗[/bold cyan]")
-            console.print(f"[bold cyan]║[/bold cyan]{'KALIROOT CLI':^48}[bold cyan]║[/bold cyan]")
-            console.print(f"[bold cyan]║[/bold cyan]{detector.get_distro_emoji()} {detector.get_distro_name():^45}[bold cyan]║[/bold cyan]")
-            console.print(f"[bold cyan]╠{'═' * 48}╣[/bold cyan]")
-            console.print(f"[bold cyan]║[/bold cyan] 👤 [white]{self.username}[/white]")
-            console.print(f"[bold cyan]║[/bold cyan] {status}")
-            console.print(f"[bold cyan]╠{'═' * 48}╣[/bold cyan]")
+            self._render_dashboard(sub_manager, mode, detector)
             
-            print_menu_option("1", "Consultar IA", "🤖")
-            print_menu_option("2", "Mi Saldo", "💰")
-            print_menu_option("3", "Suscripción Premium", "💎")
-            print_menu_option("4", "Comprar Créditos", "🛒")
-            print_menu_option("5", "Mi Perfil", "👤")
-            print_menu_option("6", "Configuración", "⚙️")
-            print_menu_option("7", "Ayuda", "❓")
-            print_menu_option("0", "Salir", "🚪")
-            
-            console.print(f"[bold cyan]╚{'═' * 48}╝[/bold cyan]")
-            
-            choice = get_input("\nOpción: ")
+            choice = get_input("Select Option")
             
             if choice == "1":
-                self._ai_chat(sub_manager)
+                self._ai_interface(sub_manager, ai_handler)
             elif choice == "2":
                 self._show_balance(sub_manager)
             elif choice == "3":
@@ -86,235 +65,196 @@ class MainMenu:
             elif choice == "7":
                 self._show_help()
             elif choice == "0":
-                if confirm("¿Seguro que quieres salir?"):
+                if confirm("Exit KaliRoot CLI?"):
                     self._running = False
-                    console.print("\n[cyan]👋 ¡Hasta pronto, hacker![/cyan]\n")
+                    console.print("\n[bold cyan]👋 Session Terminated.[/bold cyan]\n")
             else:
-                print_error("Opción no válida")
-    
-    def _ai_chat(self, sub_manager) -> None:
-        """AI chat mode."""
-        from ..ai_handler import get_ai_response
+                print_error("Invalid option")
+
+    def _render_dashboard(self, sub_manager, mode, detector):
+        """Render the main professional dashboard."""
+        console.clear()
         
-        print_header("ASISTENTE IA KALIROOT")
+        # Top Status Bar
+        status_color = "green" if sub_manager.is_premium else "yellow"
+        mode_str = mode.value.upper()
         
-        if sub_manager.is_premium:
-            console.print("[green]👑 Modo Premium: Consultas ilimitadas[/green]\n")
+        grid = Table.grid(expand=True)
+        grid.add_column(justify="left", ratio=1)
+        grid.add_column(justify="right", ratio=1)
+        
+        grid.add_row(
+            f"[bold cyan]👤 USER:[/bold cyan] {self.username.upper()}",
+            f"[bold {status_color}]● {mode_str} MODE[/bold {status_color}]"
+        )
+        
+        console.print(Panel(grid, style="blue", box=box.HEAVY))
+        
+        # System status
+        sys_info = detector.get_system_info()
+        console.print(f"[dim]SYSTEM: {sys_info['distro']} | SHELL: {sys_info['shell']} | ROOT: {sys_info['root']}[/dim]")
+        print_divider()
+        
+        # Menu Options
+        print_menu_option("1", "AI OPERATIONS", "Execute security queries & generate scripts")
+        print_menu_option("2", "WALLET & CREDITS", f"Balance: {sub_manager.credits} credits")
+        print_menu_option("3", "UPGRADE PLAN", "Unlock Operational Mode")
+        print_menu_option("4", "BUY CREDITS", "Top up your balance")
+        print_menu_option("5", "PROFILE", "User details & History")
+        print_menu_option("6", "SETTINGS", "Configuration")
+        print_menu_option("7", "MANUAL", "Help & Documentation")
+        print_menu_option("0", "EXIT", "Terminate session")
+        
+        print_divider()
+
+    def _ai_interface(self, sub_manager, ai_handler) -> None:
+        """Professional AI Interface."""
+        mode = ai_handler.get_mode().value.upper()
+        
+        print_header(f"AI CONSOLE [{mode}]")
+        
+        if not sub_manager.is_premium:
+            print_info("Running in CONSULTATION MODE (Free).")
+            console.print("[dim]Limited to explanations. Upgrade for script generation.[/dim]\n")
         else:
-            console.print(f"[yellow]💰 Créditos disponibles: {sub_manager.credits}[/yellow]\n")
+            print_success("OPERATIONAL MODE ACTIVE. Full capability unlocked.")
         
-        console.print("[dim]Escribe tu pregunta. Usa 'salir' para volver al menú.[/dim]\n")
+        console.print("[dim]Type 'exit' to return to dashboard.[/dim]\n")
         
         while True:
-            query = get_input("🔍 ")
+            query = get_input("CMD/QUERY")
             
-            if query.lower() in ['salir', 'exit', 'q', 'quit']:
+            if query.lower() in ['exit', 'quit', 'back']:
                 break
             
             if not query:
                 continue
             
-            with show_loading("Pensando..."):
-                response = get_ai_response(self.user_id, query)
+            with show_loading("Analyzing request & Generating response..."):
+                response = ai_handler.get_response(query)
             
-            print_ai_response(response)
+            print_ai_response(response, mode)
             
-            # Refresh credits after query
+            # Refresh credits
             sub_manager.refresh()
-            
             if not sub_manager.is_premium:
-                console.print(f"[dim]Créditos restantes: {sub_manager.credits}[/dim]\n")
-    
+                console.print(f"[dim]Remaining Credits: {sub_manager.credits}[/dim]\n")
+
     def _show_balance(self, sub_manager) -> None:
-        """Show balance and subscription info."""
-        print_header("MI SALDO")
+        """Show balance."""
+        print_header("WALLET STATUS")
         
         details = sub_manager.get_subscription_details()
         
-        table = Table(box=box.ROUNDED, show_header=False)
-        table.add_column("", style="cyan")
-        table.add_column("", style="white")
+        table = Table(box=box.SIMPLE)
+        table.add_column("Resource", style="cyan")
+        table.add_column("Value", style="white bold")
         
-        table.add_row("💰 Créditos", str(details["credits"]))
-        table.add_row("📋 Estado", "Premium 💎" if details["is_premium"] else "Free")
+        table.add_row("Credits", str(details["credits"]))
+        table.add_row("Plan", "PREMIUM" if details["is_premium"] else "FREE")
         
         if details["is_premium"]:
-            table.add_row("📅 Días restantes", str(details["days_left"]))
+            table.add_row("Expires In", f"{details['days_left']} days")
         
         console.print(table)
-        console.print("")
-        
-        get_input("Presiona Enter para continuar...")
-    
+        get_input("Press Enter...")
+
     def _subscription_menu(self, sub_manager) -> None:
-        """Subscription menu."""
+        """Subscription Upgrade."""
         from ..subscription import get_plan_comparison
         
-        print_header("SUSCRIPCIÓN PREMIUM")
+        print_header("UPGRADE TO OPERATIONAL")
         
         if sub_manager.is_premium:
-            console.print("[green]✅ Ya eres usuario Premium![/green]\n")
-            details = sub_manager.get_subscription_details()
-            console.print(f"📅 Tu suscripción expira en [cyan]{details['days_left']}[/cyan] días.\n")
-            get_input("Presiona Enter para continuar...")
+            print_success("You are already on the PREMIUM Plan.")
             return
         
-        # Show plan comparison
         console.print(get_plan_comparison())
         
-        console.print("\n[bold]¿Deseas activar Premium?[/bold]\n")
-        print_menu_option("1", "Sí, activar Premium ($10/mes)")
-        print_menu_option("0", "Volver")
-        
-        choice = get_input("\nOpción: ")
-        
-        if choice == "1":
+        if confirm("Initialize Upgrade Sequence ($10/mo)?"):
             sub_manager.start_subscription_flow()
-            console.print("\n[yellow]Una vez completado el pago, tu suscripción se activará automáticamente.[/yellow]")
-            console.print("[dim]Esto puede tomar unos minutos.[/dim]\n")
-            get_input("Presiona Enter para continuar...")
-    
+            get_input("Press Enter after payment...")
+
     def _credits_menu(self, sub_manager) -> None:
-        """Credits purchase menu."""
+        """Buy Credits."""
         from ..subscription import get_credits_packages_display
         from ..config import CREDIT_PACKAGES
         
-        print_header("COMPRAR CRÉDITOS")
-        
-        console.print(f"[dim]Saldo actual: {sub_manager.credits} créditos[/dim]\n")
-        
-        # Show packages
+        print_header("PURCHASE CREDITS")
         console.print(get_credits_packages_display())
         
-        console.print("\n[bold]Selecciona un paquete:[/bold]")
-        for i in range(len(CREDIT_PACKAGES)):
-            print_menu_option(str(i + 1), CREDIT_PACKAGES[i]["name"])
-        print_menu_option("0", "Volver")
-        
-        choice = get_input("\nOpción: ")
-        
-        if choice == "0":
-            return
+        choice = get_input("Select Package # (0 to cancel)")
+        if choice == "0": return
         
         try:
-            pkg_index = int(choice) - 1
-            if 0 <= pkg_index < len(CREDIT_PACKAGES):
-                sub_manager.start_credits_flow(pkg_index)
-                console.print("\n[yellow]Una vez completado el pago, los créditos se añadirán automáticamente.[/yellow]\n")
-                get_input("Presiona Enter para continuar...")
+            idx = int(choice) - 1
+            if 0 <= idx < len(CREDIT_PACKAGES):
+                sub_manager.start_credits_flow(idx)
+                get_input("Press Enter after payment...")
             else:
-                print_error("Opción no válida")
+                print_error("Invalid package")
         except ValueError:
-            print_error("Opción no válida")
-    
+            print_error("Invalid input")
+
     def _show_profile(self) -> None:
-        """Show user profile."""
-        from ..database_manager import get_user_profile, get_subscription_info
+        """Show Profile."""
+        from ..database_manager import get_user_profile
         
-        print_header("MI PERFIL")
-        
+        print_header("USER PROFILE")
         profile = get_user_profile(self.user_id)
-        sub_info = get_subscription_info(self.user_id)
         
         if profile:
-            table = Table(box=box.ROUNDED, show_header=False)
-            table.add_column("", style="cyan", width=20)
-            table.add_column("", style="white")
-            
-            table.add_row("👤 Username", profile.get("username", "N/A"))
-            table.add_row("🆔 ID", str(profile.get("id", "N/A"))[:8] + "...")
-            table.add_row("💰 Créditos", str(profile.get("credit_balance", 0)))
-            
-            if sub_info:
-                status = "Premium 💎" if sub_info.get("is_active") else "Free"
-                table.add_row("📋 Estado", status)
-                
-                if sub_info.get("is_active"):
-                    table.add_row("📅 Expira en", f"{sub_info.get('days_left', 0)} días")
-            
-            table.add_row("📆 Registrado", str(profile.get("created_at", "N/A"))[:10])
-            
-            console.print(table)
-        else:
-            print_error("No se pudo cargar el perfil")
-        
-        console.print("")
-        get_input("Presiona Enter para continuar...")
-    
+            console.print(Panel(
+                f"""
+[bold]Username:[/bold] {profile['username']}
+[bold]ID:[/bold] {profile['id']}
+[bold]Created:[/bold] {profile['created_at']}
+                """,
+                title="Account Details",
+                border_style="cyan"
+            ))
+        get_input("Press Enter...")
+
     def _settings_menu(self) -> None:
-        """Settings menu."""
+        """Settings."""
         from ..auth import auth_manager
         from ..distro_detector import detector
-        from ..config import get_config_status
         
-        print_header("CONFIGURACIÓN")
+        print_header("SYSTEM SETTINGS")
         
-        # Show system info
-        info = detector.get_system_info()
-        config_status = get_config_status()
+        # System Info Panel
+        sys_info = detector.get_system_info()
+        console.print(Panel(
+            f"""
+[bold]Distro:[/bold] {sys_info['distro']}
+[bold]Pkg Manager:[/bold] {sys_info['pkg_manager']}
+[bold]Data Dir:[/bold] {detector.get_data_dir()}
+            """,
+            title="Environment",
+            border_style="blue"
+        ))
         
-        table = Table(title="Sistema", box=box.ROUNDED, show_header=False)
-        table.add_column("", style="cyan")
-        table.add_column("", style="white")
-        
-        table.add_row("🖥️ Distribución", detector.get_distro_name())
-        table.add_row("🐍 Python", info.get("python", "N/A"))
-        table.add_row("💾 Datos", detector.get_data_dir())
-        
-        console.print(table)
-        console.print("")
-        
-        # Config status
-        table2 = Table(title="Servicios", box=box.ROUNDED, show_header=False)
-        table2.add_column("", style="cyan")
-        table2.add_column("", style="white")
-        
-        table2.add_row("🗄️ Supabase", "✅ Conectado" if config_status["supabase"] else "❌ No configurado")
-        table2.add_row("🤖 Groq AI", "✅ Activo" if config_status["groq"] else "❌ No configurado")
-        table2.add_row("💳 Pagos", "✅ Activo" if config_status["payments"] else "❌ No configurado")
-        
-        console.print(table2)
-        console.print("")
-        
-        print_menu_option("1", "Cerrar sesión", "🚪")
-        print_menu_option("0", "Volver")
-        
-        choice = get_input("\nOpción: ")
-        
-        if choice == "1":
-            if confirm("¿Cerrar sesión?"):
-                auth_manager.logout()
-                console.print("[green]Sesión cerrada exitosamente.[/green]")
-                self._running = False
-    
+        if confirm("Logout from this device?"):
+            auth_manager.logout()
+            self._running = False
+            print_success("Logged out.")
+
     def _show_help(self) -> None:
-        """Show help information."""
-        print_header("AYUDA")
-        
-        help_text = """
-[bold cyan]🤖 Consultar IA[/bold cyan]
-Accede al asistente de IA especializado en ciberseguridad.
-Pregunta sobre hacking, pentesting, Kali Linux, Termux y más.
+        """Help."""
+        print_header("OPERATIONAL MANUAL")
+        console.print("""
+[bold cyan]1. Consultation Mode (Free)[/bold cyan]
+- Theory, basic debugging, learning.
+- Rate limited.
 
-[bold cyan]💰 Créditos[/bold cyan]
-Cada consulta de IA consume 1 crédito (usuarios Free).
-Los usuarios Premium tienen consultas ilimitadas.
+[bold green]2. Operational Mode (Premium)[/bold green]
+- Script generation, full payload analysis.
+- Automation workflow.
+- Priority processing.
 
-[bold cyan]💎 Premium[/bold cyan]
-Por $10/mes obtienes:
-• Consultas ilimitadas
-• +250 créditos bonus mensuales
-• Soporte prioritario
-
-[bold cyan]🛒 Comprar Créditos[/bold cyan]
-Puedes comprar paquetes de créditos con criptomonedas (USDT).
-
-[bold cyan]⚙️ Comandos rápidos[/bold cyan]
-• Escribe 'ia' o 'ai' para ir directo al chat
-• Escribe 'salir' o 'q' para salir de cualquier sección
-
-[bold cyan]📞 Soporte[/bold cyan]
-Contacta en Telegram: @KaliRootHack
-"""
-        console.print(help_text)
-        get_input("\nPresiona Enter para continuar...")
+[bold yellow]Safety Guidelines[/bold yellow]
+- All actions are logged locally.
+- Do not use for illegal activities.
+- Ethics filters are active.
+        """)
+        get_input("Press Enter...")

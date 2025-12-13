@@ -4,7 +4,7 @@ Manages free vs premium tier gating and subscription status.
 """
 
 import logging
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import datetime
 
 from .database_manager import (
@@ -13,7 +13,7 @@ from .database_manager import (
     get_subscription_info,
     set_subscription_pending
 )
-from .payments import payment_manager, create_subscription_invoice, create_credits_invoice
+from .payments import PaymentManager, payment_manager, create_subscription_invoice, create_credits_invoice
 from .config import CREDIT_PACKAGES, SUBSCRIPTION_PRICE_USD
 
 logger = logging.getLogger(__name__)
@@ -24,162 +24,133 @@ class SubscriptionManager:
     
     def __init__(self, user_id: str):
         self.user_id = user_id
-        self._is_premium: Optional[bool] = None
-        self._credits: Optional[int] = None
+        self.is_premium: bool = False
+        self.credits: int = 0
+        self.expiry_date = None
+        self.payment_manager = PaymentManager()
+        self.refresh()
     
     def refresh(self) -> None:
-        """Refresh cached subscription status."""
-        self._is_premium = None
-        self._credits = None
-    
-    @property
-    def is_premium(self) -> bool:
-        """Check if user has premium subscription."""
-        if self._is_premium is None:
-            self._is_premium = is_user_subscribed(self.user_id)
-        return self._is_premium
-    
-    @property
-    def credits(self) -> int:
-        """Get user's credit balance."""
-        if self._credits is None:
-            self._credits = get_user_credits(self.user_id)
-        return self._credits
-    
-    def can_use_ai(self) -> bool:
-        """Check if user can use AI (has credits or is premium)."""
-        return self.is_premium or self.credits > 0
-    
-    def get_status_display(self) -> str:
-        """Get formatted status display."""
-        if self.is_premium:
-            info = get_subscription_info(self.user_id)
-            days_left = info.get("days_left", 0) if info else 0
-            return f"💎 Premium ({days_left} días restantes)"
-        else:
-            return f"🆓 Free ({self.credits} créditos)"
-    
-    def get_subscription_details(self) -> dict:
-        """Get detailed subscription info."""
-        info = get_subscription_info(self.user_id)
-        
-        if info is None:
-            return {
-                "status": "free",
-                "is_premium": False,
-                "credits": self.credits,
-                "days_left": 0,
-                "expiry_date": None
-            }
-        
+        """Syncs local state with backend source of truth."""
+        try:
+            profile = get_user_profile(self.user_id)
+            if not profile:
+                return
+            
+            self.credits = profile.get("credit_balance", 0)
+            
+            sub_status = check_subscription_status(self.user_id)
+            self.is_premium = sub_status["is_active"]
+            
+            if sub_status["expiry_date"]:
+                # Parse ISO format if string
+                if isinstance(sub_status["expiry_date"], str):
+                    try:
+                        self.expiry_date = datetime.fromisoformat(sub_status["expiry_date"].replace('Z', '+00:00'))
+                    except ValueError:
+                        self.expiry_date = None
+                else:
+                    self.expiry_date = sub_status["expiry_date"]
+                    
+        except Exception as e:
+            logger.error(f"Error refreshing subscription: {e}")
+
+    def get_subscription_details(self) -> Dict[str, Any]:
+        """Get formatted subscription details for UI."""
+        days_left = 0
+        if self.expiry_date:
+            delta = self.expiry_date - datetime.now(self.expiry_date.tzinfo)
+            days_left = max(0, delta.days)
+            
         return {
-            "status": info.get("status", "free"),
-            "is_premium": info.get("is_active", False),
             "credits": self.credits,
-            "days_left": info.get("days_left", 0),
-            "expiry_date": info.get("expiry_date")
+            "is_premium": self.is_premium,
+            "days_left": days_left,
+            "expiry_date": self.expiry_date.strftime("%Y-%m-%d") if self.expiry_date else "N/A"
         }
-    
-    def start_subscription_flow(self) -> Optional[str]:
-        """
-        Start subscription purchase flow.
+
+    def start_subscription_flow(self) -> None:
+        """Initiate the Premium subscription upgrade flow."""
+        try:
+            print_info("Connecting to Payment Gateway...")
+            
+            with show_loading("Generating Secure Invoice..."):
+                invoice = self.payment_manager.create_subscription_invoice(self.user_id)
+            
+            if not invoice or "invoice_url" not in invoice:
+                print_error("Failed to generate invoice. Try again later.")
+                return
+            
+            invoice_url = invoice["invoice_url"]
+            print_success(f"Invoice Generated: {invoice['id']}")
+            
+            if self.payment_manager.open_payment_url(invoice_url):
+                print_success("Browser opened. Please complete payment.")
+            else:
+                print_info(f"Please open this URL to pay: {invoice_url}")
+                
+        except Exception as e:
+            logger.error(f"Subscription flow error: {e}")
+            print_error("Transaction initialization failed.")
+
+    def start_credits_flow(self, package_index: int) -> None:
+        """Initiate credits purchase flow."""
+        if not (0 <= package_index < len(CREDIT_PACKAGES)):
+            print_error("Invalid package selection.")
+            return
+            
+        pkg = CREDIT_PACKAGES[package_index]
         
-        Returns:
-            Payment URL if successful, None on failure
-        """
-        from .ui.display import print_info, print_error, print_success, console
-        
-        print_info("Generando enlace de pago...")
-        
-        invoice = create_subscription_invoice(self.user_id)
-        
-        if not invoice or not invoice.get("invoice_url"):
-            print_error("Error al generar el enlace de pago")
-            return None
-        
-        # Set subscription as pending
-        set_subscription_pending(self.user_id, invoice.get("invoice_id", ""))
-        
-        url = invoice["invoice_url"]
-        
-        # Try to open browser
-        if payment_manager.open_payment_url(url):
-            print_success("✅ Navegador abierto con el enlace de pago")
-        else:
-            console.print(f"\n[yellow]No se pudo abrir el navegador automáticamente.[/yellow]")
-            console.print(f"[cyan]Copia y abre este enlace:[/cyan]")
-            console.print(f"[bold blue]{url}[/bold blue]\n")
-        
-        return url
-    
-    def start_credits_flow(self, package_index: int) -> Optional[str]:
-        """
-        Start credits purchase flow.
-        
-        Args:
-            package_index: Index of package in CREDIT_PACKAGES
-        
-        Returns:
-            Payment URL if successful, None on failure
-        """
-        from .ui.display import print_info, print_error, print_success, console
-        
-        if package_index < 0 or package_index >= len(CREDIT_PACKAGES):
-            print_error("Paquete no válido")
-            return None
-        
-        package = CREDIT_PACKAGES[package_index]
-        
-        print_info(f"Generando enlace para {package['credits']} créditos...")
-        
-        invoice = create_credits_invoice(
-            self.user_id,
-            package["credits"],
-            package["price"]
-        )
-        
-        if not invoice or not invoice.get("invoice_url"):
-            print_error("Error al generar el enlace de pago")
-            return None
-        
-        url = invoice["invoice_url"]
-        
-        # Try to open browser
-        if payment_manager.open_payment_url(url):
-            print_success("✅ Navegador abierto con el enlace de pago")
-        else:
-            console.print(f"\n[yellow]No se pudo abrir el navegador automáticamente.[/yellow]")
-            console.print(f"[cyan]Copia y abre este enlace:[/cyan]")
-            console.print(f"[bold blue]{url}[/bold blue]\n")
-        
-        return url
+        try:
+            print_info(f"Initiating purchase: {pkg['credits']} Credits for ${pkg['price']}")
+            
+            with show_loading("Generating Invoice..."):
+                invoice = self.payment_manager.create_credits_invoice(
+                    self.user_id, 
+                    pkg["credits"], 
+                    pkg["price"]
+                )
+            
+            if not invoice or "invoice_url" not in invoice:
+                print_error("Failed to generate invoice.")
+                return
+            
+            if self.payment_manager.open_payment_url(invoice["invoice_url"]):
+                print_success("Browser opened. Listening for completion...")
+            else:
+                print_info(f"Pay here: {invoice['invoice_url']}")
+                
+        except Exception as e:
+            logger.error(f"Credits flow error: {e}")
+            print_error("Purchase failed.")
+
+    def get_status_display(self) -> str:
+        """Get textual status for top bar."""
+        if self.is_premium:
+            return "[bold green]OPERATIONAL (PREMIUM)[/bold green]"
+        return f"[yellow]CONSULTATION (FREE) | {self.credits} Credits[/yellow]"
 
 
 def get_plan_comparison() -> str:
-    """Get formatted plan comparison table."""
-    from rich.table import Table
-    from rich import box
-    
-    table = Table(
-        title="💎 Planes Disponibles",
-        box=box.ROUNDED,
-        show_header=True,
-        header_style="bold cyan"
-    )
-    
-    table.add_column("Característica", style="white")
-    table.add_column("Free", style="yellow", justify="center")
-    table.add_column("Premium", style="green", justify="center")
-    
-    table.add_row("Consultas IA", "5/día", "∞ Ilimitadas")
-    table.add_row("Historial de Chat", "Limitado", "Completo")
-    table.add_row("Modo Sin Censura", "❌", "✅")
-    table.add_row("Soporte", "Comunidad", "Prioritario")
-    table.add_row("Créditos Bonus", "-", "+250/mes")
-    table.add_row("", "", "")
-    table.add_row("Precio", "$0", f"${SUBSCRIPTION_PRICE_USD}/mes")
-    
-    return table
+    """Return the comparison text for the UI."""
+    return """
+[bold cyan]─── CONSULTATION (FREE) ───[/bold cyan]
+ • Basic AI Q&A
+ • Educational Explanations
+ • Manual Execution
+ • Rate Limited
+ • 5 Daily Credits
+
+[bold green]─── OPERATIONAL (PREMIUM) ───[/bold green]
+ • [bold]Full Script Generation[/bold]
+ • [bold]Vulnerability Analysis[/bold]
+ • [bold]Automated Workflows[/bold]
+ • [bold]Priority Processing[/bold]
+ • [bold]Unlimited Queries[/bold]
+ • [bold]+250 Bonus Credits/mo[/bold]
+ 
+ PRICE: $10.00 / Month
+"""
 
 
 def get_credits_packages_display() -> str:

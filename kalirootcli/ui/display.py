@@ -1,76 +1,76 @@
 """
 Display utilities for KaliRoot CLI
-Uses Rich library for beautiful terminal output.
+Professional terminal output using Rich library.
 """
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 from rich import box
-
+from rich.layout import Layout
+from rich.prompt import Prompt, Confirm
 
 # Global console instance
 console = Console()
 
 
 def print_error(message: str) -> None:
-    """Print error message."""
-    console.print(f"[red]❌ {message}[/red]")
+    """Print professional error message."""
+    console.print(f"[bold red]❌ ERROR:[/bold red] {message}")
 
 
 def print_success(message: str) -> None:
     """Print success message."""
-    console.print(f"[green]✅ {message}[/green]")
+    console.print(f"[bold green]✅ SUCCESS:[/bold green] {message}")
 
 
 def print_warning(message: str) -> None:
     """Print warning message."""
-    console.print(f"[yellow]⚠️  {message}[/yellow]")
+    console.print(f"[bold yellow]⚠️  WARNING:[/bold yellow] {message}")
 
 
 def print_info(message: str) -> None:
     """Print info message."""
-    console.print(f"[cyan]ℹ️  {message}[/cyan]")
+    console.print(f"[bold blue]ℹ️  INFO:[/bold blue] {message}")
 
 
 def print_banner() -> None:
-    """Print the application banner."""
-    banner_text = """
-╔═══════════════════════════════════════════════════════════╗
-║                                                           ║
-║   ██╗  ██╗ █████╗ ██╗     ██╗██████╗  ██████╗  ██████╗████████╗   ║
-║   ██║ ██╔╝██╔══██╗██║     ██║██╔══██╗██╔═══██╗██╔═══██╗╚══██╔══╝   ║
-║   █████╔╝ ███████║██║     ██║██████╔╝██║   ██║██║   ██║   ██║      ║
-║   ██╔═██╗ ██╔══██║██║     ██║██╔══██╗██║   ██║██║   ██║   ██║      ║
-║   ██║  ██╗██║  ██║███████╗██║██║  ██║╚██████╔╝╚██████╔╝   ██║      ║
-║   ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝╚═╝  ╚═╝ ╚═════╝  ╚═════╝    ╚═╝      ║
-║                                                           ║
-║            💀 CLI Edition - Termux & Kali Linux 💀        ║
-║                                                           ║
-╚═══════════════════════════════════════════════════════════╝
-"""
-    console.print(banner_text, style="bold cyan")
+    """Print the professional application banner."""
+    banner = """
+    ██╗  ██╗ █████╗ ██╗     ██╗██████╗  ██████╗  ██████╗ ████████╗
+    ██║  ██║██╔══██╗██║     ██║██╔══██╗██╔═══██╗██╔═══██╗╚══██╔══╝
+    █████╔╝███████║██║     ██║██████╔╝██║   ██║██║   ██║   ██║   
+    ██╔═██╗██╔══██║██║     ██║██╔══██╗██║   ██║██║   ██║   ██║   
+    ██║  ██╗██║  ██║███████╗██║██║  ██║╚██████╔╝╚██████╔╝   ██║   
+    ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝╚═╝  ╚═╝ ╚═════╝  ╚═════╝    ╚═╝   
+             >>> ADVANCED SECURITY OPERATIONS CLI <<<
+    """
+    console.print(Panel(
+        Text(banner, style="bold cyan", justify="center"),
+        box=box.HEAVY,
+        border_style="blue",
+        title="[bold white]v1.0.0[/bold white]"
+    ))
 
 
-def print_mini_banner() -> None:
-    """Print a smaller banner for menus."""
-    console.print("\n[bold cyan]═══ KALIROOT CLI ═══[/bold cyan]\n")
-
-
-def print_divider(char: str = "─", width: int = 50) -> None:
-    """Print a divider line."""
-    console.print(f"[dim]{char * width}[/dim]")
+def print_divider(title: str = "") -> None:
+    """Print a divider with optional title."""
+    if title:
+        console.rule(f"[bold cyan]{title}[/bold cyan]")
+    else:
+        console.rule(style="dim blue")
 
 
 def print_header(title: str) -> None:
-    """Print a section header."""
-    console.print(f"\n[bold cyan]═══ {title} ═══[/bold cyan]\n")
+    """Print a main section header."""
+    console.print(f"\n[bold white on blue] {title.upper()} [/bold white on blue]\n")
 
 
-def print_menu_option(number: str, text: str, emoji: str = "") -> None:
-    """Print a menu option."""
-    emoji_str = f"{emoji} " if emoji else ""
-    console.print(f"  [cyan]{number}.[/cyan] {emoji_str}{text}")
+def print_menu_option(number: str, text: str, description: str = "") -> None:
+    """Print a menu option with description."""
+    console.print(f" [cyan bold]{number}[/cyan bold] › [white bold]{text}[/white bold]")
+    if description:
+        console.print(f"    [dim]{description}[/dim]")
 
 
 def print_panel(content: str, title: str = "", style: str = "cyan") -> None:
@@ -79,18 +79,23 @@ def print_panel(content: str, title: str = "", style: str = "cyan") -> None:
         content,
         title=f"[bold]{title}[/bold]" if title else None,
         border_style=style,
-        box=box.ROUNDED
+        box=box.ROUNDED,
+        padding=(1, 2)
     ))
 
 
-def print_ai_response(response: str) -> None:
-    """Print AI response in a styled panel."""
+def print_ai_response(response: str, mode: str = "CONSULTATION") -> None:
+    """Print AI response in a styled panel based on mode."""
+    color = "green" if mode == "OPERATIONAL" else "cyan"
+    icon = "💀" if mode == "OPERATIONAL" else "🤖"
+    
     console.print("\n")
     console.print(Panel(
         response,
-        title="[bold cyan]💀 KaliRoot AI[/bold cyan]",
-        border_style="cyan",
-        box=box.DOUBLE
+        title=f"[bold {color}]{icon} KALIROOT AI [{mode}][/bold {color}]",
+        border_style=color,
+        box=box.ROUNDED,
+        padding=(1, 2)
     ))
     console.print("\n")
 
@@ -100,17 +105,17 @@ def clear_screen() -> None:
     console.clear()
 
 
-def get_input(prompt: str = ">>> ") -> str:
+def get_input(prompt: str = "") -> str:
     """Get user input with styled prompt."""
-    return console.input(f"[bold cyan]{prompt}[/bold cyan]").strip()
+    return Prompt.ask(f"[bold cyan]?[/bold cyan] {prompt}")
 
 
 def confirm(message: str) -> bool:
     """Ask for confirmation."""
-    response = console.input(f"[yellow]{message} (s/n): [/yellow]").strip().lower()
-    return response in ['s', 'si', 'sí', 'y', 'yes']
+    return Confirm.ask(f"[bold yellow]?[/bold yellow] {message}")
 
 
-def show_loading(message: str = "Cargando..."):
-    """Show loading spinner."""
-    return console.status(f"[cyan]{message}[/cyan]", spinner="dots")
+def show_loading(message: str = "Processing..."):
+    """Show professional loading spinner."""
+    return console.status(f"[bold cyan]{message}[/bold cyan]", spinner="dots")
+

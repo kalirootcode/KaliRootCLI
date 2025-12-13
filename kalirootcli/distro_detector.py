@@ -1,186 +1,227 @@
 """
 Distribution Detector for KaliRoot CLI
-Detects whether running on Termux, Kali Linux, or generic Linux
-and provides environment-specific functionality.
+Professional grade system detection for security context awareness.
 """
 
 import os
+import shutil
 import subprocess
 import platform
-from typing import Literal
+import logging
+from dataclasses import dataclass
+from typing import Literal, Optional
 
-DistroType = Literal["termux", "kali", "linux"]
+# Setup logger
+logger = logging.getLogger(__name__)
 
+DistroType = Literal["termux", "kali", "debian", "ubuntu", "generic"]
+
+@dataclass
+class SystemContext:
+    """Detailed system context for AI awareness."""
+    distro: DistroType
+    is_rooted: bool
+    pkg_manager: str  # 'apt', 'pkg', 'dnf', etc.
+    shell: str        # 'bash', 'zsh', 'fish'
+    has_sudo: bool
+    home_dir: str
+    username: str
 
 class DistroDetector:
-    """Detects the current Linux distribution/environment."""
+    """
+    Advanced system detector.
+    Analyzes environment to provide accurate context for security operations.
+    """
     
     _instance = None
-    _distro: DistroType = None
+    _context: Optional[SystemContext] = None
     
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance._detect()
+            cls._instance._analyze()
         return cls._instance
     
-    def _detect(self) -> None:
-        """Detect the current environment."""
-        # Check for Termux
-        prefix = os.environ.get("PREFIX", "")
-        if "/com.termux/" in prefix or os.path.exists("/data/data/com.termux"):
-            self._distro = "termux"
-            return
-        
-        # Check for Kali Linux
+    def _analyze(self) -> None:
+        """Perform deep system analysis."""
+        try:
+            # 1. Detect Distro
+            distro_type = self._detect_distro_type()
+            
+            # 2. Check Root/Sudo
+            is_rooted = os.geteuid() == 0
+            has_sudo = shutil.which("sudo") is not None
+            
+            # 3. Detect Package Manager
+            pkg_manager = self._detect_pkg_manager(distro_type)
+            
+            # 4. Detect Shell
+            shell_path = os.environ.get("SHELL", "/bin/bash")
+            shell_name = os.path.basename(shell_path)
+            
+            # 5. User Info
+            username = os.environ.get("USER", "unknown")
+            home = os.path.expanduser("~")
+            
+            self._context = SystemContext(
+                distro=distro_type,
+                is_rooted=is_rooted,
+                has_sudo=has_sudo,
+                pkg_manager=pkg_manager,
+                shell=shell_name,
+                home_dir=home,
+                username=username
+            )
+            
+            logger.info(f"System Context: {self._context}")
+            
+        except Exception as e:
+            logger.error(f"Error analyzing system: {e}")
+            # Fallback safe context
+            self._context = SystemContext(
+                distro="generic",
+                is_rooted=False,
+                has_sudo=False,
+                pkg_manager="unknown",
+                shell="bash",
+                home_dir="/tmp",
+                username="unknown"
+            )
+    
+    def _detect_distro_type(self) -> DistroType:
+        """Identify specific distribution."""
+        # Termux check (most distinct)
+        if "/com.termux/" in os.environ.get("PREFIX", "") or os.path.exists("/data/data/com.termux"):
+            return "termux"
+            
+        # Linux checks
         try:
             if os.path.exists("/etc/os-release"):
                 with open("/etc/os-release", "r") as f:
                     content = f.read().lower()
                     if "kali" in content:
-                        self._distro = "kali"
-                        return
+                        return "kali"
+                    elif "ubuntu" in content:
+                        return "ubuntu"
+                    elif "debian" in content:
+                        return "debian"
         except Exception:
             pass
+            
+        return "generic"
+    
+    def _detect_pkg_manager(self, distro: DistroType) -> str:
+        """Identify available package manager."""
+        if distro == "termux":
+            return "pkg"
+            
+        managers = ["apt", "dnf", "pacman", "yum"]
+        for mgr in managers:
+            if shutil.which(mgr):
+                return mgr
         
-        # Default to generic Linux
-        self._distro = "linux"
+        return "unknown"
+    
+    @property
+    def context(self) -> SystemContext:
+        """Get the full system context."""
+        return self._context
     
     @property
     def distro(self) -> DistroType:
-        """Get detected distribution."""
-        return self._distro
+        return self._context.distro
     
     def is_termux(self) -> bool:
-        """Check if running on Termux."""
-        return self._distro == "termux"
+        return self._context.distro == "termux"
     
     def is_kali(self) -> bool:
-        """Check if running on Kali Linux."""
-        return self._distro == "kali"
-    
+        return self._context.distro == "kali"
+        
     def get_data_dir(self) -> str:
-        """
-        Get the data directory for storing session and config.
-        Creates directory if it doesn't exist.
-        """
-        if self._distro == "termux":
+        """Get secure data directory."""
+        if self.is_termux():
             prefix = os.environ.get("PREFIX", "/data/data/com.termux/files/usr")
             data_dir = os.path.join(prefix, "var", "lib", "kalirootcli")
         else:
-            home = os.path.expanduser("~")
-            data_dir = os.path.join(home, ".local", "share", "kalirootcli")
+            data_dir = os.path.join(self._context.home_dir, ".local", "share", "kalirootcli")
         
         os.makedirs(data_dir, exist_ok=True)
         return data_dir
-    
+        
     def get_config_dir(self) -> str:
-        """
-        Get the config directory.
-        Creates directory if it doesn't exist.
-        """
-        if self._distro == "termux":
+        """Get secure config directory."""
+        if self.is_termux():
             prefix = os.environ.get("PREFIX", "/data/data/com.termux/files/usr")
             config_dir = os.path.join(prefix, "etc", "kalirootcli")
         else:
-            home = os.path.expanduser("~")
-            config_dir = os.path.join(home, ".config", "kalirootcli")
+            config_dir = os.path.join(self._context.home_dir, ".config", "kalirootcli")
         
         os.makedirs(config_dir, exist_ok=True)
         return config_dir
-    
+
     def get_session_file(self) -> str:
-        """Get path to session file."""
         return os.path.join(self.get_data_dir(), "session.json")
     
     def open_url(self, url: str) -> bool:
-        """
-        Open a URL in the default browser.
-        Uses termux-open-url on Termux, xdg-open on Linux.
-        
-        Returns True if successful, False otherwise.
-        """
+        """Secure URL opener."""
         try:
-            if self._distro == "termux":
-                # Try termux-open-url first
-                result = subprocess.run(
-                    ["termux-open-url", url],
-                    capture_output=True,
-                    timeout=5
-                )
-                if result.returncode == 0:
+            if self.is_termux():
+                # Termux specific opener
+                if shutil.which("termux-open-url"):
+                    subprocess.run(["termux-open-url", url], check=False)
                     return True
-                
-                # Fallback to am start
+                # Fallback to Android Intent
                 subprocess.run(
                     ["am", "start", "-a", "android.intent.action.VIEW", "-d", url],
-                    capture_output=True,
-                    timeout=5
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    check=False
                 )
                 return True
             else:
-                # Linux - use xdg-open
-                subprocess.run(
-                    ["xdg-open", url],
-                    capture_output=True,
-                    timeout=5
-                )
-                return True
+                # Desktop Linux
+                if shutil.which("xdg-open"):
+                    subprocess.run(["xdg-open", url], check=False)
+                    return True
+                return False
         except Exception:
             return False
-    
+
     def get_system_info(self) -> dict:
-        """Get system information for display."""
-        info = {
-            "distro": self._distro,
-            "platform": platform.system(),
-            "release": platform.release(),
-            "python": platform.python_version(),
+        """Format system info for display."""
+        ctx = self._context
+        return {
+            "distro": ctx.distro.title(),
+            "root": "✅ Yes" if ctx.is_rooted else "❌ No",
+            "pkg_manager": ctx.pkg_manager,
+            "shell": ctx.shell,
+            "user": ctx.username
         }
-        
-        if self._distro == "termux":
-            info["prefix"] = os.environ.get("PREFIX", "N/A")
-        
-        return info
-    
-    def get_distro_name(self) -> str:
-        """Get human-readable distro name."""
-        names = {
-            "termux": "Termux (Android)",
-            "kali": "Kali Linux",
-            "linux": "Linux",
-        }
-        return names.get(self._distro, "Unknown")
-    
+
     def get_distro_emoji(self) -> str:
-        """Get emoji for the distro."""
         emojis = {
             "termux": "📱",
             "kali": "🐉",
-            "linux": "🐧",
+            "ubuntu": "🟠",
+            "debian": "🌀"
         }
-        return emojis.get(self._distro, "💻")
+        return emojis.get(self._context.distro, "💻")
+
+    def get_distro_name(self) -> str:
+        names = {
+            "termux": "Termux (Android)",
+            "kali": "Kali Linux",
+            "ubuntu": "Ubuntu Linux",
+            "debian": "Debian Linux"
+        }
+        return names.get(self._context.distro, "Generic Linux")
 
 
-# Singleton instance
+# Global instance
 detector = DistroDetector()
 
-
-def detect() -> DistroType:
-    """Convenience function to detect distro."""
-    return detector.distro
-
-
-def is_termux() -> bool:
-    """Convenience function to check if Termux."""
-    return detector.is_termux()
-
-
-def is_kali() -> bool:
-    """Convenience function to check if Kali."""
-    return detector.is_kali()
-
-
-def open_url(url: str) -> bool:
-    """Convenience function to open URL."""
-    return detector.open_url(url)
+# Convenience exports
+detect = lambda: detector.distro
+is_termux = detector.is_termux
+is_kali = detector.is_kali
+open_url = detector.open_url
