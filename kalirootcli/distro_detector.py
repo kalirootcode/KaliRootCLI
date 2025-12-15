@@ -168,7 +168,7 @@ class DistroDetector:
             if self.is_termux():
                 # Termux specific opener
                 if shutil.which("termux-open-url"):
-                    subprocess.run(["termux-open-url", url], check=False)
+                    subprocess.run(["termux-open-url", url], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                     return True
                 # Fallback to Android Intent
                 subprocess.run(
@@ -179,11 +179,14 @@ class DistroDetector:
                 )
                 return True
             else:
-                # Desktop Linux
-                if shutil.which("xdg-open"):
-                    subprocess.run(["xdg-open", url], check=False)
-                    return True
-                return False
+                # Desktop Linux, macOS, Windows
+                if sys.platform == 'darwin':
+                    subprocess.run(['open', url], check=False, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+                elif sys.platform == 'win32':
+                    os.startfile(url)
+                else: # Generic Linux
+                    subprocess.run(['xdg-open', url], check=False, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+                return True
         except Exception:
             return False
 

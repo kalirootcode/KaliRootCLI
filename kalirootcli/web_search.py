@@ -23,7 +23,7 @@ try:
 except ImportError:
     DDGS = None
     SEARCH_AVAILABLE = False
-    logger.warning("duckduckgo-search not installed. Web search disabled.")
+    logger.warning("ddgs not installed. Web search disabled. Install with: pip install ddgs")
 
 
 @dataclass

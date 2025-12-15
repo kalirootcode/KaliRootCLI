@@ -34,12 +34,19 @@ source venv/bin/activate
 python3 install.py
 ```
 
+### Termux Prerequisites
+Before installing on Termux, you must install build dependencies for lxml and primp (Rust):
+```bash
+pkg update && pkg upgrade
+pkg install python libxml2 libxslt clang cmake rust build-essential binutils
+```
+
 ### What `install.py` does:
 1. Installs all required dependencies (AI, Web Search, Visualization)
 2. Detects your shell (`bash` or `zsh`)
 3. Adds aliases so you can use commands from anywhere:
    - `kaliroot` -> Launch main CLI
-   - `kt-cli` -> Smart command wrapper
+   - `kr-cli` -> Smart command wrapper
 
 Don't forget to configure your API keys:
 ```bash

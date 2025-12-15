@@ -721,62 +721,203 @@ class AgentFileManager:
     def __init__(self, base_dir: str = None):
         """
         Initialize the file manager.
-        
-        Args:
-            base_dir: Base directory for projects (default: ~/kalirootcli_projects)
         """
         self.base_dir = base_dir or os.path.expanduser("~/kalirootcli_projects")
+        self.current_project = None
         os.makedirs(self.base_dir, exist_ok=True)
     
-    def create_file(
-        self, 
-        filename: str, 
-        content: str, 
-        directory: str = None,
-        make_executable: bool = False
-    ) -> FileCreationResult:
+    def set_project(self, project_name: str):
+        """Set the active project context."""
+        self.current_project = project_name
+        
+    def get_project_path(self) -> str:
+        """Get current project path."""
+        if not self.current_project:
+            return self.base_dir
+        return os.path.join(self.base_dir, self.current_project)
+
+    def read_project_context(self) -> str:
+        """Read all text files in current project to provide context to AI."""
+        if not self.current_project:
+            return ""
+            
+        context = []
+        project_path = self.get_project_path()
+        
+        if not os.path.exists(project_path):
+            return ""
+            
+        for root, _, files in os.walk(project_path):
+            for file in files:
+                if file.startswith(".") or file.endswith((".pyc", ".git", ".png")):
+                    continue
+                    
+                path = os.path.join(root, file)
+                try:
+                    rel_path = os.path.relpath(path, project_path)
+                    with open(path, "r", encoding="utf-8") as f:
+                        content = f.read()
+                        # Limit large files
+                        if len(content) > 10000:
+                            content = content[:10000] + "\n... (truncated)"
+                        context.append(f"--- File: {rel_path} ---\n{content}\n")
+                except Exception:
+                    pass # Skip binary or unreadable
+                    
+        return "\n".join(context)
+
+    def run_task(self, instruction: str) -> dict:
         """
-        Create a new file with content.
+        Execute a development task (Create or Edit) using AI.
         
         Args:
-            filename: Name of the file to create
-            content: Content to write
-            directory: Target directory (default: base_dir)
-            make_executable: Whether to make the file executable
+            instruction: User instruction
             
         Returns:
-            FileCreationResult with status and path
+            Dict with success, message and type (created/edited)
         """
+        from .api_client import api_client
+        from .distro_detector import detector
+        import json
+        import re
+        
         try:
-            target_dir = directory or self.base_dir
-            os.makedirs(target_dir, exist_ok=True)
+            # 1. Get current code context if project exists
+            current_code = self.read_project_context()
             
-            filepath = os.path.join(target_dir, filename)
+            project_context_prompt = ""
+            if self.current_project:
+                project_context_prompt = f"""
+                ACTIVE PROJECT: {self.current_project}
+                
+                CURRENT CODEBASE STATE:
+                {current_code}
+                
+                INSTRUCTION: Update the existing code or create new files based on: "{instruction}"
+                """
+            else:
+                project_context_prompt = f"""
+                NEW PROJECT REQUEST: "{instruction}"
+                """
+
+            # 2. Ask AI - Using Custom Delimiter Format (More Robust than JSON for code)
+            query = f"""
+            {project_context_prompt}
             
-            # Create parent directories if needed
-            parent = os.path.dirname(filepath)
-            if parent:
-                os.makedirs(parent, exist_ok=True)
+            ACT AS A SENIOR DEVELOPER.
             
-            with open(filepath, "w", encoding="utf-8") as f:
-                f.write(content)
+            Return the response in this EXACT format (do not use JSON):
             
-            if make_executable:
-                os.chmod(filepath, 0o755)
+            PROJECT: {self.current_project or 'suggested_name_no_spaces'}
+            SUMMARY: One line explanation of changes.
             
-            logger.info(f"Created file: {filepath}")
-            return FileCreationResult(
-                success=True,
-                path=filepath,
-                message=f"✅ Archivo creado: {filepath}"
-            )
+            --- filename.ext ---
+            (Content of the file goes here)
+            
+            --- another_file.ext ---
+            (Content of another file)
+            
+            RULES:
+            1. Use '--- filename ---' as delimiter for every file.
+            2. If modifying a file, return the FULL NEW CONTENT.
+            3. Do not use markdown code blocks (```) for the delimiters, just plain text.
+            """
+            
+            result = api_client.ai_query(query, environment=detector.get_system_info())
+            
+            if not result["success"]:
+                return {"success": False, "error": result.get("error")}
+                
+            response_text = result["data"]["response"]
+            
+            # --- CUSTOM PARSER ---
+            lines = response_text.splitlines()
+            parsed_project = "generated_project"
+            parsed_summary = "Changes applied"
+            files_map = {}
+            
+            current_file = None
+            current_content = []
+            
+            for line in lines:
+                # Meta headers
+                if line.startswith("PROJECT:") and not current_file:
+                    parsed_project = line.replace("PROJECT:", "").strip()
+                    continue
+                if line.startswith("SUMMARY:") and not current_file:
+                    parsed_summary = line.replace("SUMMARY:", "").strip()
+                    continue
+                    
+                # File Delimiter Check (e.g. "--- main.py ---")
+                # We look for lines starting with --- and ending with ---
+                # But we must be careful not to catch separators inside code
+                if line.strip().startswith("--- ") and line.strip().endswith(" ---"):
+                    # Save previous file
+                    if current_file:
+                        files_map[current_file] = "\n".join(current_content).strip()
+                    
+                    # Start new file
+                    # Extract filename: "--- main.py ---" -> "main.py"
+                    current_file = line.strip()[4:-4].strip()
+                    current_content = []
+                    continue
+                
+                # If we are inside a file, append line
+                if current_file:
+                    current_content.append(line)
+            
+            # Save last file
+            if current_file and current_content:
+                files_map[current_file] = "\n".join(current_content).strip()
+            
+            if not files_map and not current_file:
+                 # Fallback: maybe the AI wrapped it in ``` ???
+                 # But let's assume it worked for now or return error
+                 return {"success": False, "error": "No files parsed from AI response. Format error."}
+
+            # 3. Apply Changes
+            self.set_project(parsed_project)
+            project_dir = self.get_project_path()
+            os.makedirs(project_dir, exist_ok=True)
+            
+            files_created = []
+            files_updated = []
+            
+            for filename, content in files_map.items():
+                # Remove markdown code blocks if AI added them inside the file content
+                if content.startswith("```"):
+                    content = "\n".join(content.splitlines()[1:])
+                if content.endswith("```"):
+                    content = "\n".join(content.splitlines()[:-1])
+                
+                full_path = os.path.join(project_dir, filename)
+                is_update = os.path.exists(full_path)
+                
+                # Ensure subdir
+                os.makedirs(os.path.dirname(full_path), exist_ok=True)
+                
+                with open(full_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+                    
+                if full_path.endswith(".py") or full_path.endswith(".sh"):
+                    os.chmod(full_path, 0o755)
+                    
+                if is_update:
+                    files_updated.append(filename)
+                else:
+                    files_created.append(filename)
+            
+            return {
+                "success": True, 
+                "project": parsed_project,
+                "created": files_created, 
+                "updated": files_updated,
+                "summary": parsed_summary
+            }
+            
         except Exception as e:
-            logger.error(f"Error creating file: {e}")
-            return FileCreationResult(
-                success=False,
-                error=str(e)
-            )
-    
+            return {"success": False, "error": str(e)}
+
     def create_from_template(
         self,
         template_name: str,

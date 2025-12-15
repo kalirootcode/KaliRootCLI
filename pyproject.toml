@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "kr-cli"
-version = "2.0.0"
-description = "Professional Cybersecurity Agents & CLI Assistant"
+name = "kr-cli-dominion"
+version = "3.0.1"
+description = "Advanced AI-Powered Security CLI - DOMINION Model"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
@@ -34,9 +34,7 @@ dependencies = [
     "requests>=2.31.0",
     "rich>=13.0.0",
     "python-dotenv>=1.0.0",
-    "ddgs>=6.0.0",
-    "Pillow>=10.0.0",
-    "matplotlib>=3.7.0",
+    # "ddgs>=6.0.0", # Optional
     "tiktoken>=0.5.0",
 ]
 
@@ -48,7 +46,7 @@ Issues = "https://github.com/kalirootcode/KaliRootCLI/issues"
 [project.scripts]
 kalirootcli = "kalirootcli.main:main"
 kaliroot = "kalirootcli.main:main"
-kt-cli = "kalirootcli.cli_wrapper:main"
+kr-cli = "kalirootcli.cli_wrapper:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

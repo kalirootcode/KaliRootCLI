@@ -2,7 +2,7 @@
 Main entry point for KaliRoot CLI
 Professional Cybersecurity CLI with AI, Web Search, and Agent Capabilities.
 
-Version: 2.0.0
+Version: 3.0.0 - DOMINION
 """
 
 import sys
@@ -81,6 +81,7 @@ def authenticate() -> bool:
             api_client.logout()
     
     while True:
+        console.clear()  # Clean presentation for auth menu
         console.print("\n[bold cyan]═══════════════════════════════════════[/bold cyan]")
         console.print("[bold cyan]           AUTENTICACIÓN KR-CLI          [/bold cyan]")
         console.print("[bold cyan]═══════════════════════════════════════[/bold cyan]\n")
@@ -770,6 +771,7 @@ def list_plans_menu():
 
 def upgrade_menu():
     """Handle premium upgrade."""
+    console.clear()  # Clean presentation
     print_header("⭐ UPGRADE A PREMIUM")
     
     console.print("""
@@ -785,12 +787,16 @@ def upgrade_menu():
 [bold]Precio: $10/mes (USDT)[/bold]
 """)
     
+    
     if confirm("¿Crear factura de pago?"):
         with show_loading("Generando factura..."):
             result = api_client.create_subscription_invoice()
         
         if result["success"]:
-            url = result["data"]["invoice_url"]
+            # Fix: data is directly in the root or in 'data' key depending on client version
+            # But based on api_client.py: return {"success": True, "invoice_url": ...}
+            url = result.get("invoice_url") or result.get("data", {}).get("invoice_url")
+            
             print_success("¡Factura creada!")
             console.print(f"\n[bold]URL de pago:[/bold]\n{url}\n")
             
@@ -798,12 +804,378 @@ def upgrade_menu():
                 print_info("Navegador abierto.")
             else:
                 print_info("Copia y abre la URL en tu navegador.")
-                
-            console.print("[dim]Después del pago, tu cuenta se actualizará automáticamente.[/dim]")
+            
+            print_warning("Tu cuenta se actualizará automáticamente al completar el pago.")
+            input("\nPresiona Enter para continuar...")
         else:
-            print_error(result["error"])
+            print_error(result.get("error", "Error creando factura"))
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MAIN MENU
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def main_menu():
+    """Main application menu."""
+    running = True
     
-    get_input("\nPresiona Enter para continuar...")
+    while running:
+        with show_loading("Cargando..."):
+            status_result = api_client.get_status()
+        
+        if not status_result["success"]:
+            print_error("Error de sesión. Por favor reinicia la aplicación.")
+            break
+        
+        status = status_result["data"]
+        sys_info = detector.get_system_info()
+        
+        console.clear()
+        
+        mode = "OPERATIVO" if status.get("is_premium") else "CONSULTA"
+        color = "green" if status.get("is_premium") else "yellow"
+        
+        # Header
+        print_header("KR-CLI v2.2")
+        
+        # System Info Panel
+        info_text = f"""
+Kali │ {sys_info['shell']} │ Root: {sys_info['root']}
+"""
+        print_panel(info_text.strip(), title="Sistema", style="blue")
+        
+        # User Status
+        console.print(f"\n👤 Usuario: [bold cyan]{status.get('username') or status.get('email')}[/bold cyan]")
+        console.print(f"⚙️  Modo: [bold {color}]{mode}[/bold {color}]")
+        console.print(f"💳 Créditos: [bold white]{status.get('credits', 0)}[/bold white]")
+        console.print(f"📦 Módulos: 🔍 Búsqueda Web │ 🤖 Agente\n")
+        
+        console.rule(style="dim blue")
+        
+        # Menu Options
+        print_menu_option("1", "🧠 CONSOLA AI", "Consultas de seguridad con búsqueda web")
+        print_menu_option("2", "🤖 MODO AGENTECREATOR", "Crear proyectos y herramientas desde cero")
+        print_menu_option("3", "⭐ UPGRADE", "Obtener acceso Premium")
+        print_menu_option("4", "⚙️  CONFIGURACIÓN", "Cuenta y ajustes")
+        print_menu_option("0", "🚪 SALIR")
+        
+        console.rule(style="dim blue")
+        
+        choice = get_input("Selecciona")
+        
+        if choice == "1":
+            ai_console_mode()
+            
+        elif choice == "2":
+            if AGENT_AVAILABLE:
+                agent_mode()
+            else:
+                print_error("El módulo Agente no está instalado correctamente.")
+                
+        elif choice == "3":
+            upgrade_menu()
+            
+        elif choice == "4":
+            logged_out = config_menu()
+            if logged_out:
+                print_info("Volviendo a la pantalla de autenticación...")
+                break  # Exit main_menu to return to authentication
+            
+        elif choice == "0":
+            if confirm("¿Salir de KaliRoot CLI?"):
+                running = False
+                print_success("¡Hasta pronto!")
+
+def ai_console_mode():
+    """Interactive AI Console with persistent chat sessions."""
+    from .chat_manager import ChatManager
+    
+    # Get username from status
+    status_res = api_client.get_status()
+    if not status_res["success"]:
+        print_error("No se pudo obtener información de usuario.")
+        return
+    
+    username = status_res["data"].get("username") or status_res["data"].get("email", "user")
+    chat_manager = ChatManager(username)
+    
+    # === CHAT SELECTION MENU ===
+    while True:
+        console.clear()
+        print_header("🧠 KR-CLI AI CONSOLE")
+        
+        chats = chat_manager.list_chats()
+        
+        if chats:
+            console.print("[bold cyan]Tus Chats:[/bold cyan]\n")
+            for i, chat in enumerate(chats[:10], 1):  # Show last 10
+                msg_count = chat["message_count"]
+                updated = chat["updated_at"][:16].replace("T", " ")
+                console.print(f" {i}. [bold]{chat['title']}[/bold]")
+                console.print(f"    [dim]{msg_count} mensajes | Actualizado: {updated}[/dim]")
+            console.print()
+        else:
+            console.print("[dim]No tienes chats aún. Crea uno nuevo para comenzar.[/dim]\n")
+        
+        print_menu_option("N", "Nuevo Chat", "Iniciar una conversación nueva")
+        if chats:
+            print_menu_option("1-10", "Abrir Chat", "Continuar una conversación existente")
+            print_menu_option("D", "Eliminar Chat", "Borrar un chat")
+        print_menu_option("0", "Volver", "Regresar al menú principal")
+        
+        console.rule(style="dim magenta")
+        choice = get_input("Selecciona").strip().lower()
+        
+        if choice == "0":
+            break
+        elif choice == "n":
+            title = get_input("Título del chat (Enter para auto)").strip()
+            session = chat_manager.create_chat(title if title else None)
+            run_chat_session(chat_manager, session)
+        elif choice == "d" and chats:
+            try:
+                idx = int(get_input("Número de chat a eliminar")) - 1
+                if 0 <= idx < len(chats):
+                    chat_id = chats[idx]["chat_id"]
+                    if confirm(f"¿Eliminar '{chats[idx]['title']}'?"):
+                        chat_manager.delete_chat(chat_id)
+                        print_success("Chat eliminado.")
+                        input("\nPresiona Enter...")
+            except ValueError:
+                pass
+        elif choice.isdigit() and chats:
+            idx = int(choice) - 1
+            if 0 <= idx < len(chats):
+                session = chat_manager.load_chat(chats[idx]["chat_id"])
+                if session:
+                    run_chat_session(chat_manager, session)
+
+
+def run_chat_session(chat_manager, session):
+    """
+    Run a continuous chat session.
+    
+    Args:
+        chat_manager: ChatManager instance
+        session: ChatSession to interact with
+    """
+    while True:
+        console.clear()
+        print_header(f"💬 {session.title}")
+        
+        # Display chat history
+        if session.messages:
+            console.print("[dim]─── Historial (últimos 8 mensajes) ───[/dim]\n")
+            
+            # Show last 8 messages with full content
+            display_messages = session.messages[-8:]
+            
+            for msg in display_messages:
+                role_style = "bold cyan" if msg["role"] == "user" else "bold magenta"
+                role_label = "Tú" if msg["role"] == "user" else "KR-AI"
+                
+                # Display complete message with proper formatting
+                from rich.panel import Panel
+                from rich.markdown import Markdown
+                
+                # Try to render as markdown for better formatting
+                try:
+                    content = Markdown(msg['content'])
+                except:
+                    content = msg['content']
+                
+                console.print(Panel(
+                    content,
+                    title=f"[{role_style}]{role_label}[/{role_style}]",
+                    border_style="bright_cyan" if msg["role"] == "user" else "bright_magenta",
+                    padding=(0, 1),
+                    expand=False
+                ))
+        
+        console.rule(style="dim violet")
+        console.print("[dim]Escribe '/exit' para volver | '/clear' para limpiar historial[/dim]\n")
+        
+        # Get user input
+        user_input = get_input("Tú").strip()
+        
+        if not user_input:
+            continue
+        
+        if user_input.lower() in ["/exit", "/quit", "0"]:
+            break
+        
+        if user_input.lower() == "/clear":
+            if confirm("¿Limpiar todo el historial de este chat?"):
+                session.messages = []
+                chat_manager.save_chat(session)
+                print_success("Historial limpiado.")
+            continue
+        
+        # Add user message to session
+        session.add_message("user", user_input)
+        
+        # Build context-aware prompt
+        context = chat_manager.get_chat_context(session, max_messages=8)
+        
+        prompt = f"""
+HISTORIAL DE CONVERSACIÓN:
+{context}
+
+Responde al último mensaje del usuario de forma natural y coherente con el contexto.
+        """
+        
+        # Query AI
+        with show_loading("KR-AI está pensando..."):
+            env = detector.get_system_info()
+            result = api_client.ai_query(prompt, env)
+        
+        if result["success"]:
+            data = result["data"]
+            ai_response = data.get("response", "")
+            
+            # Add AI response to session
+            session.add_message("assistant", ai_response)
+            
+            # Save session
+            chat_manager.save_chat(session)
+            
+            # Display response immediately with full content
+            from rich.panel import Panel
+            from rich.markdown import Markdown
+            
+            try:
+                response_content = Markdown(ai_response)
+            except:
+                response_content = ai_response
+            
+            console.print()
+            console.print(Panel(
+                response_content,
+                title="[bold magenta]KR-AI[/bold magenta]",
+                border_style="bright_magenta",
+                padding=(1, 2)
+            ))
+            console.print()
+            
+            if "credits_remaining" in data and data["credits_remaining"] is not None:
+                console.print(f"[dim]💳 Créditos: {data['credits_remaining']}[/dim]\n")
+        else:
+            print_error(f"Error: {result.get('error')}")
+            session.messages.pop()  # Remove user message if AI failed
+            input("\nPresiona Enter para continuar...")
+
+
+
+def config_menu():
+    """Configuration menu. Returns True if user logged out."""
+    while True:
+        status_res = api_client.get_status()
+        if not status_res["success"]:
+            return False
+            
+        data = status_res["data"]
+        
+        console.clear()
+        print_header("⚙️  CONFIGURACIÓN")
+        console.print(f"👤 Usuario: {data.get('username')}")
+        console.print(f"📧 Email: {data.get('email')}")
+        console.print(f"🆔 User ID: {data.get('user_id')}")
+        console.print(f"💳 Créditos: {data.get('credits')}")
+        console.print(f"📅 Suscripción: {data.get('subscription_status')}")
+        console.print("\n")
+        
+        print_menu_option("1", "Cerrar Sesión")
+        print_menu_option("0", "Volver")
+        
+        choice = get_input("Opción")
+        
+        if choice == "1":
+            if confirm("¿Cerrar sesión?"):
+                api_client.logout()
+                print_success("Sesión cerrada.")
+                input("\nPresiona Enter para volver al login...")
+                return True  # Return True to signal logout
+        elif choice == "0":
+            return False  # Return False for normal exit
+
+def agent_mode():
+    """Direct Agent Creation Mode with Iterative Session."""
+    status = api_client.get_status()["data"]
+    is_premium = status.get("is_premium", False)
+    
+    # Session state
+    current_context = "Nuevo Proyecto"
+    
+    while True:
+        console.clear()
+        print_header("🤖 KALIROOT AGENT CREATOR")
+        
+        if not is_premium:
+            console.print("[yellow]⚠️  Modo Free: La creación de proyectos consume créditos altos.[/yellow]")
+            console.print("[dim]Actualiza a Premium para uso ilimitado y soporte de proyectos complejos.[/dim]\n")
+        
+        # Display Context
+        if file_agent.current_project:
+            current_context = f"Proyecto Activo: [green]{file_agent.current_project}[/green]"
+            print_panel(
+                f"[bold]Proyecto:[/bold] {file_agent.current_project}\n[dim]{file_agent.get_project_path()}[/dim]",
+                title="Estado de Sesión",
+                style="green"
+            )
+        else:
+            console.print("[dim]No hay proyecto activo. Comienza describiendo uno nuevo.[/dim]\n")
+        
+        console.print("\n[bold cyan]Instrucciones:[/bold cyan]")
+        console.print(" • Describe un nuevo proyecto para crearlo.")
+        console.print(" • Si ya tienes uno activo, pide cambios (ej: 'añade un README', 'cambia el color').")
+        console.print(" • Escribe '0' para volver al menú principal.\n")
+        
+        instruction = get_input(f"Agente ({file_agent.current_project or 'Nuevo'})").strip()
+        
+        if instruction == "0":
+            break
+            
+        if not instruction:
+            continue
+            
+        # Execute Task
+        with show_loading("🤖 El Agente está trabajando (Planificando y Codificando)..."):
+            result = file_agent.run_task(instruction)
+        
+        if result["success"]:
+            # Success Output
+            console.print("\n[bold green]✅ Tarea Completada[/bold green]")
+            console.print(f"[dim]{result.get('summary')}[/dim]\n")
+            
+            if result.get("created"):
+                console.print("[bold]Archivos Creados:[/bold]")
+                for f in result["created"]:
+                    console.print(f"  [green]+ {f}[/green]")
+                    
+            if result.get("updated"):
+                console.print("[bold]Archivos Modificados:[/bold]")
+                for f in result["updated"]:
+                    console.print(f"  [yellow]~ {f}[/yellow]")
+            
+            # Update session context name if changed
+            if result.get("project"):
+                file_agent.set_project(result["project"])
+            
+            console.print("\n[dim]El contexto del proyecto se ha actualizado. Puedes pedir más cambios.[/dim]")
+            
+        else:
+            # Error Handling
+            error_msg = result.get("error", "Unknown error")
+            print_error(f"Fallo en la ejecución: {error_msg}")
+            
+            if "créditos" in error_msg.lower():
+                console.print("\n[bold yellow]¿Deseas recargar créditos y obtener acceso Premium?[/bold yellow]")
+                print_menu_option("1", "Comprar Ahora ($10/mes)")
+                print_menu_option("0", "Volver")
+                
+                if get_input("Opción") == "1":
+                    upgrade_menu()
+
+        input("\nPresiona Enter para continuar...")
 
 
 def settings_menu() -> bool:
@@ -847,10 +1219,13 @@ def settings_menu() -> bool:
 def main():
     """Application entry point."""
     try:
+        # Clear terminal for clean professional start
         console.clear()
+        
+        # Banner
         print_banner()
         
-        # Detect environment
+        # System info
         sys_info = detector.get_system_info()
         print_info(f"Sistema: {sys_info['distro']} │ {sys_info['shell']}")
         

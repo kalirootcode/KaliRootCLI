@@ -35,36 +35,58 @@ def print_info(message: str) -> None:
 
 
 def print_banner() -> None:
-    """Print the professional application banner."""
-    banner = """
-    ██╗  ██╗ █████╗ ██╗     ██╗██████╗  ██████╗  ██████╗ ████████╗
-    ██║  ██║██╔══██╗██║     ██║██╔══██╗██╔═══██╗██╔═══██╗╚══██╔══╝
-    █████╔╝███████║██║     ██║██████╔╝██║   ██║██║   ██║   ██║   
-    ██╔═██╗██╔══██║██║     ██║██╔══██╗██║   ██║██║   ██║   ██║   
-    ██║  ██╗██║  ██║███████╗██║██║  ██║╚██████╔╝╚██████╔╝   ██║   
-    ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝╚═╝  ╚═╝ ╚═════╝  ╚═════╝    ╚═╝   
-        >>> ADVANCED SECURITY OPERATIONS CLI v2.0 <<<
+    """Print the professional KR-CLI banner (DOMINION Edition)."""
+    # Centered, elegant KR-CLI ASCII
+    banner_text = """
+    ██╗  ██╗██████╗        ██████╗██╗     ██╗
+    ██║ ██╔╝██╔══██╗      ██╔════╝██║     ██║
+    █████╔╝ ██████╔╝█████╗██║     ██║     ██║
+    ██╔═██╗ ██╔══██╗╚════╝██║     ██║     ██║
+    ██║  ██╗██║  ██║      ╚██████╗███████╗██║
+    ╚═╝  ╚═╝╚═╝  ╚═╝       ╚═════╝╚══════╝╚═╝
     """
+    
+    from rich.style import Style
+    from rich.text import Text
+    from rich.align import Align
+    
+    # Create styled text with gradient
+    styled_text = Text(banner_text)
+    styled_text.stylize("bold bright_cyan", 0, 150)
+    styled_text.stylize("bold blue", 150, 300)
+    styled_text.stylize("bold bright_blue", 300, 450)
+    
+    # Center the banner
+    centered_banner = Align.center(styled_text)
+    
     console.print(Panel(
-        Text(banner, style="bold cyan", justify="center"),
-        box=box.HEAVY,
-        border_style="blue",
-        title="[bold white]v2.0.0[/bold white]",
-        subtitle="[dim]Web Search │ Agent │ Planner[/dim]"
+        centered_banner,
+        box=box.DOUBLE_EDGE,
+        border_style="bright_blue",
+        title="[bold white]✨ DOMINION v3.0 ✨[/bold white]",
+        subtitle="[italic bright_cyan]Advanced AI Security Operations[/italic bright_cyan]",
+        padding=(1, 2)
+    ))
+    
+    # Credits line
+    console.print(Align.center(
+        "[dim]Created by [bold cyan]Sebastian Lara[/bold cyan] - Security Manager & Developer[/dim]\n"
     ))
 
+    
+def print_header(title: str) -> None:
+    """Print a main section header (Gemini Style)."""
+    # Blue background instead of violet
+    console.print(f"\n[bold white on blue] ✨ {title.upper()} ✨ [/bold white on blue]\n")
 
 def print_divider(title: str = "") -> None:
     """Print a divider with optional title."""
     if title:
-        console.rule(f"[bold cyan]{title}[/bold cyan]")
+        console.rule(f"[bold violet]{title}[/bold violet]", style="magenta")
     else:
-        console.rule(style="dim blue")
+        console.rule(style="dim magenta")
 
 
-def print_header(title: str) -> None:
-    """Print a main section header."""
-    console.print(f"\n[bold white on blue] {title.upper()} [/bold white on blue]\n")
 
 
 def print_menu_option(number: str, text: str, description: str = "") -> None:
@@ -74,7 +96,7 @@ def print_menu_option(number: str, text: str, description: str = "") -> None:
         console.print(f"    [dim]{description}[/dim]")
 
 
-def print_panel(content: str, title: str = "", style: str = "cyan") -> None:
+def print_panel(content: str, title: str = "", style: str = "bright_magenta") -> None:
     """Print content in a panel."""
     console.print(Panel(
         content,

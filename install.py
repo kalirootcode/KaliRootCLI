@@ -61,7 +61,7 @@ def main():
         print(f"\n{GREEN}✔ Installation Complete!{NC}\n")
         print("You can now multiple commands from anywhere:")
         print(f"  {GREEN}kaliroot{NC}   -> Launch Main CLI")
-        print(f"  {GREEN}kt-cli{NC}     -> Smart Analysis Wrapper")
+        print(f"  {GREEN}kr-cli{NC}     -> Smart Analysis Wrapper")
         
         # Check venv info
         if sys.prefix != sys.base_prefix:
