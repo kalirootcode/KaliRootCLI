@@ -35,7 +35,7 @@ NOWPAYMENTS_API_KEY = os.getenv("NOWPAYMENTS_API_KEY", "")
 # Pricing
 SUBSCRIPTION_PRICE_USD = 20.0  # Premium subscription
 CREDITS_PRICE_USD = 10.0       # Credit pack
-CREDITS_AMOUNT = 200           # Credits per pack
+CREDITS_AMOUNT = 300           # Credits per pack (updated to 300)
 SUBSCRIPTION_DAYS = 30
 PREMIUM_BONUS_CREDITS = 500    # Premium bonus credits
 
@@ -495,7 +495,7 @@ async def create_credits_invoice(req: CreditsRequest, user: dict = Depends(get_c
         raise HTTPException(status_code=500, detail="Payment service not configured")
     
     # Validate credit packs
-    valid_packs = {10: 200, 20: 500}  # amount -> credits
+    valid_packs = {10: 300, 20: 500}  # amount -> credits (updated)
     if req.amount not in valid_packs:
         raise HTTPException(status_code=400, detail="Invalid credit pack")
     
@@ -650,7 +650,22 @@ async def nowpayments_webhook(request: Request):
                 "current_invoice_id": None
             }).eq("id", user_id).execute()
             
-            logger.info(f"Subscription activated for user {user_id}")
+            logger.info(f"Subscription activated for user {user_id} with {PREMIUM_BONUS_CREDITS} bonus credits")
+        
+        elif payment_type == "credits":
+            # Add purchased credits
+            credits_to_add = payment.get("credits_amount", 0)
+            
+            # Get current credits
+            user_result = supabase_admin.table("cli_users").select("credit_balance").eq("id", user_id).execute()
+            current_credits = user_result.data[0]["credit_balance"] if user_result.data else 0
+            
+            supabase_admin.table("cli_users").update({
+                "credit_balance": current_credits + credits_to_add
+            }).eq("id", user_id).execute()
+            
+            logger.info(f"Added {credits_to_add} credits to user {user_id}. New balance: {current_credits + credits_to_add}")
+
         
         # Log audit event
         supabase_admin.table("cli_audit_log").insert({
