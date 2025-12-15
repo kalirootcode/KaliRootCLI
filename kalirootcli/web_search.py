@@ -7,23 +7,46 @@ Features:
 - Security-focused searches
 - News and CVE lookups
 - No API key required
+
+Termux Compatible: Falls back to BeautifulSoup when ddgs unavailable
 """
 
 import logging
-from typing import List, Dict, Optional
+import requests
+from typing import List, Dict, Optional, Any, TYPE_CHECKING
+if TYPE_CHECKING:
+    from duckduckgo_search import DDGS
+else:
+    DDGS = Any
 from dataclasses import dataclass
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-# Try to import duckduckgo_search
+# Try to import duckduckgo_search (may fail on Termux)
 try:
     from duckduckgo_search import DDGS
-    SEARCH_AVAILABLE = True
+    DDGS_AVAILABLE = True
 except ImportError:
     DDGS = None
-    SEARCH_AVAILABLE = False
-    logger.warning("ddgs not installed. Web search disabled. Install with: pip install ddgs")
+    DDGS_AVAILABLE = False
+    logger.info("duckduckgo-search not available, using fallback")
+
+# Try to import BeautifulSoup for fallback
+try:
+    from bs4 import BeautifulSoup
+    BS4_AVAILABLE = True
+except ImportError:
+    BS4_AVAILABLE = False
+    logger.warning("BeautifulSoup not available. Web search disabled.")
+
+# At least one search method must be available
+SEARCH_AVAILABLE = DDGS_AVAILABLE or BS4_AVAILABLE
+
+
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning, module="kalirootcli.web_search")
+warnings.filterwarnings("ignore", message=".*renamed to `ddgs`.*")
 
 
 @dataclass
@@ -58,7 +81,7 @@ class WebSearchAgent:
     @property
     def ddgs(self) -> Optional[DDGS]:
         """Lazy initialization of DDGS client."""
-        if not SEARCH_AVAILABLE:
+        if not DDGS_AVAILABLE or DDGS is None:
             return None
         if self._ddgs is None:
             self._ddgs = DDGS(timeout=self.timeout)
@@ -67,7 +90,7 @@ class WebSearchAgent:
     @property
     def is_available(self) -> bool:
         """Check if web search is available."""
-        return SEARCH_AVAILABLE and self.ddgs is not None
+        return SEARCH_AVAILABLE
     
     def search(
         self, 
@@ -86,10 +109,20 @@ class WebSearchAgent:
         Returns:
             List of SearchResult objects
         """
-        if not self.is_available:
-            logger.warning("Web search not available")
+        # Try DDGS first (PC/Linux with compiled dependencies)
+        if DDGS_AVAILABLE and self.ddgs is not None:
+            return self._search_ddgs(query, region, safesearch)
+        
+        # Fallback to BeautifulSoup (Termux compatible)
+        elif BS4_AVAILABLE:
+            return self._search_fallback(query)
+        
+        else:
+            logger.warning("No web search method available")
             return []
-            
+    
+    def _search_ddgs(self, query: str, region: str, safesearch: str) -> List[SearchResult]:
+        """Search using official ddgs library (requires compilation)."""
         try:
             results = list(self.ddgs.text(
                 query, 
@@ -101,14 +134,57 @@ class WebSearchAgent:
             return [
                 SearchResult(
                     title=r.get("title", ""),
-                    body=r.get("body", ""),
                     url=r.get("href", ""),
-                    source=self._extract_domain(r.get("href", ""))
+                    snippet=r.get("body", ""),
+                    source="DuckDuckGo"
                 )
                 for r in results
             ]
         except Exception as e:
-            logger.error(f"Web search error: {e}")
+            logger.error(f"DDGS search error: {e}")
+            return []
+    
+    def _search_fallback(self, query: str) -> List[SearchResult]:
+        """Fallback search using requests + BeautifulSoup (Termux compatible)."""
+        try:
+            # Use DuckDuckGo HTML version (no JavaScript needed)
+            url = "https://html.duckduckgo.com/html/"
+            params = {"q": query}
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36"
+            }
+            
+            response = requests.post(url, data=params, headers=headers, timeout=self.timeout)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            results = []
+            
+            # Parse search results from HTML
+            for result_div in soup.find_all('div', class_='result', limit=self.max_results):
+                try:
+                    title_tag = result_div.find('a', class_='result__a')
+                    snippet_tag = result_div.find('a', class_='result__snippet')
+                    
+                    if title_tag:
+                        title = title_tag.get_text(strip=True)
+                        url = title_tag.get('href', '')
+                        snippet = snippet_tag.get_text(strip=True) if snippet_tag else ""
+                        
+                        results.append(SearchResult(
+                            title=title,
+                            url=url,
+                            snippet=snippet,
+                            source="DuckDuckGo (Fallback)"
+                        ))
+                except Exception as e:
+                    logger.debug(f"Error parsing result: {e}")
+                    continue
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"Fallback search error: {e}")
             return []
     
     def search_news(

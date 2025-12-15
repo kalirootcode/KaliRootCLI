@@ -40,6 +40,17 @@ def get_supabase() -> Client:
     
     return _supabase
 
+# Suppress Supabase/postgrest warnings
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="supabase")
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="postgrest")
+warnings.filterwarnings("ignore", message="The 'timeout' parameter is deprecated")
+warnings.filterwarnings("ignore", message="The 'verify' parameter is deprecated")
+
+# Pydantic warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
+warnings.filterwarnings("ignore", message=".*extra='ignore'.*")
+
 
 def test_connection() -> bool:
     """Test database connection."""

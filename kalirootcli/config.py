@@ -4,10 +4,22 @@ Loads environment variables and provides configuration constants
 """
 
 import os
+import pathlib
 from dotenv import load_dotenv
 
-# Load .env file
+# Logic for global config path (consistent with api_client)
+if os.path.exists("/data/data/com.termux"):
+    GLOBAL_CONFIG_DIR = pathlib.Path.home() / ".krcli"
+else:
+    GLOBAL_CONFIG_DIR = pathlib.Path.home() / ".config" / "krcli"
+
+# 1. Load from current dir (Priority)
 load_dotenv()
+
+# 2. Load from global config (Fallback)
+global_env = GLOBAL_CONFIG_DIR / ".env"
+if global_env.exists():
+    load_dotenv(global_env)
 
 # ===== SUPABASE =====
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip() or None

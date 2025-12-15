@@ -1,6 +1,7 @@
 """
 Display utilities for KaliRoot CLI
 Professional terminal output using Rich library.
+Enhanced with pyfiglet and theme colors from logo.
 """
 
 from rich.console import Console
@@ -9,14 +10,37 @@ from rich.text import Text
 from rich import box
 from rich.layout import Layout
 from rich.prompt import Prompt, Confirm
+from rich.align import Align
+from rich.style import Style
+
+# Try to import pyfiglet
+try:
+    import pyfiglet
+    PYFIGLET_AVAILABLE = True
+except ImportError:
+    PYFIGLET_AVAILABLE = False
 
 # Global console instance
 console = Console()
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# THEME COLORS (Based on skull image)
+# ═══════════════════════════════════════════════════════════════════════════════
+STYLE_BG = "rgb(0,0,0)"              # Black background
+STYLE_WHITE = "rgb(255,255,255)"      # White - main skull
+STYLE_ORANGE_RED = "rgb(255,69,0)"    # Orange-Red - glitch top
+STYLE_YELLOW = "rgb(255,165,0)"       # Yellow-Orange - transition
+STYLE_CYAN = "rgb(0,206,209)"         # Cyan - glitch bottom
+STYLE_PINK = "rgb(255,105,180)"       # Pink accent (optional)
+
+# Legacy aliases for compatibility
+STYLE_RED = STYLE_ORANGE_RED
+STYLE_ORANGE = STYLE_YELLOW
+
 
 def print_error(message: str) -> None:
     """Print professional error message."""
-    console.print(f"[bold red]❌ ERROR:[/bold red] {message}")
+    console.print(f"[bold {STYLE_ORANGE_RED}]❌ ERROR:[/bold {STYLE_ORANGE_RED}] {message}")
 
 
 def print_success(message: str) -> None:
@@ -26,35 +50,49 @@ def print_success(message: str) -> None:
 
 def print_warning(message: str) -> None:
     """Print warning message."""
-    console.print(f"[bold yellow]⚠️  WARNING:[/bold yellow] {message}")
+    console.print(f"[bold {STYLE_YELLOW}]⚠️  WARNING:[/bold {STYLE_YELLOW}] {message}")
 
 
 def print_info(message: str) -> None:
     """Print info message."""
-    console.print(f"[bold blue]ℹ️  INFO:[/bold blue] {message}")
+    console.print(f"[bold {STYLE_CYAN}]ℹ️  INFO:[/bold {STYLE_CYAN}] {message}")
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BANNER ASSETS
+# ═══════════════════════════════════════════════════════════════════════════════
+BANNER_ASCII = """
+██╗  ██╗██████╗        ██████╗██╗     ██╗
+██║ ██╔╝██╔══██╗      ██╔════╝██║     ██║
+█████╔╝ ██████╔╝█████╗██║     ██║     ██║
+██╔═██╗ ██╔══██╗╚════╝██║     ██║     ██║
+██║  ██╗██║  ██║      ╚██████╗███████╗██║
+╚═╝  ╚═╝╚═╝  ╚═╝       ╚═════╝╚══════╝╚═╝
+"""
 
 def print_banner() -> None:
     """Print the professional KR-CLI banner (DOMINION Edition)."""
-    # Centered, elegant KR-CLI ASCII
-    banner_text = """
-    ██╗  ██╗██████╗        ██████╗██╗     ██╗
-    ██║ ██╔╝██╔══██╗      ██╔════╝██║     ██║
-    █████╔╝ ██████╔╝█████╗██║     ██║     ██║
-    ██╔═██╗ ██╔══██╗╚════╝██║     ██║     ██║
-    ██║  ██╗██║  ██║      ╚██████╗███████╗██║
-    ╚═╝  ╚═╝╚═╝  ╚═╝       ╚═════╝╚══════╝╚═╝
-    """
     
-    from rich.style import Style
-    from rich.text import Text
-    from rich.align import Align
+    # Always use custom ASCII
+    banner_text = BANNER_ASCII
     
-    # Create styled text with gradient
-    styled_text = Text(banner_text)
-    styled_text.stylize("bold bright_cyan", 0, 150)
-    styled_text.stylize("bold blue", 150, 300)
-    styled_text.stylize("bold bright_blue", 300, 450)
+    # Apply gradient coloring to banner lines
+    lines = banner_text.strip().split("\n")
+    styled_text = Text()
+    
+    total_lines = len(lines)
+    for i, line in enumerate(lines):
+        progress = i / max(total_lines - 1, 1)
+        
+        # Gradient: red -> orange -> cyan
+        if progress < 0.33:
+            style = f"bold {STYLE_RED}"
+        elif progress < 0.66:
+            style = f"bold {STYLE_ORANGE}"
+        else:
+            style = f"bold {STYLE_CYAN}"
+        
+        styled_text.append(line + "\n", style=style)
     
     # Center the banner
     centered_banner = Align.center(styled_text)
@@ -62,16 +100,19 @@ def print_banner() -> None:
     console.print(Panel(
         centered_banner,
         box=box.DOUBLE_EDGE,
-        border_style="bright_blue",
-        title="[bold white]✨ DOMINION v3.0 ✨[/bold white]",
-        subtitle="[italic bright_cyan]Advanced AI Security Operations[/italic bright_cyan]",
+        border_style=STYLE_RED,
+        title=f"[bold white]💀 DOMINION v3.0 💀[/bold white]",
+        subtitle=f"[italic {STYLE_CYAN}]Advanced AI Security Operations[/italic {STYLE_CYAN}]",
         padding=(1, 2)
     ))
     
-    # Credits line
-    console.print(Align.center(
-        "[dim]Created by [bold cyan]Sebastian Lara[/bold cyan] - Security Manager & Developer[/dim]\n"
-    ))
+    # Credits line with theme colors
+    credits = Text()
+    credits.append("Created by ", style="dim")
+    credits.append("Sebastian Lara", style=f"bold {STYLE_CYAN}")
+    credits.append(" - Security Manager & Developer", style="dim")
+    console.print(Align.center(credits))
+    console.print()
 
     
 def print_header(title: str) -> None:
@@ -179,6 +220,13 @@ def clear_screen() -> None:
     console.clear()
 
 
+def clear_and_show_banner() -> None:
+    """Clear screen and redisplay banner (for menu returns)."""
+    console.clear()
+    from .splash import print_banner
+    print_banner()
+
+
 def get_input(prompt: str = "") -> str:
     """Get user input with styled prompt."""
     return Prompt.ask(f"[bold cyan]?[/bold cyan] {prompt}")
@@ -192,4 +240,3 @@ def confirm(message: str) -> bool:
 def show_loading(message: str = "Processing..."):
     """Show professional loading spinner."""
     return console.status(f"[bold cyan]{message}[/bold cyan]", spinner="dots")
-

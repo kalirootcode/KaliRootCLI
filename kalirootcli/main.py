@@ -2,12 +2,16 @@
 Main entry point for KaliRoot CLI
 Professional Cybersecurity CLI with AI, Web Search, and Agent Capabilities.
 
-Version: 3.4.0 - DOMINION
+Version: 5.0.2 - DOMINION
 """
 
 import sys
 import logging
 from getpass import getpass
+import warnings
+# Suppress ResourceWarning for cleaner CLI output
+warnings.simplefilter("ignore", ResourceWarning)
+
 from typing import Dict, Any
 
 from .api_client import api_client
@@ -26,7 +30,8 @@ from .ui.display import (
     print_ai_response,
     get_input,
     confirm,
-    print_panel
+    print_panel,
+    clear_and_show_banner
 )
 
 # Import new modules
@@ -334,6 +339,7 @@ def ai_console(status: Dict[str, Any]):
         query = get_input("🔮 Query")
         
         if query.lower() in ['exit', 'quit', 'back', 'salir']:
+            clear_and_show_banner()
             break
         
         if not query:
@@ -417,6 +423,7 @@ def ai_console(status: Dict[str, Any]):
                 sub_choice = get_input("¿Qué deseas hacer?")
                 if sub_choice == "1":
                     upgrade_menu()
+                clear_and_show_banner()
                 return  # Exit chat session
             else:
                 print_error(error_msg)
@@ -521,6 +528,7 @@ def agent_menu():
     if not AGENT_AVAILABLE:
         print_error("El módulo de agente no está disponible. Instala las dependencias.")
         get_input("Presiona Enter para continuar...")
+        clear_and_show_banner()
         return
     
     while True:
@@ -547,6 +555,7 @@ def agent_menu():
         elif choice == "4":
             show_templates()
         elif choice == "0":
+            clear_and_show_banner()
             break
 
 
@@ -595,6 +604,7 @@ def create_script_menu():
         print_error(result.error)
     
     get_input("\nPresiona Enter para continuar...")
+    clear_and_show_banner()
 
 
 def create_project_menu():
@@ -661,6 +671,7 @@ def create_project_menu():
         print_error(result["error"])
     
     get_input("\nPresiona Enter para continuar...")
+    clear_and_show_banner()
 
 
 def list_projects_menu():
@@ -712,6 +723,7 @@ def show_templates():
         console.print(f"  [dim]{info}[/dim]\n")
     
     get_input("Presiona Enter para continuar...")
+    clear_and_show_banner()
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -723,6 +735,7 @@ def planner_menu():
     if not AGENT_AVAILABLE:
         print_error("El módulo de planificación no está disponible.")
         get_input("Presiona Enter para continuar...")
+        clear_and_show_banner()
         return
     
     while True:
@@ -744,6 +757,7 @@ def planner_menu():
         elif choice == "3":
             list_plans_menu()
         elif choice == "0":
+            clear_and_show_banner()
             break
 
 
@@ -820,6 +834,7 @@ def list_plans_menu():
             console.print(f"   [dim]{p['path']}[/dim]\n")
     
     get_input("\nPresiona Enter para continuar...")
+    clear_and_show_banner()
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1556,10 +1571,22 @@ def settings_menu() -> bool:
 def main():
     """Application entry point."""
     try:
-        # Clear terminal for clean professional start
-        console.clear()
+        # Import animated splash
+        try:
+            from .ui.splash import animated_splash
+            SPLASH_AVAILABLE = True
+        except ImportError:
+            SPLASH_AVAILABLE = False
         
-        # Banner
+        # Check for --no-splash or -q flag
+        skip_splash = "--no-splash" in sys.argv or "-q" in sys.argv
+        
+        # Animated splash screen (5 second cinematic intro)
+        if SPLASH_AVAILABLE and not skip_splash:
+            animated_splash(skip_animation=False, duration=5.0)
+        
+        # Clear and show main banner
+        console.clear()
         print_banner()
         
         # System info

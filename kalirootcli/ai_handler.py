@@ -5,6 +5,7 @@ Professional AI Assistant with Consultation & Operational modes.
 
 import logging
 import re
+import json
 from enum import Enum
 from typing import Optional, Tuple
 from groq import Groq
@@ -32,6 +33,11 @@ class AIMode(Enum):
     CONSULTATION = "consultation"   # Free: Explanations, basic help
     OPERATIONAL = "operational"     # Premium: Scripts, analysis, complex flows
 
+
+from .rag_engine import KnowledgeBase
+
+# Initialize RAG
+rag = KnowledgeBase()
 
 class AIHandler:
     """
@@ -66,32 +72,28 @@ class AIHandler:
     def get_response(self, query: str) -> str:
         """
         Get professional AI response.
-        
-        Args:
-            query: User's technical query or command request
-            
-        Returns:
-            Formatted response string
         """
         if not groq_client:
             return FALLBACK_AI_TEXT
         
         mode = self.get_mode()
         
-        # Check if free user is trying to generate complex scripts (basic keyword check)
-        # Ideally this would be handled by the AI prompting, but we can do a quick check
+        # Check for complex scripts if free
         if mode == AIMode.CONSULTATION:
             if any(k in query.lower() for k in ["script", "exploit", "código completo", "generate"]):
-                # We don't block it, but the AI prompt will be strictly "consultation"
                 pass 
         
         try:
-            # Get conversation history
-            history = get_chat_history(self.user_id, limit=6)
+            # 1. RAG RETRIEVAL (The "Thought" Process)
+            # Check local memory for known vulnerabilities associated with the query
+            rag_context = rag.get_context(query)
             
-            # Build professional prompt
+            # Get conversation history (Reduced to save tokens)
+            history = get_chat_history(self.user_id, limit=3)
+            
+            # Build professional prompt with RAG injected
             system_prompt = self._build_system_prompt(mode)
-            user_prompt = self._build_user_context(query, history)
+            user_prompt = self._build_user_context(query, history, rag_context)
             
             response = groq_client.chat.completions.create(
                 model=GROQ_MODEL,
@@ -99,7 +101,7 @@ class AIHandler:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.3 if mode == AIMode.OPERATIONAL else 0.5, # More precise for scripts
+                temperature=0.3 if mode == AIMode.OPERATIONAL else 0.5,
                 max_tokens=3000,
                 top_p=0.95
             )
@@ -117,6 +119,58 @@ class AIHandler:
         except Exception as e:
             logger.error(f"AI Critical Error: {e}")
             return "❌ Error crítico en el servicio de IA. Por favor intenta más tarde."
+
+    def analyze_command_output(self, command: str, output: str) -> str:
+        """
+        Analyze command output WITHOUT chat history contamination.
+        This is for kr-cli command analysis only.
+        """
+        if not groq_client:
+            return FALLBACK_AI_TEXT
+        
+        mode = self.get_mode()
+        
+        try:
+            # RAG context for the command output
+            rag_context = rag.get_context(output)
+            
+            # Build system prompt
+            system_prompt = self._build_system_prompt(mode)
+            
+            # Build focused analysis prompt WITHOUT history
+            analysis_prompt = f"""[COMANDO EJECUTADO]
+{command}
+
+{rag_context}
+
+[SALIDA DEL COMANDO]
+{output}
+
+[TAREA]
+Analiza SOLO la salida de este comando. Identifica vulnerabilidades, puertos abiertos, servicios detectados y sugiere próximos pasos técnicos.
+NO respondas preguntas generales. SOLO analiza el output técnico."""
+            
+            response = groq_client.chat.completions.create(
+                model=GROQ_MODEL,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": analysis_prompt}
+                ],
+                temperature=0.2,  # Low temp for focused analysis
+                max_tokens=2000,
+                top_p=0.90
+            )
+            
+            if response.choices and response.choices[0].message.content:
+                raw_text = response.choices[0].message.content
+                # DO NOT save to shared chat history
+                return self.format_for_terminal(raw_text)
+            
+            return FALLBACK_AI_TEXT
+            
+        except Exception as e:
+            logger.error(f"Command Analysis Error: {e}")
+            return "❌ Error analizando comando. Intenta de nuevo."
 
     def _build_system_prompt(self, mode: AIMode) -> str:
         """
@@ -197,11 +251,13 @@ Respondes directamente desde una terminal. Tu objetivo es ser una herramienta OP
 
         return f"{persona}\n{env_info}\n{mode_instructions}\n{ethics}\n{fmt}"
 
-    def _build_user_context(self, query: str, history: str) -> str:
-        """Combine history and query."""
+    def _build_user_context(self, query: str, history: str, rag_context: str = "") -> str:
+        """Combine history, query, and RAG context."""
         return f"""
 [HISTORIAL RECIENTE]
 {history}
+
+{rag_context}
 
 [PETICIÓN ACTUAL]
 {query}
@@ -242,6 +298,53 @@ Respondes directamente desde una terminal. Tu objetivo es ser una herramienta OP
         return text
 
 
+    def analyze_session_for_report(self, history: str) -> dict:
+        """
+        Analyze chat history and generate a structured JSON report.
+        """
+        if not groq_client:
+            return {}
+            
+        system_prompt = """
+        You are a Cybersecurity Reporting Engine. 
+        Analyze the provided command usage and AI responses.
+        Generate a structured JSON output describing the session.
+        
+        Output format (JSON ONLY):
+        {
+            "summary": "High-level executive summary of what was done...",
+            "findings": [
+                {"name": "Vulnerability Name", "severity": "HIGH/MEDIUM/LOW", "location": "URL/IP", "status": "Open"}
+            ],
+            "remediation": [
+                "Step 1 to fix...",
+                "Step 2..."
+            ]
+        }
+        """
+        
+        try:
+            response = groq_client.chat.completions.create(
+                model="llama3-70b-8192", # Use larger model for reporting if available, else standard
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Analyze this session history:\n{history}"}
+                ],
+                temperature=0.2, # Low temp for structured JSON
+                response_format={"type": "json_object"} # JSON mode
+            )
+            
+            content = response.choices[0].message.content
+            return json.loads(content)
+            
+        except Exception as e:
+            logger.error(f"Report generation error: {e}")
+            return {
+                "summary": "Error analyzing session logic.",
+                "findings": [],
+                "remediation": ["Manual review required."]
+            }
+
 def get_ai_response(user_id: str, query: str) -> str:
     """Convenience function."""
     handler = AIHandler(user_id)
@@ -251,4 +354,5 @@ def get_ai_response(user_id: str, query: str) -> str:
         return f"[red]❌ Acceso Denegado: {reason}[/red]"
     
     return handler.get_response(query)
+
 

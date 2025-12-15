@@ -9,11 +9,49 @@ from typing import Dict, List, Optional
 NVD_API = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 
 
+import json
+import os
+import time
+from datetime import datetime
+
+# Local cache file
+CACHE_FILE = os.path.join(os.path.dirname(__file__), "cve_cache.json")
+CACHE_EXPIRY_DAYS = 30
+
+def _load_cache() -> Dict:
+    """Load local CVE cache."""
+    if not os.path.exists(CACHE_FILE):
+        return {}
+    try:
+        with open(CACHE_FILE, "r") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def _save_cache(cache: Dict) -> None:
+    """Save to local CVE cache."""
+    try:
+        with open(CACHE_FILE, "w") as f:
+            json.dump(cache, f, indent=2)
+    except Exception:
+        pass
+
 def search_cve(keyword: str, limit: int = 5) -> List[Dict]:
     """
-    Search CVE database by keyword.
+    Search CVE database by keyword (Cached).
     Returns list of CVEs with id, description, severity.
     """
+    cache = _load_cache()
+    
+    # Check cache first
+    # Simple cache logic: key = keyword
+    if keyword in cache:
+        entry = cache[keyword]
+        # Check expiry (optional, but good practice)
+        saved_at = entry.get("timestamp", 0)
+        if time.time() - saved_at < (CACHE_EXPIRY_DAYS * 86400):
+            return entry.get("results", [])
+    
     try:
         params = {
             "keywordSearch": keyword,
@@ -23,7 +61,7 @@ def search_cve(keyword: str, limit: int = 5) -> List[Dict]:
         response = requests.get(NVD_API, params=params, timeout=15)
         
         if response.status_code != 200:
-            return []
+            return cache.get(keyword, {}).get("results", []) # Return stale cache if API fails
         
         data = response.json()
         vulnerabilities = data.get("vulnerabilities", [])
@@ -55,10 +93,18 @@ def search_cve(keyword: str, limit: int = 5) -> List[Dict]:
                 "score": score
             })
         
+        # Save to cache
+        cache[keyword] = {
+            "timestamp": time.time(),
+            "results": results
+        }
+        _save_cache(cache)
+        
         return results
         
     except Exception as e:
-        return [{"error": str(e)}]
+        # On connection error, try to return mostly relevant cached data if possible or empty
+        return cache.get(keyword, {}).get("results", [{"error": str(e)}])
 
 
 def format_cve_results(results: List[Dict]) -> str:
