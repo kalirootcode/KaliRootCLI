@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kr-cli-dominion"
-version = "3.0.1"
+version = "3.0.5"
 description = "Advanced AI-Powered Security CLI - DOMINION Model"
 readme = "README.md"
 license = {text = "MIT"}
@@ -44,8 +44,7 @@ Repository = "https://github.com/kalirootcode/KaliRootCLI"
 Issues = "https://github.com/kalirootcode/KaliRootCLI/issues"
 
 [project.scripts]
-kalirootcli = "kalirootcli.main:main"
-kaliroot = "kalirootcli.main:main"
+kr-clidn = "kalirootcli.main:main"
 kr-cli = "kalirootcli.cli_wrapper:main"
 
 [tool.setuptools.packages.find]

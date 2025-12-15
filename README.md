@@ -45,7 +45,7 @@ pkg install python libxml2 libxslt clang cmake rust build-essential binutils
 1. Installs all required dependencies (AI, Web Search, Visualization)
 2. Detects your shell (`bash` or `zsh`)
 3. Adds aliases so you can use commands from anywhere:
-   - `kaliroot` -> Launch main CLI
+   - `kr-clidn` -> Launch Main CLI
    - `kr-cli` -> Smart command wrapper
 
 Don't forget to configure your API keys:
@@ -74,7 +74,7 @@ IPN_SECRET_KEY=your-ipn-secret
 python -m kalirootcli.main
 
 # Or after installation
-kalirootcli
+kr-clidn
 ```
 
 ### 🤖 Agent Mode

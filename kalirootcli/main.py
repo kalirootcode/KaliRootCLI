@@ -2,7 +2,7 @@
 Main entry point for KaliRoot CLI
 Professional Cybersecurity CLI with AI, Web Search, and Agent Capabilities.
 
-Version: 3.0.0 - DOMINION
+Version: 3.0.5 - DOMINION
 """
 
 import sys
@@ -82,9 +82,8 @@ def authenticate() -> bool:
     
     while True:
         console.clear()  # Clean presentation for auth menu
-        console.print("\n[bold cyan]═══════════════════════════════════════[/bold cyan]")
-        console.print("[bold cyan]           AUTENTICACIÓN KR-CLI          [/bold cyan]")
-        console.print("[bold cyan]═══════════════════════════════════════[/bold cyan]\n")
+        print_banner()   # Show banner clearly
+        console.print("\n[bold cyan]           AUTENTICACIÓN          [/bold cyan]\n")
         
         print_menu_option("1", "🔐 Iniciar Sesión", "Con email verificado")
         print_menu_option("2", "📝 Registrarse", "Requiere verificación por email")
@@ -198,24 +197,56 @@ def main_menu():
         
         console.clear()
         
-        mode = "OPERATIVO" if status["is_premium"] else "CONSULTA"
-        color = "green" if status["is_premium"] else "yellow"
+        mode = "OPERATIVO" if status.get("is_premium") else "CONSULTA"
+        is_premium = status.get("is_premium", False)
+        sub_status = (status.get("subscription_status") or "free").lower()
+        
+        # Logic to handle status display
+        if is_premium:
+            status_label = " PREMIUM "
+            status_color = "bold white on green"
+        else:
+            if sub_status == "premium":
+                # Paid but maybe expired or issue
+                status_label = " PENDING / EXPIRED "
+                status_color = "bold white on yellow"
+            else:
+                status_label = " FREE "
+                status_color = "bold white on red"
         
         # Header
-        console.print(f"\n[bold cyan]═══════════════════════════════════════════════════════════════[/bold cyan]")
-        console.print(f"[bold cyan]                    🔒 KALIROOT CLI v2.0                        [/bold cyan]")
-        console.print(f"[bold cyan]═══════════════════════════════════════════════════════════════[/bold cyan]")
+        print_header("KR-CLI DOMINION v3.0")
         
-        # System info
-        console.print(f"\n[dim]{sys_info['distro']} │ {sys_info['shell']} │ Root: {sys_info['root']}[/dim]")
+        # Imports for dashboard
+        from rich.align import Align
+        from rich.table import Table
+        from rich.panel import Panel
+        from rich import box
         
-        # User status
-        console.print(f"\n[bold]👤 Usuario:[/bold] {status['username']}")
-        console.print(f"[bold]⚙️  Modo:[/bold] [{color}]{mode}[/{color}]")
-        console.print(f"[bold]💳 Créditos:[/bold] {status['credits']}")
+        # 1. System Info (Centered & Compact)
+        sys_info_text = f"[bold cyan]OS:[/bold cyan] {sys_info['distro']}  │  [bold cyan]Shell:[/bold cyan] {sys_info['shell']}  │  [bold cyan]Root:[/bold cyan] {sys_info['root']}"
+        console.print(Align.center(Panel(sys_info_text, border_style="dim blue", padding=(0, 2), title="[dim]System[/dim]")))
         
-        if status["is_premium"]:
-            console.print(f"[bold]⭐ Premium:[/bold] [green]{status['days_left']} días restantes[/green]")
+        # 2. User Dashboard (Elegant Grid)
+        user_table = Table(show_header=False, box=None, padding=(0, 2))
+        user_table.add_column("Key", style="bold cyan", justify="right")
+        user_table.add_column("Value", style="white")
+        
+        user_table.add_row("Identity 👤", status.get('username') or status.get('email'))
+        user_table.add_row("Plan Status 💎", f"[{status_color}]{status_label}[/{status_color}]")
+        user_table.add_row("Credits 💳", f"[bold]{status.get('credits', 0)}[/bold]")
+        user_table.add_row("Mode ⚙️", mode)
+        
+        dashboard_panel = Panel(
+            user_table,
+            title="[bold bright_blue] DOMINION DASHBOARD [/bold bright_blue]",
+            border_style="bright_blue",
+            padding=(1, 2)
+        )
+        console.print(dashboard_panel)
+        console.print(Align.center("[dim]Modules: 🔍 Web Search  │  🤖 Agent Core[/dim]"))
+        
+        console.print() # spacer
         
         # Features status
         features = []
@@ -832,24 +863,53 @@ def main_menu():
         console.clear()
         
         mode = "OPERATIVO" if status.get("is_premium") else "CONSULTA"
-        color = "green" if status.get("is_premium") else "yellow"
+        is_premium = status.get("is_premium", False)
+        sub_status = status.get("subscription_status", "free").lower()
+        
+        # Logic to handle status display
+        if is_premium:
+            status_label = " PREMIUM "
+            status_color = "bold white on green"
+        else:
+            if sub_status == "premium":
+                # Paid but maybe expired or issue
+                status_label = " PENDING / EXPIRED "
+                status_color = "bold white on yellow"
+            else:
+                status_label = " FREE "
+                status_color = "bold white on red"
         
         # Header
-        print_header("KR-CLI v2.2")
+        print_header("KR-CLI DOMINION v3.0")
         
-        # System Info Panel
-        info_text = f"""
-Kali │ {sys_info['shell']} │ Root: {sys_info['root']}
-"""
-        print_panel(info_text.strip(), title="Sistema", style="blue")
+        # 1. System Info (Centered & Compact)
+        from rich.align import Align
+        from rich.table import Table
         
-        # User Status
-        console.print(f"\n👤 Usuario: [bold cyan]{status.get('username') or status.get('email')}[/bold cyan]")
-        console.print(f"⚙️  Modo: [bold {color}]{mode}[/bold {color}]")
-        console.print(f"💳 Créditos: [bold white]{status.get('credits', 0)}[/bold white]")
-        console.print(f"📦 Módulos: 🔍 Búsqueda Web │ 🤖 Agente\n")
+        sys_info_text = f"[bold cyan]OS:[/bold cyan] {sys_info['distro']}  │  [bold cyan]Shell:[/bold cyan] {sys_info['shell']}  │  [bold cyan]Root:[/bold cyan] {sys_info['root']}"
+        console.print(Align.center(Panel(sys_info_text, border_style="dim blue", padding=(0, 2), title="[dim]System[/dim]")))
         
-        console.rule(style="dim blue")
+        # 2. User Dashboard (Elegant Grid)
+        # We use a table for alignment within a panel
+        user_table = Table(show_header=False, box=None, padding=(0, 2))
+        user_table.add_column("Key", style="bold cyan", justify="right")
+        user_table.add_column("Value", style="white")
+        
+        user_table.add_row("Identity 👤", status.get('username') or status.get('email'))
+        user_table.add_row("Plan Status 💎", f"[{status_color}]{status_label}[/{status_color}]")
+        user_table.add_row("Credits 💳", f"[bold]{status.get('credits', 0)}[/bold]")
+        user_table.add_row("Mode ⚙️", mode)
+        
+        dashboard_panel = Panel(
+            user_table,
+            title="[bold bright_blue] DOMINION DASHBOARD [/bold bright_blue]",
+            border_style="bright_blue",
+            padding=(1, 2)
+        )
+        console.print(dashboard_panel)
+        console.print(Align.center("[dim]Modules: 🔍 Web Search  │  🤖 Agent Core[/dim]"))
+        
+        console.print() # spacer
         
         # Menu Options
         print_menu_option("1", "🧠 CONSOLA AI", "Consultas de seguridad con búsqueda web")
@@ -877,7 +937,6 @@ Kali │ {sys_info['shell']} │ Root: {sys_info['root']}
         elif choice == "4":
             logged_out = config_menu()
             if logged_out:
-                print_info("Volviendo a la pantalla de autenticación...")
                 break  # Exit main_menu to return to authentication
             
         elif choice == "0":
@@ -1091,8 +1150,10 @@ def config_menu():
         if choice == "1":
             if confirm("¿Cerrar sesión?"):
                 api_client.logout()
-                print_success("Sesión cerrada.")
-                input("\nPresiona Enter para volver al login...")
+                console.print("\n[bold cyan]👋 ¡Hasta pronto! Sesión cerrada correctamente.[/bold cyan]")
+                console.print("[dim]Gracias por usar KR-CLI DOMINION. Protegiendo tu entorno...[/dim]\n")
+                import time
+                time.sleep(2)
                 return True  # Return True to signal logout
         elif choice == "0":
             return False  # Return False for normal exit
