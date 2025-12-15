@@ -265,6 +265,36 @@ class APIClient:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
+    def create_credits_invoice(self, amount: int = 10, credits: int = 200) -> Dict[str, Any]:
+        """Create credit pack payment invoice (USDT)."""
+        try:
+            resp = requests.post(
+                f"{self.base_url}/api/payments/create-credits",
+                headers=self._headers(),
+                json={"amount": amount, "credits": credits},
+                timeout=30
+            )
+            
+            if resp.status_code == 200:
+                data = resp.json()
+                return {
+                    "success": True, 
+                    "invoice_url": data.get("invoice_url"),
+                    "invoice_id": data.get("invoice_id"),
+                    "amount": data.get("amount"),
+                    "credits": data.get("credits"),
+                    "currency": data.get("currency", "USDT")
+                }
+            elif resp.status_code == 401:
+                if self.refresh_access_token():
+                    return self.create_credits_invoice(amount, credits)
+                self.logout()
+                return {"success": False, "error": "Sesión expirada"}
+            else:
+                return {"success": False, "error": resp.json().get("detail", "Error de pago")}
+                
+        except Exception as e:
+            return {"success": False, "error": str(e)}
     def check_payment_status(self, invoice_id: str) -> Dict[str, Any]:
         """Check payment status for an invoice."""
         try:

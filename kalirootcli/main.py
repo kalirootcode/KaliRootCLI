@@ -2,7 +2,7 @@
 Main entry point for KaliRoot CLI
 Professional Cybersecurity CLI with AI, Web Search, and Agent Capabilities.
 
-Version: 3.0.5 - DOMINION
+Version: 3.4.0 - DOMINION
 """
 
 import sys
@@ -391,9 +391,35 @@ def ai_console(status: Dict[str, Any]):
             if data.get("credits_remaining") is not None:
                 console.print(f"[dim]💳 Créditos restantes: {data['credits_remaining']}[/dim]\n")
         else:
-            print_error(result["error"])
-            if "credits" in result["error"].lower() or "créditos" in result["error"].lower():
-                break
+            error_msg = result.get("error", "Error desconocido")
+            if "credits" in error_msg.lower() or "créditos" in error_msg.lower():
+                # Persuasive out-of-credits message
+                console.clear()
+                console.print("\n[bold red]😔 ¡Ups! Te quedaste sin créditos...[/bold red]\n")
+                console.print("[bold white]Pero estábamos en algo importante.[/bold white]")
+                console.print(f"[cyan]Tu consulta era valiosa y DOMINION estaba listo para darte[/cyan]")
+                console.print(f"[cyan]información que pocos conocen sobre este tema.[/cyan]\n")
+                
+                console.print("[bold yellow]🔥 No te quedes a medias:[/bold yellow]")
+                console.print("  • La respuesta completa está lista esperando por ti")
+                console.print("  • DOMINION tiene el conocimiento que necesitas")
+                console.print("  • Un solo paso te separa de continuar aprendiendo\n")
+                
+                console.print("[bold green]💎 PAQUETES DISPONIBLES:[/bold green]")
+                console.print("  💳 [bold]Créditos[/bold]: 200 créditos - $10")
+                console.print("  👑 [bold]Premium[/bold]: 500 créditos + herramientas - $20/mes\n")
+                
+                console.rule(style="yellow")
+                print_menu_option("1", "💎 Ver Tienda", "Comprar créditos o Premium")
+                print_menu_option("0", "Volver al menú")
+                console.rule(style="yellow")
+                
+                sub_choice = get_input("¿Qué deseas hacer?")
+                if sub_choice == "1":
+                    upgrade_menu()
+                return  # Exit chat session
+            else:
+                print_error(error_msg)
 
 
 def handle_special_command(command: str, web_search_enabled: bool) -> str:
@@ -801,45 +827,93 @@ def list_plans_menu():
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def upgrade_menu():
-    """Handle premium upgrade."""
-    console.clear()  # Clean presentation
-    print_header("⭐ UPGRADE A PREMIUM")
-    
-    console.print("""
-[bold green]BENEFICIOS PREMIUM:[/bold green]
-
-  ✅ Consultas AI ilimitadas
-  ✅ Generación completa de scripts
-  ✅ Análisis de vulnerabilidades avanzado
-  ✅ +250 créditos bonus/mes
-  ✅ Búsqueda web enriquecida
-  ✅ Soporte prioritario
-
-[bold]Precio: $10/mes (USDT)[/bold]
-""")
-    
-    
-    if confirm("¿Crear factura de pago?"):
-        with show_loading("Generando factura..."):
-            result = api_client.create_subscription_invoice()
+    """Handle premium upgrade and credit purchases."""
+    while True:
+        console.clear()
+        print_header("💎 TIENDA DOMINION")
         
-        if result["success"]:
-            # Fix: data is directly in the root or in 'data' key depending on client version
-            # But based on api_client.py: return {"success": True, "invoice_url": ...}
-            url = result.get("invoice_url") or result.get("data", {}).get("invoice_url")
+        # Get current status
+        status_res = api_client.get_status()
+        is_premium = status_res.get("data", {}).get("is_premium", False) if status_res.get("success") else False
+        credits = status_res.get("data", {}).get("credits", 0) if status_res.get("success") else 0
+        
+        console.print(f"[dim]💳 Tus créditos actuales: {credits}[/dim]\n")
+        
+        if is_premium:
+            console.print("[bold green]✅ Ya eres usuario PREMIUM[/bold green]\n")
+        
+        console.print("[bold cyan]═══ PAQUETES DISPONIBLES ═══[/bold cyan]\n")
+        
+        # Credits Package
+        console.print("[bold yellow]💳 PAQUETE CRÉDITOS[/bold yellow]")
+        console.print("  • [bold]200 créditos[/bold] para consultas AI")
+        console.print("  • Válidos por 30 días")
+        console.print("  • [bold green]$10 USD (USDT)[/bold green]\n")
+        
+        # Premium Package
+        if not is_premium:
+            console.print("[bold magenta]👑 PAQUETE PREMIUM[/bold magenta]")
+            console.print("  • [bold]500 créditos[/bold] de bono")
+            console.print("  • Modelo AI 70B (respuestas profesionales)")
+            console.print("  • Port Scanner, CVE Lookup, Script Generator")
+            console.print("  • Modo Agente para crear proyectos")
+            console.print("  • Historial ilimitado de chats")
+            console.print("  • [bold green]$20 USD/mes (USDT)[/bold green]\n")
+        
+        console.rule(style="cyan")
+        print_menu_option("1", "💳 Comprar Créditos", "200 créditos - $10")
+        if not is_premium:
+            print_menu_option("2", "👑 Comprar PREMIUM", "500 créditos + herramientas - $20/mes")
+        print_menu_option("0", "Volver")
+        console.rule(style="cyan")
+        
+        choice = get_input("Selecciona")
+        
+        if choice == "0":
+            break
+        elif choice == "1":
+            # Buy Credits
+            console.print("\n[bold cyan]Generando factura para 200 créditos ($10)...[/bold cyan]")
+            with show_loading("Creando factura..."):
+                result = api_client.create_credits_invoice(amount=10, credits=200)
             
-            print_success("¡Factura creada!")
-            console.print(f"\n[bold]URL de pago:[/bold]\n{url}\n")
-            
-            if detector.open_url(url):
-                print_info("Navegador abierto.")
+            if result.get("success"):
+                url = result.get("invoice_url") or result.get("data", {}).get("invoice_url")
+                print_success("¡Factura creada!")
+                console.print(f"\n[bold]URL de pago:[/bold]\n{url}\n")
+                
+                if detector.open_url(url):
+                    print_info("Navegador abierto.")
+                else:
+                    print_info("Copia y abre la URL en tu navegador.")
+                
+                print_warning("Los créditos se añadirán automáticamente al completar el pago.")
+                input("\nPresiona Enter para continuar...")
             else:
-                print_info("Copia y abre la URL en tu navegador.")
+                print_error(result.get("error", "Error creando factura"))
+                input("\nPresiona Enter...")
+        
+        elif choice == "2" and not is_premium:
+            # Buy Premium
+            console.print("\n[bold magenta]Generando factura PREMIUM ($20)...[/bold magenta]")
+            with show_loading("Creando factura..."):
+                result = api_client.create_subscription_invoice()
             
-            print_warning("Tu cuenta se actualizará automáticamente al completar el pago.")
-            input("\nPresiona Enter para continuar...")
-        else:
-            print_error(result.get("error", "Error creando factura"))
+            if result.get("success"):
+                url = result.get("invoice_url") or result.get("data", {}).get("invoice_url")
+                print_success("¡Factura creada!")
+                console.print(f"\n[bold]URL de pago:[/bold]\n{url}\n")
+                
+                if detector.open_url(url):
+                    print_info("Navegador abierto.")
+                else:
+                    print_info("Copia y abre la URL en tu navegador.")
+                
+                print_warning("Tu cuenta se actualizará automáticamente al completar el pago.")
+                input("\nPresiona Enter para continuar...")
+            else:
+                print_error(result.get("error", "Error creando factura"))
+                input("\nPresiona Enter...")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MAIN MENU
@@ -885,6 +959,7 @@ def main_menu():
         # 1. System Info (Centered & Compact)
         from rich.align import Align
         from rich.table import Table
+        from rich.panel import Panel
         
         sys_info_text = f"[bold cyan]OS:[/bold cyan] {sys_info['distro']}  │  [bold cyan]Shell:[/bold cyan] {sys_info['shell']}  │  [bold cyan]Root:[/bold cyan] {sys_info['root']}"
         console.print(Align.center(Panel(sys_info_text, border_style="dim blue", padding=(0, 2), title="[dim]System[/dim]")))
@@ -914,6 +989,8 @@ def main_menu():
         # Menu Options
         print_menu_option("1", "🧠 CONSOLA AI", "Consultas de seguridad con búsqueda web")
         print_menu_option("2", "🤖 MODO AGENTECREATOR", "Crear proyectos y herramientas desde cero")
+        if is_premium:
+            print_menu_option("5", "🔧 HERRAMIENTAS", "Port Scanner y más (Premium)")
         print_menu_option("3", "⭐ UPGRADE", "Obtener acceso Premium")
         print_menu_option("4", "⚙️  CONFIGURACIÓN", "Cuenta y ajustes")
         print_menu_option("0", "🚪 SALIR")
@@ -926,7 +1003,31 @@ def main_menu():
             ai_console_mode()
             
         elif choice == "2":
-            if AGENT_AVAILABLE:
+            if not is_premium:
+                console.clear()
+                console.print("\n[bold yellow]⭐ AGENTECREATOR - EXCLUSIVO PREMIUM ⭐[/bold yellow]\n")
+                console.print("[bold white]¡Estás a punto de desbloquear el poder real de DOMINION![/bold white]\n")
+                console.print("[cyan]Con el Modo Agente puedes:[/cyan]")
+                console.print("  🚀 [bold]Crear proyectos completos[/bold] desde cero con IA")
+                console.print("  🔧 [bold]Generar herramientas[/bold] de pentesting personalizadas")
+                console.print("  📁 [bold]Estructurar código[/bold] en múltiples archivos automáticamente")
+                console.print("  🤖 [bold]Iterar con el agente[/bold] como un desarrollador senior a tu lado")
+                console.print("  ⚡ [bold]Acelerar tu trabajo 10x[/bold] con generación inteligente\n")
+                console.print("[bold green]💎 PREMIUM incluye:[/bold green]")
+                console.print("  • +250 créditos de bono mensuales")
+                console.print("  • Modelo AI avanzado (70B parámetros)")
+                console.print("  • Port Scanner, CVE Lookup, Script Generator")
+                console.print("  • Historial ilimitado de chats\n")
+                
+                console.rule(style="yellow")
+                print_menu_option("1", "💳 Comprar PREMIUM", "Desbloquear todas las funciones")
+                print_menu_option("0", "Volver", "Regresar al menú")
+                console.rule(style="yellow")
+                
+                sub_choice = get_input("¿Qué deseas hacer?")
+                if sub_choice == "1":
+                    upgrade_menu()
+            elif AGENT_AVAILABLE:
                 agent_mode()
             else:
                 print_error("El módulo Agente no está instalado correctamente.")
@@ -938,11 +1039,119 @@ def main_menu():
             logged_out = config_menu()
             if logged_out:
                 break  # Exit main_menu to return to authentication
+        
+        elif choice == "5" and is_premium:
+            tools_menu()
             
         elif choice == "0":
             if confirm("¿Salir de KaliRoot CLI?"):
                 running = False
                 print_success("¡Hasta pronto!")
+
+
+def tools_menu():
+    """Premium Tools Menu - Port Scanner, Script Generator, CVE Lookup."""
+    from .tools.port_scanner import quick_scan, format_scan_results
+    from .tools.script_generator import list_templates, generate_script, save_script
+    from .tools.cve_lookup import search_cve, format_cve_results
+    
+    while True:
+        console.clear()
+        print_header("🔧 HERRAMIENTAS PREMIUM")
+        
+        print_menu_option("1", "🔍 Port Scanner", "Escaneo rápido de puertos")
+        print_menu_option("2", "📜 Script Generator", "Genera scripts de pentesting")
+        print_menu_option("3", "🛡️ CVE Lookup", "Busca vulnerabilidades")
+        print_menu_option("0", "Volver")
+        
+        console.rule(style="dim cyan")
+        choice = get_input("Selecciona")
+        
+        if choice == "0":
+            break
+        
+        elif choice == "1":
+            # Port Scanner
+            console.print("\n[bold cyan]═══ PORT SCANNER ═══[/bold cyan]\n")
+            host = get_input("IP o Hostname a escanear")
+            
+            if not host:
+                print_error("Debes ingresar un host.")
+                continue
+            
+            with show_loading(f"Escaneando {host}..."):
+                try:
+                    results = quick_scan(host)
+                    output = format_scan_results(host, results)
+                except Exception as e:
+                    output = f"Error: {e}"
+            
+            console.print(f"\n{output}\n")
+            
+            if results and confirm("¿Analizar resultados con AI?"):
+                ports_info = ", ".join([f"{r['port']}/{r['service']}" for r in results])
+                query = f"Analiza estos puertos abiertos en {host}: {ports_info}. Identifica posibles vulnerabilidades."
+                
+                with show_loading("Analizando con DOMINION..."):
+                    analysis = api_client.ai_query(query)
+                
+                if analysis["success"]:
+                    console.print(f"\n[bold cyan]🤖 Análisis DOMINION:[/bold cyan]\n")
+                    console.print(analysis["data"]["response"])
+            
+            input("\nPresiona Enter para continuar...")
+        
+        elif choice == "2":
+            # Script Generator
+            console.print("\n[bold cyan]═══ SCRIPT GENERATOR ═══[/bold cyan]\n")
+            
+            templates = list_templates()
+            for i, t in enumerate(templates, 1):
+                console.print(f" {i}. {t['name']} - [dim]{t['description']}[/dim]")
+            
+            console.print()
+            try:
+                idx = int(get_input("Selecciona template")) - 1
+                if 0 <= idx < len(templates):
+                    target = get_input("Target (IP/Host/Keyword)")
+                    
+                    if target:
+                        script = generate_script(templates[idx]["id"], target)
+                        filename = f"{templates[idx]['id']}_{target.replace('.', '_')}.sh"
+                        save_script(script, filename)
+                        
+                        console.print(f"\n[green]✅ Script generado:[/green] {filename}")
+                        console.print(f"\n[dim]{script}[/dim]")
+            except (ValueError, IndexError):
+                pass
+            
+            input("\nPresiona Enter para continuar...")
+        
+        elif choice == "3":
+            # CVE Lookup
+            console.print("\n[bold cyan]═══ CVE LOOKUP ═══[/bold cyan]\n")
+            keyword = get_input("Buscar CVE (ej: apache, wordpress, ssh)")
+            
+            if keyword:
+                with show_loading(f"Buscando CVEs para '{keyword}'..."):
+                    results = search_cve(keyword, limit=5)
+                    output = format_cve_results(results)
+                
+                console.print(f"\n{output}")
+                
+                if results and "error" not in results[0] and confirm("¿Analizar con AI?"):
+                    cves = ", ".join([r["id"] for r in results])
+                    query = f"Analiza estas vulnerabilidades: {cves}. ¿Cómo las explotaría un atacante?"
+                    
+                    with show_loading("Analizando con DOMINION..."):
+                        analysis = api_client.ai_query(query)
+                    
+                    if analysis["success"]:
+                        console.print(f"\n[bold cyan]🤖 Análisis DOMINION:[/bold cyan]\n")
+                        console.print(analysis["data"]["response"])
+            
+            input("\nPresiona Enter para continuar...")
+
 
 def ai_console_mode():
     """Interactive AI Console with persistent chat sessions."""
@@ -955,6 +1164,7 @@ def ai_console_mode():
         return
     
     username = status_res["data"].get("username") or status_res["data"].get("email", "user")
+    is_premium = status_res["data"].get("is_premium", False)
     chat_manager = ChatManager(username)
     
     # === CHAT SELECTION MENU ===
@@ -964,13 +1174,20 @@ def ai_console_mode():
         
         chats = chat_manager.list_chats()
         
+        # Limit chats for Free users
+        max_chats = 10 if is_premium else 5
+        display_chats = chats[:max_chats]
+        
         if chats:
             console.print("[bold cyan]Tus Chats:[/bold cyan]\n")
-            for i, chat in enumerate(chats[:10], 1):  # Show last 10
+            for i, chat in enumerate(display_chats, 1):
                 msg_count = chat["message_count"]
                 updated = chat["updated_at"][:16].replace("T", " ")
                 console.print(f" {i}. [bold]{chat['title']}[/bold]")
                 console.print(f"    [dim]{msg_count} mensajes | Actualizado: {updated}[/dim]")
+            
+            if not is_premium and len(chats) > 5:
+                console.print(f"\n[yellow]⭐ {len(chats) - 5} chats ocultos. Upgrade a Premium para ver todos.[/yellow]")
             console.print()
         else:
             console.print("[dim]No tienes chats aún. Crea uno nuevo para comenzar.[/dim]\n")
@@ -979,6 +1196,8 @@ def ai_console_mode():
         if chats:
             print_menu_option("1-10", "Abrir Chat", "Continuar una conversación existente")
             print_menu_option("D", "Eliminar Chat", "Borrar un chat")
+            if is_premium:
+                print_menu_option("E", "Exportar Chat", "Guardar como Markdown")
         print_menu_option("0", "Volver", "Regresar al menú principal")
         
         console.rule(style="dim magenta")
@@ -1001,10 +1220,32 @@ def ai_console_mode():
                         input("\nPresiona Enter...")
             except ValueError:
                 pass
+        elif choice == "e" and is_premium and chats:
+            # Export chat to Markdown
+            try:
+                idx = int(get_input("Número de chat a exportar")) - 1
+                if 0 <= idx < len(display_chats):
+                    chat = display_chats[idx]
+                    session = chat_manager.load_chat(chat["chat_id"])
+                    if session:
+                        from datetime import datetime
+                        filename = f"chat_{chat['title'].replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M')}.md"
+                        
+                        with open(filename, "w") as f:
+                            f.write(f"# {chat['title']}\n\n")
+                            f.write(f"*Exportado: {datetime.now().strftime('%Y-%m-%d %H:%M')}*\n\n---\n\n")
+                            for msg in session.get("messages", []):
+                                role = "**Usuario:**" if msg["role"] == "user" else "**DOMINION:**"
+                                f.write(f"{role}\n{msg['content']}\n\n")
+                        
+                        print_success(f"Chat exportado a: {filename}")
+                        input("\nPresiona Enter...")
+            except ValueError:
+                pass
         elif choice.isdigit() and chats:
             idx = int(choice) - 1
-            if 0 <= idx < len(chats):
-                session = chat_manager.load_chat(chats[idx]["chat_id"])
+            if 0 <= idx < len(display_chats):
+                session = chat_manager.load_chat(display_chats[idx]["chat_id"])
                 if session:
                     run_chat_session(chat_manager, session)
 
@@ -1118,9 +1359,44 @@ Responde al último mensaje del usuario de forma natural y coherente con el cont
             if "credits_remaining" in data and data["credits_remaining"] is not None:
                 console.print(f"[dim]💳 Créditos: {data['credits_remaining']}[/dim]\n")
         else:
-            print_error(f"Error: {result.get('error')}")
+            error_msg = result.get('error', 'Error desconocido')
             session.messages.pop()  # Remove user message if AI failed
-            input("\nPresiona Enter para continuar...")
+            
+            if "credits" in error_msg.lower() or "créditos" in error_msg.lower():
+                # Get user status to check if premium
+                status_res = api_client.get_status()
+                is_user_premium = status_res.get("data", {}).get("is_premium", False) if status_res.get("success") else False
+                
+                console.clear()
+                console.print("\n[bold red]😔 ¡Se agotaron tus créditos![/bold red]\n")
+                console.print("[bold white]Estábamos en algo importante...[/bold white]")
+                console.print("[cyan]Tu última consulta era valiosa y DOMINION estaba[/cyan]")
+                console.print("[cyan]listo para darte información exclusiva sobre el tema.[/cyan]\n")
+                
+                console.print("[bold yellow]🔥 No te quedes sin saber:[/bold yellow]")
+                console.print("  • La respuesta completa está lista para ti")
+                console.print("  • DOMINION tiene el conocimiento que buscas")
+                console.print("  • Un solo paso te separa de continuar\n")
+                
+                console.rule(style="yellow")
+                if is_user_premium:
+                    console.print("[bold green]💎 Eres usuario PREMIUM[/bold green]")
+                    print_menu_option("1", "💳 Comprar Créditos", "200 créditos - $10")
+                else:
+                    console.print("[bold green]💎 PAQUETES DISPONIBLES:[/bold green]")
+                    console.print("  💳 [bold]Créditos[/bold]: 200 créditos - $10")
+                    console.print("  👑 [bold]Premium[/bold]: 500 créditos + herramientas - $20/mes\n")
+                    print_menu_option("1", "💎 Ver Tienda", "Comprar créditos o Premium")
+                print_menu_option("0", "Volver al menú")
+                console.rule(style="yellow")
+                
+                sub_choice = get_input("¿Qué deseas hacer?")
+                if sub_choice == "1":
+                    upgrade_menu()
+                return  # Exit chat session
+            else:
+                print_error(error_msg)
+                input("\nPresiona Enter para continuar...")
 
 
 

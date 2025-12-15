@@ -354,13 +354,21 @@ REGLAS DE RESPUESTA:
 """
 
     try:
+        # Select model based on subscription
+        if is_premium:
+            selected_model = "llama-3.1-70b-versatile"  # Premium: More powerful
+            max_tokens = 4096
+        else:
+            selected_model = "llama3-8b-8192"  # Free: Basic but fast
+            max_tokens = 1024
+        
         response = groq_client.chat.completions.create(
-            model=GROQ_MODEL,
+            model=selected_model,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": req.query}
             ],
-            max_tokens=4096,
+            max_tokens=max_tokens,
             temperature=0.7
         )
         
@@ -459,6 +467,86 @@ async def create_subscription_invoice(user: dict = Depends(get_current_user)):
             "invoice_url": invoice_url,
             "invoice_id": invoice_id,
             "amount": SUBSCRIPTION_PRICE_USD,
+            "currency": "USDT"
+        }
+        
+    except http_requests.RequestException as e:
+        logger.error(f"Payment request error: {e}")
+        raise HTTPException(status_code=500, detail="Payment service error")
+
+
+class CreditsRequest(BaseModel):
+    amount: int = 10
+    credits: int = 200
+
+
+@app.post("/api/payments/create-credits")
+async def create_credits_invoice(req: CreditsRequest, user: dict = Depends(get_current_user)):
+    """Create NowPayments invoice for credit pack purchase."""
+    user_id = user["id"]
+    
+    if not NOWPAYMENTS_API_KEY:
+        raise HTTPException(status_code=500, detail="Payment service not configured")
+    
+    # Validate credit packs
+    valid_packs = {10: 200, 20: 500}  # amount -> credits
+    if req.amount not in valid_packs:
+        raise HTTPException(status_code=400, detail="Invalid credit pack")
+    
+    credits_amount = valid_packs[req.amount]
+    
+    is_sandbox = NOWPAYMENTS_API_KEY.startswith("sandbox")
+    api_url = "https://api-sandbox.nowpayments.io/v1" if is_sandbox else "https://api.nowpayments.io/v1"
+    
+    import time
+    order_id = f"credits_{user_id}_{int(time.time())}"
+    
+    invoice_payload = {
+        "price_amount": req.amount,
+        "price_currency": "usd",
+        "pay_currency": "usdttrc20",
+        "order_id": order_id,
+        "order_description": f"KR-CLI {credits_amount} Credits Pack",
+        "success_url": "https://kr-cli.dev/payment/success",
+        "cancel_url": "https://kr-cli.dev/payment/cancel"
+    }
+    
+    try:
+        resp = http_requests.post(
+            f"{api_url}/invoice",
+            headers={
+                "x-api-key": NOWPAYMENTS_API_KEY, 
+                "Content-Type": "application/json"
+            },
+            json=invoice_payload,
+            timeout=30
+        )
+        
+        if resp.status_code != 200:
+            logger.error(f"NowPayments error: {resp.text}")
+            raise HTTPException(status_code=500, detail="Error creating payment invoice")
+        
+        data = resp.json()
+        invoice_id = str(data.get("id"))
+        invoice_url = data.get("invoice_url")
+        
+        # Save payment record
+        supabase_admin.table("cli_payments").insert({
+            "user_id": user_id,
+            "invoice_id": invoice_id,
+            "amount": req.amount,
+            "payment_type": "credits",
+            "credits_amount": credits_amount,
+            "status": "pending",
+            "nowpayments_data": data
+        }).execute()
+        
+        return {
+            "success": True,
+            "invoice_url": invoice_url,
+            "invoice_id": invoice_id,
+            "amount": req.amount,
+            "credits": credits_amount,
             "currency": "USDT"
         }
         
