@@ -27,14 +27,17 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+GROQ_MODEL_FREE = os.getenv("GROQ_MODEL_FREE", "llama-3.1-8b-instant")
+GROQ_MODEL_PREMIUM = os.getenv("GROQ_MODEL_PREMIUM", "llama-3.3-70b-versatile")
 IPN_SECRET_KEY = os.getenv("IPN_SECRET_KEY", "")
 NOWPAYMENTS_API_KEY = os.getenv("NOWPAYMENTS_API_KEY", "")
 
 # Pricing
-SUBSCRIPTION_PRICE_USD = 10.0
+SUBSCRIPTION_PRICE_USD = 20.0  # Premium subscription
+CREDITS_PRICE_USD = 10.0       # Credit pack
+CREDITS_AMOUNT = 200           # Credits per pack
 SUBSCRIPTION_DAYS = 30
-BONUS_CREDITS = 250
+PREMIUM_BONUS_CREDITS = 500    # Premium bonus credits
 
 # ===== INIT =====
 app = FastAPI(
@@ -356,11 +359,13 @@ REGLAS DE RESPUESTA:
     try:
         # Select model based on subscription
         if is_premium:
-            selected_model = "llama-3.1-70b-versatile"  # Premium: More powerful
+            selected_model = GROQ_MODEL_PREMIUM  # Premium: Most powerful
             max_tokens = 4096
         else:
-            selected_model = "llama3-8b-8192"  # Free: Basic but fast
+            selected_model = GROQ_MODEL_FREE  # Free: Fast and reliable
             max_tokens = 1024
+        
+        logger.info(f"AI Query - User: {user_id}, Model: {selected_model}, Premium: {is_premium}")
         
         response = groq_client.chat.completions.create(
             model=selected_model,
@@ -395,7 +400,8 @@ REGLAS DE RESPUESTA:
         }
         
     except Exception as e:
-        logger.error(f"AI query error: {e}")
+        error_str = str(e)
+        logger.error(f"AI query error for user {user_id}: {error_str}")
         raise HTTPException(status_code=500, detail="Error del servicio de IA")
 
 # ===== PAYMENT ENDPOINTS =====
@@ -640,7 +646,7 @@ async def nowpayments_webhook(request: Request):
             supabase_admin.table("cli_users").update({
                 "subscription_status": "premium",
                 "subscription_expiry_date": expiry_date.isoformat(),
-                "credit_balance": current_credits + BONUS_CREDITS,
+                "credit_balance": current_credits + PREMIUM_BONUS_CREDITS,
                 "current_invoice_id": None
             }).eq("id", user_id).execute()
             
