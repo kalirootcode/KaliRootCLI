@@ -69,6 +69,8 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
     username: Optional[str] = None
+    terms_accepted: bool = False
+    terms_text: Optional[str] = None
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -147,6 +149,26 @@ async def register(req: RegisterRequest):
         })
         
         if response.user:
+            # ✅ Save Accepted Terms and Conditions
+            if req.terms_accepted and req.terms_text:
+                try:
+                    supabase_admin.table("user_agreements").insert({
+                        "user_id": response.user.id,
+                        "agreement_text": req.terms_text,
+                        "accepted": True,
+                        "ip_address": "0.0.0.0" # Could extract from request if available
+                    }).execute()
+                    
+                    # Also initialize credits (as previously done)
+                    try:
+                        pass # Credits logic is handled by triggers usually or can be explicit here if needed
+                    except:
+                        pass
+                        
+                except Exception as e:
+                    logger.error(f"Error saving terms acceptance: {e}")
+                    # We don't block registration if this fails log wise, but it's important audit data
+            
             return AuthResponse(
                 success=True,
                 message="Registro exitoso. Revisa tu correo para verificar tu cuenta.",

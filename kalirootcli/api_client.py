@@ -75,13 +75,18 @@ class APIClient:
         """Check if user has valid session."""
         return self.access_token is not None
     
-    def register(self, email: str, password: str, username: str = None) -> Dict[str, Any]:
+    def register(self, email: str, password: str, username: str = None, terms_accepted: bool = False, terms_text: str = None) -> Dict[str, Any]:
         """
         Register new user with email.
         Email verification is required before login.
         """
         try:
-            payload = {"email": email, "password": password}
+            payload = {
+                "email": email, 
+                "password": password,
+                "terms_accepted": terms_accepted,
+                "terms_text": terms_text
+            }
             if username:
                 payload["username"] = username
             

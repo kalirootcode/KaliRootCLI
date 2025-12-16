@@ -93,11 +93,67 @@ class AuthManager:
                 continue
             
             break
+
+        
+        # ════════════════════════════════════════════════════════════════════
+        # TÉRMINOS Y CONDICIONES
+        # ════════════════════════════════════════════════════════════════════
+        
+        terms_text = """
+KR-CLI - TÉRMINOS DE USO Y RESPONSABILIDAD
+════════════════════════════════════════
+
+1. NATURALEZA DE LA HERRAMIENTA
+   KR-CLI (KaliRoot CLI) es una herramienta profesional avanzada diseñada para operaciones
+   de ciberseguridad ofensiva y defensiva, análisis forense y pruebas de penetración.
+
+2. RESPONSABILIDAD DEL USUARIO
+   • El uso de esta herramienta es responsabilidad EXCLUSIVA del usuario.
+   • Te comprometes a utilizar KR-CLI únicamente en:
+     - Entornos controlados de laboratorio.
+     - Sistemas propios.
+     - Infraestructuras donde cuentes con autorización explícita y por escrito.
+
+3. EXENCIÓN DE RESPONSABILIDAD
+   • Los creadores, desarrolladores y colaboradores de KR-CLI NO se hacen responsables
+     por daños, pérdida de datos, intrusiones no autorizadas o consecuencias legales
+     derivadas del mal uso de este software.
+
+4. CUMPLIMIENTO LEGAL
+   • Es tu obligación conocer y respetar las leyes locales e internacionales vigentes
+     sobre delitos informáticos y ciberseguridad.
+
+AL ACEPTAR, CONFIRMAS QUE:
+   ✅ Tienes los conocimientos técnicos necesarios.
+   ✅ Entiendes los riesgos asociados.
+   ✅ Eximes de toda responsabilidad al equipo de KR-CLI.
+"""
+        
+        console.clear()
+        console.print("[bold red]⚠️  IMPORTANTE: TÉRMINOS Y CONDICIONES DE USO[/bold red]")
+        console.print(terms_text)
+        console.print("────────────────────────────────────────────────────────────────")
+        
+        console.print("\n[bold]¿Aceptas estos términos y condiciones?[/bold]\n")
+        console.print("  [bold green]1 › ✅ ACEPTAR Y CONTINUAR[/bold green]")
+        console.print("  [bold red]2 › ❌ RECHAZAR Y SALIR[/bold red]")
+        
+        while True:
+            choice = console.input("\n[bold cyan]Opción › [/bold cyan]").strip()
+            
+            if choice == "1":
+                break
+            elif choice == "2":
+                print_warning("Has rechazado los términos. El registro ha sido cancelado.")
+                return None
+            else:
+                console.print("[red]Opción inválida. Selecciona 1 o 2.[/red]")
         
         # Register user via API
-        print_info("Registrando usuario...")
+        print_info("Registrando usuario y guardando aceptación de términos...")
         
-        result = api_client.register(email, password, username)
+        # Pass terms_accepted=True and the text for logging
+        result = api_client.register(email, password, username, terms_accepted=True, terms_text=terms_text)
         
         if result.get("success"):
             console.print("\n[bold green]✅ ¡REGISTRO EXITOSO![/bold green]\n")
