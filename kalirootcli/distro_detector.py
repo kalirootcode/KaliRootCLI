@@ -4,10 +4,12 @@ Professional grade system detection for security context awareness.
 """
 
 import os
+import sys
 import shutil
 import subprocess
 import platform
 import logging
+import webbrowser
 from dataclasses import dataclass
 from typing import Literal, Optional
 
@@ -163,7 +165,7 @@ class DistroDetector:
         return os.path.join(self.get_data_dir(), "session.json")
     
     def open_url(self, url: str) -> bool:
-        """Secure URL opener."""
+        """Secure URL opener with multiple fallbacks."""
         try:
             if self.is_termux():
                 # Termux specific opener
@@ -171,24 +173,41 @@ class DistroDetector:
                     subprocess.run(["termux-open-url", url], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                     return True
                 # Fallback to Android Intent
-                subprocess.run(
+                result = subprocess.run(
                     ["am", "start", "-a", "android.intent.action.VIEW", "-d", url],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                     check=False
                 )
-                return True
+                return result.returncode == 0
             else:
-                # Desktop Linux, macOS, Windows
+                # Try platform-specific first
+                opened = False
                 if sys.platform == 'darwin':
-                    subprocess.run(['open', url], check=False, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+                    result = subprocess.run(['open', url], check=False, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+                    opened = result.returncode == 0
                 elif sys.platform == 'win32':
                     os.startfile(url)
-                else: # Generic Linux
-                    subprocess.run(['xdg-open', url], check=False, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+                    opened = True
+                else:
+                    # Generic Linux - try xdg-open first
+                    if shutil.which('xdg-open'):
+                        result = subprocess.run(['xdg-open', url], check=False, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+                        opened = result.returncode == 0
+                
+                # Fallback to Python webbrowser module
+                if not opened:
+                    webbrowser.open(url)
+                    opened = True
+                
+                return opened
+        except Exception as e:
+            # Final fallback
+            try:
+                webbrowser.open(url)
                 return True
-        except Exception:
-            return False
+            except:
+                return False
 
     def get_system_info(self) -> dict:
         """Format system info for display."""
