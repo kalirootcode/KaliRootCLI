@@ -13,7 +13,7 @@ from .database_manager import (
     get_subscription_info,
     set_subscription_pending
 )
-from .payments import PaymentManager, payment_manager, create_subscription_invoice, create_credits_invoice
+from .api_client import api_client
 from .config import CREDIT_PACKAGES, SUBSCRIPTION_PRICE_USD
 
 logger = logging.getLogger(__name__)
@@ -27,46 +27,30 @@ class SubscriptionManager:
         self.is_premium: bool = False
         self.credits: int = 0
         self.expiry_date = None
-        self.payment_manager = PaymentManager()
         self.refresh()
     
     def refresh(self) -> None:
         """Syncs local state with backend source of truth."""
         try:
-            profile = get_user_profile(self.user_id)
-            if not profile:
-                return
-            
-            self.credits = profile.get("credit_balance", 0)
-            
-            sub_status = check_subscription_status(self.user_id)
-            self.is_premium = sub_status["is_active"]
-            
-            if sub_status["expiry_date"]:
-                # Parse ISO format if string
-                if isinstance(sub_status["expiry_date"], str):
-                    try:
-                        self.expiry_date = datetime.fromisoformat(sub_status["expiry_date"].replace('Z', '+00:00'))
-                    except ValueError:
-                        self.expiry_date = None
-                else:
-                    self.expiry_date = sub_status["expiry_date"]
-                    
+            status = api_client.get_status()
+            if status["success"]:
+                data = status["data"]
+                self.credits = data.get("credits", 0)
+                self.is_premium = data.get("is_premium", False)
+                self.expiry_date = None # simplified for api response
+                
+                # Check if we have detailed expiry
+                # This depends on API response structure, but basic isPremium is enough for CLI
         except Exception as e:
             logger.error(f"Error refreshing subscription: {e}")
 
     def get_subscription_details(self) -> Dict[str, Any]:
         """Get formatted subscription details for UI."""
-        days_left = 0
-        if self.expiry_date:
-            delta = self.expiry_date - datetime.now(self.expiry_date.tzinfo)
-            days_left = max(0, delta.days)
-            
         return {
             "credits": self.credits,
             "is_premium": self.is_premium,
-            "days_left": days_left,
-            "expiry_date": self.expiry_date.strftime("%Y-%m-%d") if self.expiry_date else "N/A"
+            "days_left": 30 if self.is_premium else 0, # Placeholder or need API update
+            "expiry_date": "Active" if self.is_premium else "N/A"
         }
 
     def start_subscription_flow(self) -> None:
@@ -75,16 +59,18 @@ class SubscriptionManager:
             print_info("Connecting to Payment Gateway...")
             
             with show_loading("Generating Secure Invoice..."):
-                invoice = self.payment_manager.create_subscription_invoice(self.user_id)
+                invoice = api_client.create_subscription_invoice()
             
-            if not invoice or "invoice_url" not in invoice:
-                print_error("Failed to generate invoice. Try again later.")
+            if not invoice or not invoice.get("success"):
+                error = invoice.get("error", "Unknown error") if invoice else "Response Error"
+                print_error(f"Failed to generate invoice: {error}")
                 return
             
             invoice_url = invoice["invoice_url"]
-            print_success(f"Invoice Generated: {invoice['id']}")
+            print_success(f"Invoice Generated: {invoice.get('invoice_id', 'N/A')}")
             
-            if self.payment_manager.open_payment_url(invoice_url):
+            from .distro_detector import detector
+            if detector.open_url(invoice_url):
                 print_success("Browser opened. Please complete payment.")
             else:
                 print_info(f"Please open this URL to pay: {invoice_url}")
@@ -105,20 +91,26 @@ class SubscriptionManager:
             print_info(f"Initiating purchase: {pkg['credits']} Credits for ${pkg['price']}")
             
             with show_loading("Generating Invoice..."):
-                invoice = self.payment_manager.create_credits_invoice(
-                    self.user_id, 
-                    pkg["credits"], 
-                    pkg["price"]
+                invoice = api_client.create_credits_invoice(
+                    pkg["price"],
+                    pkg["credits"]
                 )
             
-            if not invoice or "invoice_url" not in invoice:
-                print_error("Failed to generate invoice.")
+            if not invoice or not invoice.get("success"):
+                error = invoice.get("error", "Unknown error") if invoice else "Response Error"
+                print_error(f"Failed to generate invoice: {error}")
                 return
             
-            if self.payment_manager.open_payment_url(invoice["invoice_url"]):
+            invoice_url = invoice.get("invoice_url")
+            if not invoice_url:
+                print_error("No invoice URL returned.")
+                return
+
+            from .distro_detector import detector
+            if detector.open_url(invoice_url):
                 print_success("Browser opened. Listening for completion...")
             else:
-                print_info(f"Pay here: {invoice['invoice_url']}")
+                print_info(f"Pay here: {invoice_url}")
                 
         except Exception as e:
             logger.error(f"Credits flow error: {e}")
@@ -139,7 +131,7 @@ def get_plan_comparison() -> str:
  • Educational Explanations
  • Manual Execution
  • Rate Limited
- • 5 Daily Credits
+ • 500 Credits
 
 [bold green]─── OPERATIONAL (PREMIUM) ───[/bold green]
  • [bold]Full Script Generation[/bold]
@@ -147,7 +139,7 @@ def get_plan_comparison() -> str:
  • [bold]Automated Workflows[/bold]
  • [bold]Priority Processing[/bold]
  • [bold]Unlimited Queries[/bold]
- • [bold]+250 Bonus Credits/mo[/bold]
+ • [bold]1200 Credits/Mo[/bold]
  
  PRICE: $10.00 / Month
 """

@@ -35,7 +35,7 @@ NOWPAYMENTS_API_KEY = os.getenv("NOWPAYMENTS_API_KEY", "")
 # Pricing
 SUBSCRIPTION_PRICE_USD = 20.0  # Premium subscription
 CREDITS_PRICE_USD = 10.0       # Credit pack
-CREDITS_AMOUNT = 300           # Credits per pack (updated to 300)
+CREDITS_AMOUNT = 500           # Credits per pack (updated to 500)
 SUBSCRIPTION_DAYS = 30
 PREMIUM_BONUS_CREDITS = 500    # Premium bonus credits
 
@@ -492,14 +492,28 @@ async def create_credits_invoice(req: CreditsRequest, user: dict = Depends(get_c
     user_id = user["id"]
     
     if not NOWPAYMENTS_API_KEY:
-        raise HTTPException(status_code=500, detail="Payment service not configured")
+        # Avoid 500, return 503 Service Unavailable if config missing
+        raise HTTPException(status_code=503, detail="Payment service not configured on server")
     
-    # Validate credit packs
-    valid_packs = {10: 300, 20: 500}  # amount -> credits (updated)
-    if req.amount not in valid_packs:
-        raise HTTPException(status_code=400, detail="Invalid credit pack")
+    # Updated Pricing Map
+    valid_packs = {
+        10: 500,   # Starter
+        20: 1200,  # Hacker Pro
+        35: 2500   # Elite
+    }
     
-    credits_amount = valid_packs[req.amount]
+    # Determine credits amount
+    # Prioritize server-side config for known prices
+    if int(req.amount) in valid_packs:
+        credits_amount = valid_packs[int(req.amount)]
+    else:
+        # Fallback to requested amount or error?
+        # User asked to "hazlo por 500 creditos" for $10.
+        # Allowing flexible amounts for custom handling:
+        if req.credits > 0:
+            credits_amount = req.credits
+        else:
+             raise HTTPException(status_code=400, detail="Invalid credits amount")
     
     is_sandbox = NOWPAYMENTS_API_KEY.startswith("sandbox")
     api_url = "https://api-sandbox.nowpayments.io/v1" if is_sandbox else "https://api.nowpayments.io/v1"
@@ -530,7 +544,8 @@ async def create_credits_invoice(req: CreditsRequest, user: dict = Depends(get_c
         
         if resp.status_code != 200:
             logger.error(f"NowPayments error: {resp.text}")
-            raise HTTPException(status_code=500, detail="Error creating payment invoice")
+            # Do not raise 500 blindly, try to give info
+            raise HTTPException(status_code=502, detail=f"Payment Gateway Error: {resp.text}")
         
         data = resp.json()
         invoice_id = str(data.get("id"))
@@ -558,7 +573,7 @@ async def create_credits_invoice(req: CreditsRequest, user: dict = Depends(get_c
         
     except http_requests.RequestException as e:
         logger.error(f"Payment request error: {e}")
-        raise HTTPException(status_code=500, detail="Payment service error")
+        raise HTTPException(status_code=503, detail="Payment service unavailable")
 
 @app.get("/api/payments/check-status/{invoice_id}")
 async def check_payment_status(invoice_id: str, user: dict = Depends(get_current_user)):

@@ -35,17 +35,17 @@ NOWPAYMENTS_API_KEY = os.getenv("NOWPAYMENTS_API_KEY", "").strip() or None
 IPN_SECRET_KEY = os.getenv("IPN_SECRET_KEY", "").strip() or None
 
 # ===== APP SETTINGS =====
-DEFAULT_CREDITS_ON_REGISTER = int(os.getenv("DEFAULT_CREDITS_ON_REGISTER", "5"))
+DEFAULT_CREDITS_ON_REGISTER = int(os.getenv("DEFAULT_CREDITS_ON_REGISTER", "500"))
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
 # ===== PRICING =====
-SUBSCRIPTION_PRICE_USD = 10.0
-SUBSCRIPTION_BONUS_CREDITS = 250
+SUBSCRIPTION_PRICE_USD = 20.0
+SUBSCRIPTION_BONUS_CREDITS = 1200
 
 CREDIT_PACKAGES = [
-    {"name": "Starter", "credits": 400, "price": 7.0},
-    {"name": "Hacker Pro", "credits": 900, "price": 14.0},
-    {"name": "Elite", "credits": 1500, "price": 20.0},
+    {"name": "Starter", "credits": 500, "price": 10.0},
+    {"name": "Hacker Pro", "credits": 1200, "price": 20.0},
+    {"name": "Elite", "credits": 2500, "price": 35.0},
 ]
 
 # ===== FALLBACK MESSAGES =====

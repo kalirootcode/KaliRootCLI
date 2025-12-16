@@ -63,7 +63,11 @@ def search_cve(keyword: str, limit: int = 5) -> List[Dict]:
         if response.status_code != 200:
             return cache.get(keyword, {}).get("results", []) # Return stale cache if API fails
         
-        data = response.json()
+        try:
+            data = response.json()
+        except ValueError:
+            # API returned non-JSON (HTML error page, etc.)
+            return cache.get(keyword, {}).get("results", [])
         vulnerabilities = data.get("vulnerabilities", [])
         
         results = []

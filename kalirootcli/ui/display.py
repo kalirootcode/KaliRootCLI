@@ -211,41 +211,92 @@ def print_ai_response(response: str, mode: str = "CONSULTATION", command: str = 
     console.print()
     
     # Process and colorize the response
+    if not isinstance(response, str):
+         console.print(str(response))
+         return
+
     lines = response.split('\n')
     
+    # Keyword highlighter function
+    def highlight_keywords(text):
+        # Highlight command-like words, versions, ports, common tools
+        # Patterns: 
+        # - Words with dots/slashes/numbers (Apache/2.2, 127.0.0.1)
+        # - Common tools (nmap, curl, etc)
+        # - Flags (-v, --help)
+        
+        # Color for keywords
+        kw_color = STYLE_ORANGE_RED
+        
+        # 1. Backticks content (commands) -> Magenta
+        text = re.sub(r'`([^`]+)`', r'[bold magenta]\1[/bold magenta]', text)
+        
+        # 2. Bold markers **text** -> Bold White (Strip stars)
+        text = re.sub(r'\*\*([^*]+)\*\*', r'[bold white]\1[/bold white]', text)
+        
+        # 3. Heuristic highlighting for unformatted technical terms (simple approach)
+        # We find words that look like versions, IPs, or paths, and color them orange-red
+        # This regex matches words containing dots or slashes inside (e.g. 1.2.3, /etc/passwd)
+        # provided they aren't already colored (checking for [)
+        
+        # Note: Doing robust regex highlighting on already styled text is tricky.
+        # We'll apply a simple pass for known keywords if they are plain words.
+        
+        keywords = ["apache", "nginx", "openssh", "nmap", "curl", "ubuntu", "linux", "kali", "tcp", "udp", "http", "https", "ssl", "tls"]
+        for kw in keywords:
+            # Case insensitive replace for whole words
+            pattern = re.compile(r'\b(' + re.escape(kw) + r')\b', re.IGNORECASE)
+            # Only replace if not inside a style tag (simplistic check)
+            text = pattern.sub(f"[{kw_color}]\\1[/{kw_color}]", text)
+            
+        return text
+
     for line in lines:
-        # Section headers (numbered or with **)
-        if re.match(r'^\*\*\d+\.', line) or re.match(r'^\d+\.', line):
-            # Main section header - orange-red
-            console.print(f"[bold {STYLE_ORANGE_RED}]{line}[/bold {STYLE_ORANGE_RED}]")
-        elif line.strip().startswith('**') and line.strip().endswith('**'):
-            # Bold section - yellow
-            clean = line.replace('**', '')
-            console.print(f"[bold {STYLE_YELLOW}]{clean}[/bold {STYLE_YELLOW}]")
-        elif line.strip().startswith('* **'):
-            # Sub-item with bold - green bullet
-            parts = line.split('**')
-            if len(parts) >= 3:
-                prefix = parts[0].replace('*', '•')
-                key = parts[1]
-                rest = ''.join(parts[2:])
-                console.print(f"[green]{prefix}[/green][bold white]{key}[/bold white]{rest}")
+        # Pre-process line to highlight keywords inside
+        processed_line = highlight_keywords(line)
+        
+        # Section headers (numbered)
+        if re.match(r'^\d+\.', line) or re.match(r'^\*\*\d+\.', line):
+            # Main section header - Number is orange, text is white/highlighted
+            # Strip stars if present
+            clean_line = line.replace('**', '')
+            
+            # Split number and content
+            match = re.match(r'^(\d+\.)\s*(.*)', clean_line)
+            if match:
+                number = match.group(1)
+                text = match.group(2)
+                
+                # Apply highlighting to the text part
+                styled_text = highlight_keywords(text)
+                
+                console.print(f"[bold {STYLE_ORANGE_RED}]{number}[/bold {STYLE_ORANGE_RED}] {styled_text}")
             else:
-                console.print(f"[green]{line}[/green]")
+                 console.print(f"[bold {STYLE_ORANGE_RED}]{clean_line}[/bold {STYLE_ORANGE_RED}]")
+            
+        # Bold Headers (### or **Title**)
+        elif line.strip().startswith('###') or (line.strip().startswith('**') and line.strip().endswith('**')):
+            clean = line.replace('**', '').replace('###', '').strip()
+            console.print(f"[bold white]{clean}[/bold white]")
+            
+        # List items
         elif line.strip().startswith('* ') or line.strip().startswith('- '):
-            # Bullet points - green
-            console.print(f"[green]{line}[/green]")
-        elif line.strip().startswith('+') or line.strip().startswith('  +'):
-            # Sub-bullets - dim yellow
-            console.print(f"[dim {STYLE_YELLOW}]{line}[/dim {STYLE_YELLOW}]")
-        elif '`' in line:
-            # Lines with code/commands - highlight backticks
-            # Replace `command` with styled version
-            formatted = re.sub(r'`([^`]+)`', r'[bold magenta]\1[/bold magenta]', line)
-            console.print(formatted)
+            # Bullet points
+            # We want the bullet green, text white (with highlights)
+            content = processed_line.lstrip('*- ').strip()
+            console.print(f"[green]•[/green] {content}")
+            
+        elif line.strip().startswith('+'):
+             # Sub-bullets
+            content = processed_line.lstrip('+ ').strip()
+            console.print(f"  [dim yellow]›[/dim yellow] {content}")
+            
         else:
             # Regular text
-            console.print(line)
+            if line.strip():
+                console.print(processed_line)
+            else:
+                console.print()
     
     console.print()
 

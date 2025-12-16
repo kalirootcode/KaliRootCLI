@@ -843,6 +843,8 @@ def list_plans_menu():
 
 def upgrade_menu():
     """Handle premium upgrade and credit purchases."""
+    from .config import CREDIT_PACKAGES, SUBSCRIPTION_PRICE_USD, SUBSCRIPTION_BONUS_CREDITS
+    
     while True:
         console.clear()
         print_banner(show_skull=False)
@@ -859,26 +861,39 @@ def upgrade_menu():
         
         console.print("[bold cyan]═══ PAQUETES DISPONIBLES ═══[/bold cyan]\n")
         
-        # Credits Package
-        console.print("[bold yellow]💳 PAQUETE CRÉDITOS[/bold yellow]")
-        console.print("  • [bold]200 créditos[/bold] para consultas AI")
-        console.print("  • Válidos por 30 días")
-        console.print("  • [bold green]$10 USD (USDT)[/bold green]\n")
+        # Display all credit packages
+        for i, pkg in enumerate(CREDIT_PACKAGES, 1):
+            emoji = "💳" if i == 1 else "⚡" if i == 2 else "💎"
+            console.print(f"[bold yellow]{emoji} PAQUETE {pkg['name'].upper()}[/bold yellow]")
+            console.print(f"  • [bold]{pkg['credits']} créditos[/bold] para consultas AI")
+            console.print(f"  • Válidos por 30 días")
+            console.print(f"  • [bold green]${pkg['price']:.0f} USD (USDT)[/bold green]\n")
         
         # Premium Package
         if not is_premium:
             console.print("[bold magenta]👑 PAQUETE PREMIUM[/bold magenta]")
-            console.print("  • [bold]500 créditos[/bold] de bono")
+            console.print(f"  • [bold]{SUBSCRIPTION_BONUS_CREDITS} créditos[/bold] mensuales")
             console.print("  • Modelo AI 70B (respuestas profesionales)")
             console.print("  • Port Scanner, CVE Lookup, Script Generator")
             console.print("  • Modo Agente para crear proyectos")
             console.print("  • Historial ilimitado de chats")
-            console.print("  • [bold green]$20 USD/mes (USDT)[/bold green]\n")
+            console.print(f"  • [bold green]${SUBSCRIPTION_PRICE_USD:.0f} USD/mes (USDT)[/bold green]\n")
         
         console.rule(style="cyan")
-        print_menu_option("1", "💳 Comprar Créditos", "200 créditos - $10")
+        
+        # Build menu options
+        menu_idx = 1
+        for i, pkg in enumerate(CREDIT_PACKAGES, 1):
+            print_menu_option(str(menu_idx), f"💳 Comprar {pkg['name']}", f"{pkg['credits']} créditos - ${pkg['price']:.0f}")
+            menu_idx += 1
+        
         if not is_premium:
-            print_menu_option("2", "👑 Comprar PREMIUM", "500 créditos + herramientas - $20/mes")
+            print_menu_option(str(menu_idx), "👑 Comprar PREMIUM", f"{SUBSCRIPTION_BONUS_CREDITS} créditos/mes + herramientas - ${SUBSCRIPTION_PRICE_USD:.0f}/mes")
+            premium_option = str(menu_idx)
+            menu_idx += 1
+        else:
+            premium_option = None
+        
         print_menu_option("0", "Volver")
         console.rule(style="cyan")
         
@@ -886,49 +901,55 @@ def upgrade_menu():
         
         if choice == "0":
             break
-        elif choice == "1":
-            # Buy Credits
-            console.print("\n[bold cyan]Generando factura para 200 créditos ($10)...[/bold cyan]")
-            with show_loading("Creando factura..."):
-                result = api_client.create_credits_invoice(amount=10, credits=200)
-            
-            if result.get("success"):
-                url = result.get("invoice_url") or result.get("data", {}).get("invoice_url")
-                print_success("¡Factura creada!")
-                console.print(f"\n[bold]URL de pago:[/bold]\n{url}\n")
-                
-                if detector.open_url(url):
-                    print_info("Navegador abierto.")
-                else:
-                    print_info("Copia y abre la URL en tu navegador.")
-                
-                print_warning("Los créditos se añadirán automáticamente al completar el pago.")
-                input("\nPresiona Enter para continuar...")
-            else:
-                print_error(result.get("error", "Error creando factura"))
-                input("\nPresiona Enter...")
         
-        elif choice == "2" and not is_premium:
-            # Buy Premium
-            console.print("\n[bold magenta]Generando factura PREMIUM ($20)...[/bold magenta]")
-            with show_loading("Creando factura..."):
-                result = api_client.create_subscription_invoice()
-            
-            if result.get("success"):
-                url = result.get("invoice_url") or result.get("data", {}).get("invoice_url")
-                print_success("¡Factura creada!")
-                console.print(f"\n[bold]URL de pago:[/bold]\n{url}\n")
+        # Handle credit package purchase
+        try:
+            choice_num = int(choice)
+            if 1 <= choice_num <= len(CREDIT_PACKAGES):
+                pkg = CREDIT_PACKAGES[choice_num - 1]
+                console.print(f"\n[bold cyan]Generando factura para {pkg['credits']} créditos (${pkg['price']:.0f})...[/bold cyan]")
+                with show_loading("Creando factura..."):
+                    result = api_client.create_credits_invoice(amount=pkg['price'], credits=pkg['credits'])
                 
-                if detector.open_url(url):
-                    print_info("Navegador abierto.")
+                if result.get("success"):
+                    url = result.get("invoice_url") or result.get("data", {}).get("invoice_url")
+                    print_success("¡Factura creada!")
+                    console.print(f"\n[bold]URL de pago:[/bold]\n{url}\n")
+                    
+                    if detector.open_url(url):
+                        print_info("Navegador abierto.")
+                    else:
+                        print_info("Copia y abre la URL en tu navegador.")
+                    
+                    print_warning("Los créditos se añadirán automáticamente al completar el pago.")
+                    input("\nPresiona Enter para continuar...")
                 else:
-                    print_info("Copia y abre la URL en tu navegador.")
+                    print_error(result.get("error", "Error creando factura"))
+                    input("\nPresiona Enter...")
+            
+            elif premium_option and choice == premium_option:
+                # Buy Premium
+                console.print(f"\n[bold magenta]Generando factura PREMIUM (${SUBSCRIPTION_PRICE_USD:.0f})...[/bold magenta]")
+                with show_loading("Creando factura..."):
+                    result = api_client.create_subscription_invoice()
                 
-                print_warning("Tu cuenta se actualizará automáticamente al completar el pago.")
-                input("\nPresiona Enter para continuar...")
-            else:
-                print_error(result.get("error", "Error creando factura"))
-                input("\nPresiona Enter...")
+                if result.get("success"):
+                    url = result.get("invoice_url") or result.get("data", {}).get("invoice_url")
+                    print_success("¡Factura creada!")
+                    console.print(f"\n[bold]URL de pago:[/bold]\n{url}\n")
+                    
+                    if detector.open_url(url):
+                        print_info("Navegador abierto.")
+                    else:
+                        print_info("Copia y abre la URL en tu navegador.")
+                    
+                    print_warning("Tu cuenta se actualizará automáticamente al completar el pago.")
+                    input("\nPresiona Enter para continuar...")
+                else:
+                    print_error(result.get("error", "Error creando factura"))
+                    input("\nPresiona Enter...")
+        except ValueError:
+            pass
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MAIN MENU
@@ -1007,10 +1028,10 @@ def main_menu():
         print_menu_option("2", "🤖 MODO AGENTECREATOR", "Crear proyectos y herramientas desde cero")
         if is_premium:
             print_menu_option("3", "🔧 HERRAMIENTAS", "Port Scanner y más (Premium)")
-            print_menu_option("4", "⭐ UPGRADE", "Obtener acceso Premium")
+            print_menu_option("4", "🏪 TIENDA", "Obtener acceso Premium y Créditos")
             print_menu_option("5", "⚙️  CONFIGURACIÓN", "Cuenta y ajustes")
         else:
-            print_menu_option("3", "⭐ UPGRADE", "Obtener acceso Premium")
+            print_menu_option("3", "🏪 TIENDA", "Obtener acceso Premium y Créditos")
             print_menu_option("4", "⚙️  CONFIGURACIÓN", "Cuenta y ajustes")
             
         print_menu_option("0", "🚪 SALIR")
@@ -1078,18 +1099,35 @@ def main_menu():
 
 
 def tools_menu():
-    """Premium Tools Menu - Port Scanner, Script Generator, CVE Lookup."""
+    """Premium Tools Menu - Extended Suite."""
     from .tools.port_scanner import quick_scan, format_scan_results
-    from .tools.script_generator import list_templates, generate_script, save_script
+    from .tools.repo_browser import RepoBrowser
     from .tools.cve_lookup import search_cve, format_cve_results
+    from .tools.extra import gdrive_downloader, show_metasploit_resources
     
+    browser = RepoBrowser()
+
     while True:
         console.clear()
         print_banner(show_skull=False)
         
+        # Original 3
         print_menu_option("1", "🔍 Port Scanner", "Escaneo rápido de puertos")
-        print_menu_option("2", "📜 Script Generator", "Genera scripts de pentesting")
+        print_menu_option("2", "💯 Top 100 Repositorios", "Repositorio de herramientas de Hacking")
         print_menu_option("3", "🛡️ CVE Lookup", "Busca vulnerabilidades")
+        
+        # New 10
+        print_menu_option("4", "📥 GDrive Downloader", "Descargar archivos por ID")
+        print_menu_option("5", "🧠 Hacking Labs", "HackTheBox, VulnHub & Scripts")
+        print_menu_option("6", "🕵️ Digital Forensics", "Analisis Forense & Recuperación")
+        print_menu_option("7", "⚡ Metasploit Resources", "Docs, Unleashed & Exploits")
+        print_menu_option("8", "📱 Termux Utilities", "Herramientas para Android/Termux")
+        print_menu_option("9", "🎭 Anonymity Tools", "Tor, Proxychains, VPNs")
+        print_menu_option("10", "🦅 OSINT Dashboard", "Sherlock, Osintgram & More")
+        print_menu_option("11", "📡 WiFi Auditing", "Aircrack-ng, Wifite, Fluxion")
+        print_menu_option("12", "🔑 Password Cracking", "Hydra, John, Hashcat")
+        print_menu_option("13", "🎣 Social Engineering", "Phishing & Engineering Tools")
+
         print_menu_option("0", "Volver")
         
         console.rule(style="dim rgb(255,69,0)")
@@ -1099,7 +1137,7 @@ def tools_menu():
             break
         
         elif choice == "1":
-            # Port Scanner
+            # Port Scanner (Logic kept same)
             console.print("\n[bold cyan]═══ PORT SCANNER ═══[/bold cyan]\n")
             host = get_input("IP o Hostname a escanear")
             
@@ -1121,39 +1159,15 @@ def tools_menu():
                 query = f"Analiza estos puertos abiertos en {host}: {ports_info}. Identifica posibles vulnerabilidades."
                 
                 with show_loading("Analizando con DOMINION..."):
-                    analysis = api_client.ai_query(query)
+                    analysis = api_client.ai_query(query, {})
                 
                 if analysis["success"]:
-                    console.print(f"\n[bold cyan]🤖 Análisis DOMINION:[/bold cyan]\n")
-                    console.print(analysis["data"]["response"])
+                     print_ai_response(analysis["data"]["response"])
             
             input("\nPresiona Enter para continuar...")
-        
+
         elif choice == "2":
-            # Script Generator
-            console.print("\n[bold cyan]═══ SCRIPT GENERATOR ═══[/bold cyan]\n")
-            
-            templates = list_templates()
-            for i, t in enumerate(templates, 1):
-                console.print(f" {i}. {t['name']} - [dim]{t['description']}[/dim]")
-            
-            console.print()
-            try:
-                idx = int(get_input("Selecciona template")) - 1
-                if 0 <= idx < len(templates):
-                    target = get_input("Target (IP/Host/Keyword)")
-                    
-                    if target:
-                        script = generate_script(templates[idx]["id"], target)
-                        filename = f"{templates[idx]['id']}_{target.replace('.', '_')}.sh"
-                        save_script(script, filename)
-                        
-                        console.print(f"\n[green]✅ Script generado:[/green] {filename}")
-                        console.print(f"\n[dim]{script}[/dim]")
-            except (ValueError, IndexError):
-                pass
-            
-            input("\nPresiona Enter para continuar...")
+            browser.run() # Full browser
         
         elif choice == "3":
             # CVE Lookup
@@ -1172,11 +1186,33 @@ def tools_menu():
                     query = f"Analiza estas vulnerabilidades: {cves}. ¿Cómo las explotaría un atacante?"
                     
                     with show_loading("Analizando con DOMINION..."):
-                        analysis = api_client.ai_query(query)
+                        analysis = api_client.ai_query(query, {})
                     
                     if analysis["success"]:
-                        console.print(f"\n[bold cyan]🤖 Análisis DOMINION:[/bold cyan]\n")
-                        console.print(analysis["data"]["response"])
+                        print_ai_response(analysis["data"]["response"])
+            
+            input("\nPresiona Enter para continuar...")
+
+        elif choice == "4":
+            gdrive_downloader()
+        elif choice == "5":
+            browser.browse_category("Labs")
+        elif choice == "6":
+            browser.browse_category("Forensics")
+        elif choice == "7":
+            show_metasploit_resources()
+        elif choice == "8":
+            browser.browse_category("Termux")
+        elif choice == "9":
+            browser.browse_category("Anonymity")
+        elif choice == "10":
+            browser.browse_category("OSINT")
+        elif choice == "11":
+            browser.browse_category("Wireless")
+        elif choice == "12":
+            browser.browse_category("Passwords")
+        elif choice == "13":
+            browser.browse_category("Social Eng")
             
             input("\nPresiona Enter para continuar...")
 
@@ -1228,7 +1264,7 @@ def ai_console_mode():
                 print_menu_option("E", "Exportar Chat", "Guardar como Markdown")
         print_menu_option("0", "Volver", "Regresar al menú principal")
         
-        console.rule(style="dim magenta")
+        console.rule(style="rgb(255,69,0)")
         choice = get_input("Selecciona").strip().lower()
         
         if choice == "0":
@@ -1288,7 +1324,15 @@ def run_chat_session(chat_manager, session):
     """
     while True:
         console.clear()
-        print_header(f"💬 {session.title}")
+        # Elegant Chat Title
+        from rich.align import Align
+        from rich.panel import Panel
+        console.print(Panel(
+            Align.center(f"[bold white]💬 {session.title}[/bold white]"),
+            border_style="rgb(255,69,0)",
+            padding=(0, 2),
+            expand=True
+        ))
         
         # Display chat history
         if session.messages:
@@ -1311,15 +1355,18 @@ def run_chat_session(chat_manager, session):
                 except:
                     content = msg['content']
                 
+                # Use consistent border colors: User=Cyan, AI=Orange-Red
+                border_color = "bright_cyan" if msg["role"] == "user" else "rgb(255,69,0)"
+                
                 console.print(Panel(
                     content,
                     title=f"[{role_style}]{role_label}[/{role_style}]",
-                    border_style="bright_cyan" if msg["role"] == "user" else "bright_magenta",
+                    border_style=border_color,
                     padding=(0, 1),
                     expand=False
                 ))
         
-        console.rule(style="dim violet")
+        console.rule(style="rgb(255,69,0)")
         console.print("[dim]Escribe '/exit' para volver | '/clear' para limpiar historial[/dim]\n")
         
         # Get user input
@@ -1379,7 +1426,7 @@ Responde al último mensaje del usuario de forma natural y coherente con el cont
             console.print(Panel(
                 response_content,
                 title="[bold magenta]KR-AI[/bold magenta]",
-                border_style="bright_magenta",
+                border_style="rgb(255,69,0)",
                 padding=(1, 2)
             ))
             console.print()

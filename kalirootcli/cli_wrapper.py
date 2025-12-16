@@ -8,7 +8,7 @@ import sys
 import subprocess
 import shutil
 import logging
-from .ui.display import console, print_info, print_success, print_error, show_loading
+from .ui.display import console, print_info, print_success, print_error, show_loading, print_ai_response
 from .database_manager import get_chat_history, get_user_profile
 from rich.prompt import Prompt
 import warnings
@@ -24,11 +24,11 @@ from .api_client import api_client
 
 TABLE_HEADER = "[bold rgb(255,69,0)]KaliRoot CLI[/bold rgb(255,69,0)]"
 
-# Tools that trigger AI analysis
-ANALYSIS_TARGETS = ['nmap', 'gobuster', 'sqlmap', 'nikto', 'wfuzz', 'hydra', 'metasploit', 'msfconsole']
-
 def execute_and_analyze(args):
     """Execute command and analyze key outputs."""
+    if not args:
+        return
+
     command = args[0]
     full_cmd = " ".join(args)
     
@@ -53,17 +53,19 @@ def execute_and_analyze(args):
         if stderr:
             print(stderr, file=sys.stderr)
             
-        # 2. Analyze if relevant
-        if command in ANALYSIS_TARGETS or any(t in command for t in ANALYSIS_TARGETS):
+        # 2. Universal Analysis Prompt
+        # Verify we have actual output to analyze
+        valid_output = (stdout and len(stdout.strip()) > 5) or (stderr and len(stderr.strip()) > 5)
+        
+        if valid_output:
             # Check if user is logged in
             if not api_client.is_logged_in():
-                console.print("\n[yellow]⚠️  No estás autenticado[/yellow]")
-                print_info("ℹ️ Inicia sesión para análisis AI: kr-cli login")
+                # Passive suggestion if not logged in
                 return
             
             # Confirm analysis
-            console.print(f"\n[bold rgb(255,69,0)]✨ Análisis de IA disponible (Costo: 1 crédito)[/bold rgb(255,69,0)]")
-            confirm_analysis = Prompt.ask("¿Analizar salida con IA?", choices=["Y", "n"], default="Y")
+            console.print(f"\n[bold rgb(255,69,0)]✨ Análisis de IA disponible (1 crédito)[/bold rgb(255,69,0)]")
+            confirm_analysis = Prompt.ask("¿Analizar resultados?", choices=["Y", "n"], default="Y")
             
             if confirm_analysis.lower() == "n":
                 return
@@ -71,25 +73,42 @@ def execute_and_analyze(args):
             user_id = api_client.user_id 
             
             output_to_analyze = stdout + "\n" + stderr
-            output_to_analyze = output_to_analyze[-1500:] # Strict limit for tokens
+            output_to_analyze = output_to_analyze[-2000:] # Increased limit for better context
             
             # Build query for API
-            query = f"Analiza la siguiente salida del comando '{full_cmd}':\n\n{output_to_analyze}\n\nIdentifica vulnerabilidades, puertos abiertos, servicios y sugiere próximos pasos."
+            query = (
+                f"Actúa como un experto en ciberseguridad ofensiva y defensiva. "
+                f"Analiza el resultado de la ejecución del comando: '{full_cmd}'.\n\n"
+                f"Salida del comando:\n{output_to_analyze}\n\n"
+                f"Tu tarea es:\n"
+                f"1. Explicar brevemente qué se analizó (interpretación de la salida).\n"
+                f"2. Identificar hallazgos clave (puertos, vulnerabilidades, errores, o éxito de la operación).\n"
+                f"3. Sugerir los siguientes pasos técnicos o comandos a ejecutar.\n"
+                f"Formato profesional, técnico y directo."
+            )
             
-            with show_loading("🧠 Analyzing results..."):
+            with show_loading("🧠 Analizando output con IA..."):
                 # Use API client instead of direct AIHandler
                 result = api_client.ai_query(query, environment={})
                 
             if result["success"]:
                 data = result["data"]
-                console.print("\n[bold rgb(255,69,0)]🧠 AI ANALYSIS[/bold rgb(255,69,0)]")
-                console.print(data["response"])
+                # Use professional visualization
+                response_text = data.get("response", "")
+                if not isinstance(response_text, str):
+                    response_text = str(response_text)
+
+                print_ai_response(
+                    response_text, 
+                    mode=data.get("mode", "CONSULTATION"),
+                    command=full_cmd
+                )
                 
                 if data.get("credits_remaining") is not None:
-                    console.print(f"\n[dim]💳 Créditos restantes: {data['credits_remaining']}[/dim]")
+                    console.print(f"[dim]💳 Créditos restantes: {data['credits_remaining']}[/dim]")
             else:
                 error_msg = result.get("error", "Error desconocido")
-                console.print(f"\n[red]❌ {error_msg}[/red]")
+                console.print(f"\n[bold red]❌ {error_msg}[/bold red]")
             
     except FileNotFoundError:
         print_error(f"Command not found: {command}")

@@ -132,7 +132,11 @@ class AIHandler:
         
         try:
             # RAG context for the command output
-            rag_context = rag.get_context(output)
+            # We wrap this in try/except to prevent RAG failures from stopping analysis
+            try:
+                rag_context = rag.get_context(output[:1000]) # Limit input for RAG extraction
+            except Exception:
+                rag_context = ""
             
             # Build system prompt
             system_prompt = self._build_system_prompt(mode)
