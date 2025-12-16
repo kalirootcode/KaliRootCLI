@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 from .api_client import api_client
 
-TABLE_HEADER = "[bold cyan]KaliRoot CLI[/bold cyan]"
+TABLE_HEADER = "[bold rgb(255,69,0)]KaliRoot CLI[/bold rgb(255,69,0)]"
 
 # Tools that trigger AI analysis
 ANALYSIS_TARGETS = ['nmap', 'gobuster', 'sqlmap', 'nikto', 'wfuzz', 'hydra', 'metasploit', 'msfconsole']
@@ -62,7 +62,7 @@ def execute_and_analyze(args):
                 return
             
             # Confirm analysis
-            console.print(f"\n[bold cyan]✨ Análisis de IA disponible (Costo: 1 crédito)[/bold cyan]")
+            console.print(f"\n[bold rgb(255,69,0)]✨ Análisis de IA disponible (Costo: 1 crédito)[/bold rgb(255,69,0)]")
             confirm_analysis = Prompt.ask("¿Analizar salida con IA?", choices=["Y", "n"], default="Y")
             
             if confirm_analysis.lower() == "n":
@@ -82,7 +82,7 @@ def execute_and_analyze(args):
                 
             if result["success"]:
                 data = result["data"]
-                console.print("\n[bold cyan]🧠 AI ANALYSIS[/bold cyan]")
+                console.print("\n[bold rgb(255,69,0)]🧠 AI ANALYSIS[/bold rgb(255,69,0)]")
                 console.print(data["response"])
                 
                 if data.get("credits_remaining") is not None:

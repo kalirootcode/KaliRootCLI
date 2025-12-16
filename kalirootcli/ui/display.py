@@ -26,11 +26,15 @@ console = Console()
 # ═══════════════════════════════════════════════════════════════════════════════
 # THEME COLORS (Based on skull image)
 # ═══════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
+# THEME COLORS (Based on skull image - Orange Dominion)
+# ═══════════════════════════════════════════════════════════════════════════════
 STYLE_BG = "rgb(0,0,0)"              # Black background
 STYLE_WHITE = "rgb(255,255,255)"      # White - main skull
 STYLE_ORANGE_RED = "rgb(255,69,0)"    # Orange-Red - glitch top
 STYLE_YELLOW = "rgb(255,165,0)"       # Yellow-Orange - transition
 STYLE_CYAN = "rgb(0,206,209)"         # Cyan - glitch bottom
+STYLE_ORANGE_MAIN = "rgb(255,140,0)"  # Main Orange for UI
 STYLE_PINK = "rgb(255,105,180)"       # Pink accent (optional)
 
 # Legacy aliases for compatibility
@@ -55,12 +59,34 @@ def print_warning(message: str) -> None:
 
 def print_info(message: str) -> None:
     """Print info message."""
-    console.print(f"[bold {STYLE_CYAN}]ℹ️  INFO:[/bold {STYLE_CYAN}] {message}")
+    console.print(f"[bold {STYLE_YELLOW}]ℹ️  INFO:[/bold {STYLE_YELLOW}] {message}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # BANNER ASSETS
 # ═══════════════════════════════════════════════════════════════════════════════
+
+SKULL_SMALL = r"""
+                    ..........        ...               
+            .',:;.',''..,:cllllllc;'.    .,'. ....          
+            ''lXO,.,,:lx0XWMMMMMMWNKko;..''cxl.....         
+           ..,OMWKxdkXMMMMMMMMMMMMMMMMN0ddONMWl..           
+            .'OMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNc..           
+              ,OWMMMMMMMMMMMMMMMMMMMMMMMMMMMXl'.            
+           ....'oXMMMWWWWWWMMMMMMWWWWWWWMMWO;,;'.           
+           .'',..lXOccccccclKMMNxcccccccdXNc.',,'..         
+             ...'dK:......,.dMM0,.....','dO;.,'...          
+                .':l,....',;cccc:. ...',lc..'''.            
+               .'.oNKdlllodc''..,oollloONO,....             
+           ......;xkkkXMMWx,,. ..cXMWMMMMMO'.               
+           ........;lxKMMWx,'..''cKMMMMN0xc;,.              
+               ...,;;oXMMMWKOOkO0NMMMWOc;,''                
+               .',;;,.cXMNk0MMMMXx00dl..,.                  
+                 ......cKXclWMMMk;xO;.''..                  
+                       .;c,,oxkx:'cl:;.                     
+                        .......''''..           
+"""
+
 BANNER_ASCII = """
 ██╗  ██╗██████╗        ██████╗██╗     ██╗
 ██║ ██╔╝██╔══██╗      ██╔════╝██║     ██║
@@ -70,46 +96,57 @@ BANNER_ASCII = """
 ╚═╝  ╚═╝╚═╝  ╚═╝       ╚═════╝╚══════╝╚═╝
 """
 
-def print_banner() -> None:
-    """Print the professional KR-CLI banner (DOMINION Edition)."""
+def print_banner(show_skull: bool = False) -> None:
+    """Print the professional KR-CLI banner (DOMINION Edition) with Skull."""
     
-    # Always use custom ASCII
-    banner_text = BANNER_ASCII
-    
-    # Apply gradient coloring to banner lines
-    lines = banner_text.strip().split("\n")
-    styled_text = Text()
-    
-    total_lines = len(lines)
-    for i, line in enumerate(lines):
-        progress = i / max(total_lines - 1, 1)
+    if show_skull:
+        # 1. Render Skull
+        skull_lines = SKULL_SMALL.strip().split('\n')
+        skull_text = Text()
         
-        # Gradient: red -> orange -> cyan
+        for i, line in enumerate(skull_lines):
+            progress = i / max(len(skull_lines) - 1, 1)
+            if progress < 0.3:
+                style = STYLE_ORANGE_RED
+            elif progress < 0.7:
+                style = STYLE_WHITE
+            else:
+                style = STYLE_CYAN
+            skull_text.append(line + "\n", style=style)
+            
+        centered_skull = Align.center(skull_text)
+        console.print(centered_skull)
+
+    # 2. Render Text Banner (Always needed)
+    banner_lines = BANNER_ASCII.strip().split("\n")
+    banner_text = Text()
+    
+    total_lines = len(banner_lines)
+    for i, line in enumerate(banner_lines):
+        progress = i / max(total_lines - 1, 1)
+        # Gradient: red -> orange -> cyan (Match splash screen)
         if progress < 0.33:
-            style = f"bold {STYLE_RED}"
+            style = f"bold {STYLE_ORANGE_RED}"
         elif progress < 0.66:
-            style = f"bold {STYLE_ORANGE}"
+            style = f"bold {STYLE_YELLOW}"
         else:
             style = f"bold {STYLE_CYAN}"
-        
-        styled_text.append(line + "\n", style=style)
+        banner_text.append(line + "\n", style=style)
     
-    # Center the banner
-    centered_banner = Align.center(styled_text)
-    
+    centered_banner = Align.center(banner_text)
     console.print(Panel(
         centered_banner,
         box=box.DOUBLE_EDGE,
-        border_style=STYLE_RED,
+        border_style=STYLE_ORANGE_RED,
         title=f"[bold white]💀 DOMINION v3.0 💀[/bold white]",
-        subtitle=f"[italic {STYLE_CYAN}]Advanced AI Security Operations[/italic {STYLE_CYAN}]",
-        padding=(1, 2)
+        subtitle=f"[italic {STYLE_ORANGE_MAIN}]Advanced AI Security Operations[/italic {STYLE_ORANGE_MAIN}]",
+        padding=(0, 2)
     ))
     
-    # Credits line with theme colors
+    # Credits line
     credits = Text()
     credits.append("Created by ", style="dim")
-    credits.append("Sebastian Lara", style=f"bold {STYLE_CYAN}")
+    credits.append("Sebastian Lara", style=f"bold {STYLE_ORANGE_MAIN}")
     credits.append(" - Security Manager & Developer", style="dim")
     console.print(Align.center(credits))
     console.print()
@@ -117,27 +154,25 @@ def print_banner() -> None:
     
 def print_header(title: str) -> None:
     """Print a main section header (Gemini Style)."""
-    # Blue background instead of violet
-    console.print(f"\n[bold white on blue] ✨ {title.upper()} ✨ [/bold white on blue]\n")
+    # Orange Red background (User request)
+    console.print(f"\n[bold white on {STYLE_ORANGE_RED}] ✨ {title.upper()} ✨ [/bold white on {STYLE_ORANGE_RED}]\n")
 
 def print_divider(title: str = "") -> None:
     """Print a divider with optional title."""
     if title:
-        console.rule(f"[bold violet]{title}[/bold violet]", style="magenta")
+        console.rule(f"[bold {STYLE_YELLOW}]{title}[/bold {STYLE_YELLOW}]", style=f"{STYLE_ORANGE_RED}")
     else:
-        console.rule(style="dim magenta")
-
-
+        console.rule(style=f"dim {STYLE_ORANGE_RED}")
 
 
 def print_menu_option(number: str, text: str, description: str = "") -> None:
     """Print a menu option with description."""
-    console.print(f" [cyan bold]{number}[/cyan bold] › [white bold]{text}[/white bold]")
+    console.print(f" [bold {STYLE_ORANGE_MAIN}]{number}[/bold {STYLE_ORANGE_MAIN}] › [white bold]{text}[/white bold]")
     if description:
         console.print(f"    [dim]{description}[/dim]")
 
 
-def print_panel(content: str, title: str = "", style: str = "bright_magenta") -> None:
+def print_panel(content: str, title: str = "", style: str = STYLE_ORANGE_RED) -> None:
     """Print content in a panel."""
     console.print(Panel(
         content,
@@ -161,15 +196,15 @@ def print_ai_response(response: str, mode: str = "CONSULTATION", command: str = 
     
     # Handle both English and Spanish mode names
     is_premium = mode.upper() in ["OPERATIONAL", "OPERATIVO"]
-    mode_color = "green" if is_premium else "cyan"
+    mode_color = "green" if is_premium else "yellow"
     icon = "💀" if is_premium else "🤖"
     display_mode = "OPERATIVO" if is_premium else "CONSULTA"
     
     console.print()
     
-    # Header with command in blue if provided
+    # Header with command in orange if provided
     if command:
-        console.print(f"{icon} [bold blue]{command}[/bold blue] [{mode_color}][{display_mode}][/{mode_color}]")
+        console.print(f"{icon} [bold {STYLE_ORANGE_MAIN}]{command}[/bold {STYLE_ORANGE_MAIN}] [{mode_color}][{display_mode}][/{mode_color}]")
     else:
         console.print(f"{icon} [bold {mode_color}]KALIROOT AI[/bold {mode_color}] [{mode_color}][{display_mode}][/{mode_color}]")
     
@@ -181,12 +216,12 @@ def print_ai_response(response: str, mode: str = "CONSULTATION", command: str = 
     for line in lines:
         # Section headers (numbered or with **)
         if re.match(r'^\*\*\d+\.', line) or re.match(r'^\d+\.', line):
-            # Main section header - yellow
-            console.print(f"[bold yellow]{line}[/bold yellow]")
+            # Main section header - orange-red
+            console.print(f"[bold {STYLE_ORANGE_RED}]{line}[/bold {STYLE_ORANGE_RED}]")
         elif line.strip().startswith('**') and line.strip().endswith('**'):
-            # Bold section - cyan
+            # Bold section - yellow
             clean = line.replace('**', '')
-            console.print(f"[bold cyan]{clean}[/bold cyan]")
+            console.print(f"[bold {STYLE_YELLOW}]{clean}[/bold {STYLE_YELLOW}]")
         elif line.strip().startswith('* **'):
             # Sub-item with bold - green bullet
             parts = line.split('**')
@@ -201,8 +236,8 @@ def print_ai_response(response: str, mode: str = "CONSULTATION", command: str = 
             # Bullet points - green
             console.print(f"[green]{line}[/green]")
         elif line.strip().startswith('+') or line.strip().startswith('  +'):
-            # Sub-bullets - dim cyan
-            console.print(f"[dim cyan]{line}[/dim cyan]")
+            # Sub-bullets - dim yellow
+            console.print(f"[dim {STYLE_YELLOW}]{line}[/dim {STYLE_YELLOW}]")
         elif '`' in line:
             # Lines with code/commands - highlight backticks
             # Replace `command` with styled version
@@ -223,20 +258,19 @@ def clear_screen() -> None:
 def clear_and_show_banner() -> None:
     """Clear screen and redisplay banner (for menu returns)."""
     console.clear()
-    from .splash import print_banner
     print_banner()
 
 
 def get_input(prompt: str = "") -> str:
     """Get user input with styled prompt."""
-    return Prompt.ask(f"[bold cyan]?[/bold cyan] {prompt}")
+    return Prompt.ask(f"[bold {STYLE_ORANGE_MAIN}]?[/bold {STYLE_ORANGE_MAIN}] {prompt}")
 
 
 def confirm(message: str) -> bool:
     """Ask for confirmation."""
-    return Confirm.ask(f"[bold yellow]?[/bold yellow] {message}")
+    return Confirm.ask(f"[bold {STYLE_YELLOW}]?[/bold {STYLE_YELLOW}] {message}")
 
 
 def show_loading(message: str = "Processing..."):
     """Show professional loading spinner."""
-    return console.status(f"[bold cyan]{message}[/bold cyan]", spinner="dots")
+    return console.status(f"[bold {STYLE_ORANGE_MAIN}]{message}[/bold {STYLE_ORANGE_MAIN}]", spinner="dots")

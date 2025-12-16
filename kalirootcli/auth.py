@@ -56,12 +56,12 @@ class AuthManager:
         """
         from .ui.display import console, print_error, print_success, print_info, print_warning
         
-        console.print("\n[bold cyan]📝 REGISTRO DE USUARIO[/bold cyan]")
+        console.print("\n[bold rgb(255,69,0)]📝 REGISTRO DE USUARIO[/bold rgb(255,69,0)]")
         console.print("[dim]Se requiere verificación por correo electrónico[/dim]\n")
         
         # Get email
         while True:
-            email = console.input("[cyan]📧 Email: [/cyan]").strip().lower()
+            email = console.input("[rgb(255,140,0)]📧 Email: [/rgb(255,140,0)]").strip().lower()
             
             if not email:
                 print_error("El email no puede estar vacío")
@@ -74,7 +74,7 @@ class AuthManager:
             break
         
         # Get username (optional)
-        username = console.input("[cyan]👤 Username (opcional, Enter para usar email): [/cyan]").strip()
+        username = console.input("[rgb(255,140,0)]👤 Username (opcional, Enter para usar email): [/rgb(255,140,0)]").strip()
         if not username:
             username = email.split("@")[0]
         
@@ -101,7 +101,7 @@ class AuthManager:
         
         if result.get("success"):
             console.print("\n[bold green]✅ ¡REGISTRO EXITOSO![/bold green]\n")
-            console.print(f"📧 Enviamos un correo de verificación a: [cyan]{email}[/cyan]")
+            console.print(f"📧 Enviamos un correo de verificación a: [rgb(255,140,0)]{email}[/rgb(255,140,0)]")
             console.print("\n[yellow]⚠️  IMPORTANTE:[/yellow]")
             console.print("1. Revisa tu bandeja de entrada (y spam)")
             console.print("2. Haz clic en el enlace de verificación")
@@ -121,10 +121,10 @@ class AuthManager:
         """
         from .ui.display import console, print_error, print_success, print_warning, print_info
         
-        console.print("\n[bold cyan]🔐 INICIAR SESIÓN[/bold cyan]\n")
+        console.print("\n[bold rgb(255,69,0)]🔐 INICIAR SESIÓN[/bold rgb(255,69,0)]\n")
         
         # Get email
-        email = console.input("[cyan]📧 Email: [/cyan]").strip().lower()
+        email = console.input("[rgb(255,140,0)]📧 Email: [/rgb(255,140,0)]").strip().lower()
         
         if not email:
             print_error("Email es requerido")
@@ -163,18 +163,18 @@ class AuthManager:
         Returns:
             dict with user data if successful, None if user exits
         """
-        from .ui.display import console, print_error
+        from .ui.display import console, print_error, print_banner, clear_screen, get_input
         
         while True:
-            console.print("\n[bold yellow]═══════════════════════════════════════[/bold yellow]")
-            console.print("[bold yellow]         AUTENTICACIÓN KR-CLI          [/bold yellow]")
-            console.print("[bold yellow]═══════════════════════════════════════[/bold yellow]\n")
+            # Clear screen and show banner per user request
+            clear_screen()
+            print_banner(show_skull=False)
             
-            console.print("  [cyan]1.[/cyan] 🔐 Iniciar sesión")
-            console.print("  [cyan]2.[/cyan] 📝 Registrarse (email verificado)")
-            console.print("  [cyan]0.[/cyan] ❌ Salir\n")
+            console.print("  [bold rgb(255,140,0)]1.[/bold rgb(255,140,0)] 🔐 Iniciar sesión")
+            console.print("  [bold rgb(255,140,0)]2.[/bold rgb(255,140,0)] 📝 Registrarse (email verificado)")
+            console.print("  [bold rgb(255,140,0)]0.[/bold rgb(255,140,0)] ❌ Salir\n")
             
-            choice = console.input("[bold]Opción: [/bold]").strip()
+            choice = get_input("Opción")
             
             if choice == "1":
                 result = self.interactive_login()

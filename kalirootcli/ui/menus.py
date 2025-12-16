@@ -21,7 +21,8 @@ from .display import (
     get_input,
     confirm,
     show_loading,
-    print_info
+    print_info,
+    clear_and_show_banner
 )
 
 class MainMenu:
@@ -67,13 +68,13 @@ class MainMenu:
             elif choice == "0":
                 if confirm("Exit KaliRoot CLI?"):
                     self._running = False
-                    console.print("\n[bold cyan]👋 Session Terminated.[/bold cyan]\n")
+                    console.print("\n[bold yellow]👋 Session Terminated.[/bold yellow]\n")
             else:
                 print_error("Invalid option")
 
     def _render_dashboard(self, sub_manager, mode, detector):
         """Render the main professional dashboard."""
-        console.clear()
+        clear_and_show_banner()
         
         # Top Status Bar
         status_color = "green" if sub_manager.is_premium else "yellow"
@@ -84,11 +85,12 @@ class MainMenu:
         grid.add_column(justify="right", ratio=1)
         
         grid.add_row(
-            f"[bold cyan]👤 USER:[/bold cyan] {self.username.upper()}",
+            f"[bold rgb(255,140,0)]👤 USER:[/bold rgb(255,140,0)] {self.username.upper()}",
             f"[bold {status_color}]● {mode_str} MODE[/bold {status_color}]"
         )
         
-        console.print(Panel(grid, style="blue", box=box.HEAVY))
+        # Changed style from "blue" to "rgb(255,69,0)"
+        console.print(Panel(grid, style="rgb(255,69,0)", box=box.HEAVY))
         
         # System status
         sys_info = detector.get_system_info()
@@ -109,6 +111,7 @@ class MainMenu:
 
     def _ai_interface(self, sub_manager, ai_handler) -> None:
         """Professional AI Interface."""
+        clear_and_show_banner()
         mode = ai_handler.get_mode().value.upper()
         
         print_header(f"AI CONSOLE [{mode}]")
@@ -142,12 +145,13 @@ class MainMenu:
 
     def _show_balance(self, sub_manager) -> None:
         """Show balance."""
+        clear_and_show_banner()
         print_header("WALLET STATUS")
         
         details = sub_manager.get_subscription_details()
         
         table = Table(box=box.SIMPLE)
-        table.add_column("Resource", style="cyan")
+        table.add_column("Resource", style="rgb(255,140,0)")
         table.add_column("Value", style="white bold")
         
         table.add_row("Credits", str(details["credits"]))
@@ -163,6 +167,7 @@ class MainMenu:
         """Subscription Upgrade."""
         from ..subscription import get_plan_comparison
         
+        clear_and_show_banner()
         print_header("UPGRADE TO OPERATIONAL")
         
         if sub_manager.is_premium:
@@ -180,6 +185,7 @@ class MainMenu:
         from ..subscription import get_credits_packages_display
         from ..config import CREDIT_PACKAGES
         
+        clear_and_show_banner()
         print_header("PURCHASE CREDITS")
         console.print(get_credits_packages_display())
         
@@ -200,6 +206,7 @@ class MainMenu:
         """Show Profile."""
         from ..database_manager import get_user_profile
         
+        clear_and_show_banner()
         print_header("USER PROFILE")
         profile = get_user_profile(self.user_id)
         
@@ -211,7 +218,7 @@ class MainMenu:
 [bold]Created:[/bold] {profile['created_at']}
                 """,
                 title="Account Details",
-                border_style="cyan"
+                border_style="rgb(255,69,0)"
             ))
         get_input("Press Enter...")
 
@@ -220,6 +227,7 @@ class MainMenu:
         from ..auth import auth_manager
         from ..distro_detector import detector
         
+        clear_and_show_banner()
         print_header("SYSTEM SETTINGS")
         
         # System Info Panel
@@ -231,7 +239,7 @@ class MainMenu:
 [bold]Data Dir:[/bold] {detector.get_data_dir()}
             """,
             title="Environment",
-            border_style="blue"
+            border_style="rgb(255,69,0)"
         ))
         
         if confirm("Logout from this device?"):
@@ -241,18 +249,19 @@ class MainMenu:
 
     def _show_help(self) -> None:
         """Help."""
+        clear_and_show_banner()
         print_header("OPERATIONAL MANUAL")
         console.print("""
-[bold cyan]1. Consultation Mode (Free)[/bold cyan]
+[bold rgb(255,140,0)]1. Consultation Mode (Free)[/bold rgb(255,140,0)]
 - Theory, basic debugging, learning.
 - Rate limited.
 
-[bold green]2. Operational Mode (Premium)[/bold green]
+[bold rgb(255,69,0)]2. Operational Mode (Premium)[/bold rgb(255,69,0)]
 - Script generation, full payload analysis.
 - Automation workflow.
 - Priority processing.
 
-[bold yellow]Safety Guidelines[/bold yellow]
+[bold rgb(255,165,0)]Safety Guidelines[/bold rgb(255,165,0)]
 - All actions are logged locally.
 - Do not use for illegal activities.
 - Ethics filters are active.

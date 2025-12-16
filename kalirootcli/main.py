@@ -229,12 +229,12 @@ def main_menu():
         from rich import box
         
         # 1. System Info (Centered & Compact)
-        sys_info_text = f"[bold cyan]OS:[/bold cyan] {sys_info['distro']}  │  [bold cyan]Shell:[/bold cyan] {sys_info['shell']}  │  [bold cyan]Root:[/bold cyan] {sys_info['root']}"
-        console.print(Align.center(Panel(sys_info_text, border_style="dim blue", padding=(0, 2), title="[dim]System[/dim]")))
+        sys_info_text = f"[bold rgb(255,140,0)]OS:[/bold rgb(255,140,0)] {sys_info['distro']}  │  [bold rgb(255,140,0)]Shell:[/bold rgb(255,140,0)] {sys_info['shell']}  │  [bold rgb(255,140,0)]Root:[/bold rgb(255,140,0)] {sys_info['root']}"
+        console.print(Align.center(Panel(sys_info_text, border_style="dim rgb(255,69,0)", padding=(0, 2), title="[dim]System[/dim]")))
         
         # 2. User Dashboard (Elegant Grid)
         user_table = Table(show_header=False, box=None, padding=(0, 2))
-        user_table.add_column("Key", style="bold cyan", justify="right")
+        user_table.add_column("Key", style="bold rgb(255,140,0)", justify="right")
         user_table.add_column("Value", style="white")
         
         user_table.add_row("Identity 👤", status.get('username') or status.get('email'))
@@ -244,8 +244,8 @@ def main_menu():
         
         dashboard_panel = Panel(
             user_table,
-            title="[bold bright_blue] DOMINION DASHBOARD [/bold bright_blue]",
-            border_style="bright_blue",
+            title="[bold rgb(255,69,0)] DOMINION DASHBOARD [/bold rgb(255,69,0)]",
+            border_style="rgb(255,69,0)",
             padding=(1, 2)
         )
         console.print(dashboard_panel)
@@ -845,7 +845,7 @@ def upgrade_menu():
     """Handle premium upgrade and credit purchases."""
     while True:
         console.clear()
-        print_header("💎 TIENDA DOMINION")
+        print_banner(show_skull=False)
         
         # Get current status
         status_res = api_client.get_status()
@@ -969,20 +969,21 @@ def main_menu():
                 status_color = "bold white on red"
         
         # Header
-        print_header("KR-CLI DOMINION v3.0")
+        # Header
+        print_banner(show_skull=False)
         
         # 1. System Info (Centered & Compact)
         from rich.align import Align
         from rich.table import Table
         from rich.panel import Panel
         
-        sys_info_text = f"[bold cyan]OS:[/bold cyan] {sys_info['distro']}  │  [bold cyan]Shell:[/bold cyan] {sys_info['shell']}  │  [bold cyan]Root:[/bold cyan] {sys_info['root']}"
-        console.print(Align.center(Panel(sys_info_text, border_style="dim blue", padding=(0, 2), title="[dim]System[/dim]")))
+        sys_info_text = f"[bold rgb(255,140,0)]OS:[/bold rgb(255,140,0)] {sys_info['distro']}  │  [bold rgb(255,140,0)]Shell:[/bold rgb(255,140,0)] {sys_info['shell']}  │  [bold rgb(255,140,0)]Root:[/bold rgb(255,140,0)] {sys_info['root']}"
+        console.print(Align.center(Panel(sys_info_text, border_style="dim rgb(255,69,0)", padding=(0, 2), title="[dim]System[/dim]")))
         
         # 2. User Dashboard (Elegant Grid)
         # We use a table for alignment within a panel
         user_table = Table(show_header=False, box=None, padding=(0, 2))
-        user_table.add_column("Key", style="bold cyan", justify="right")
+        user_table.add_column("Key", style="bold rgb(255,69,0)", justify="right")
         user_table.add_column("Value", style="white")
         
         user_table.add_row("Identity 👤", status.get('username') or status.get('email'))
@@ -992,8 +993,8 @@ def main_menu():
         
         dashboard_panel = Panel(
             user_table,
-            title="[bold bright_blue] DOMINION DASHBOARD [/bold bright_blue]",
-            border_style="bright_blue",
+            title="[bold rgb(255,69,0)] DOMINION DASHBOARD [/bold rgb(255,69,0)]",
+            border_style="rgb(255,69,0)",
             padding=(1, 2)
         )
         console.print(dashboard_panel)
@@ -1005,12 +1006,16 @@ def main_menu():
         print_menu_option("1", "🧠 CONSOLA AI", "Consultas de seguridad con búsqueda web")
         print_menu_option("2", "🤖 MODO AGENTECREATOR", "Crear proyectos y herramientas desde cero")
         if is_premium:
-            print_menu_option("5", "🔧 HERRAMIENTAS", "Port Scanner y más (Premium)")
-        print_menu_option("3", "⭐ UPGRADE", "Obtener acceso Premium")
-        print_menu_option("4", "⚙️  CONFIGURACIÓN", "Cuenta y ajustes")
+            print_menu_option("3", "🔧 HERRAMIENTAS", "Port Scanner y más (Premium)")
+            print_menu_option("4", "⭐ UPGRADE", "Obtener acceso Premium")
+            print_menu_option("5", "⚙️  CONFIGURACIÓN", "Cuenta y ajustes")
+        else:
+            print_menu_option("3", "⭐ UPGRADE", "Obtener acceso Premium")
+            print_menu_option("4", "⚙️  CONFIGURACIÓN", "Cuenta y ajustes")
+            
         print_menu_option("0", "🚪 SALIR")
         
-        console.rule(style="dim blue")
+        console.rule(style="dim rgb(255,69,0)")
         
         choice = get_input("Selecciona")
         
@@ -1048,15 +1053,23 @@ def main_menu():
                 print_error("El módulo Agente no está instalado correctamente.")
                 
         elif choice == "3":
-            upgrade_menu()
+            if is_premium:
+                tools_menu()
+            else:
+                upgrade_menu()
             
         elif choice == "4":
-            logged_out = config_menu()
-            if logged_out:
-                break  # Exit main_menu to return to authentication
+            if is_premium:
+                upgrade_menu()
+            else:
+                logged_out = config_menu()
+                if logged_out:
+                    break  # Exit main_menu to return to authentication
         
         elif choice == "5" and is_premium:
-            tools_menu()
+            logged_out = config_menu()
+            if logged_out:
+                break
             
         elif choice == "0":
             if confirm("¿Salir de KaliRoot CLI?"):
@@ -1072,14 +1085,14 @@ def tools_menu():
     
     while True:
         console.clear()
-        print_header("🔧 HERRAMIENTAS PREMIUM")
+        print_banner(show_skull=False)
         
         print_menu_option("1", "🔍 Port Scanner", "Escaneo rápido de puertos")
         print_menu_option("2", "📜 Script Generator", "Genera scripts de pentesting")
         print_menu_option("3", "🛡️ CVE Lookup", "Busca vulnerabilidades")
         print_menu_option("0", "Volver")
         
-        console.rule(style="dim cyan")
+        console.rule(style="dim rgb(255,69,0)")
         choice = get_input("Selecciona")
         
         if choice == "0":
@@ -1185,7 +1198,7 @@ def ai_console_mode():
     # === CHAT SELECTION MENU ===
     while True:
         console.clear()
-        print_header("🧠 KR-CLI AI CONSOLE")
+        print_banner(show_skull=False)
         
         chats = chat_manager.list_chats()
         
@@ -1425,7 +1438,7 @@ def config_menu():
         data = status_res["data"]
         
         console.clear()
-        print_header("⚙️  CONFIGURACIÓN")
+        print_banner(show_skull=False)
         console.print(f"👤 Usuario: {data.get('username')}")
         console.print(f"📧 Email: {data.get('email')}")
         console.print(f"🆔 User ID: {data.get('user_id')}")
@@ -1532,7 +1545,7 @@ def agent_mode():
 
 def settings_menu() -> bool:
     """Settings menu. Returns True if should exit app."""
-    print_header("⚙️ CONFIGURACIÓN")
+    print_banner(show_skull=False)
     
     sys_info = detector.get_system_info()
     

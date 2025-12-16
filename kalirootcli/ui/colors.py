@@ -80,15 +80,15 @@ class Colors:
 
 # Theme colors for the app
 THEME = {
-    "primary": "cyan",
+    "primary": "rgb(255,140,0)",    # Dark Orange
     "secondary": "yellow",
     "success": "green",
     "error": "red",
     "warning": "yellow",
-    "info": "blue",
+    "info": "rgb(255,140,0)",       # Dark Orange (was blue)
     "muted": "dim white",
     "accent": "magenta",
-    "header": "bold cyan",
+    "header": "bold rgb(255,69,0)", # Orange Red (was bold cyan)
     "menu_item": "white",
-    "menu_number": "cyan",
+    "menu_number": "rgb(255,140,0)", # Dark Orange (was cyan)
 }
