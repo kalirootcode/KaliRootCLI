@@ -841,6 +841,98 @@ def list_plans_menu():
 # UPGRADE & SETTINGS
 # ═══════════════════════════════════════════════════════════════════════════════
 
+def show_payment_help():
+    """Display comprehensive help about the payment process."""
+    console.clear()
+    print_banner(show_skull=False)
+    
+    console.print("[bold cyan]═══════════════════════════════════════════════════════════════[/bold cyan]")
+    console.print("[bold white]                    ❓ ¿CÓMO PAGAR?                           [/bold white]")
+    console.print("[bold cyan]═══════════════════════════════════════════════════════════════[/bold cyan]\n")
+    
+    # Payment method
+    console.print("[bold yellow]💳 MÉTODO DE PAGO[/bold yellow]")
+    console.print("Utilizamos [bold green]NowPayments[/bold green], una plataforma líder mundial")
+    console.print("en procesamiento de pagos con criptomonedas.\n")
+    
+    console.print("[bold]Moneda aceptada:[/bold] [bold green]USDT (Tether TRC-20)[/bold green]")
+    console.print("[dim]Stablecoin 1:1 con el dólar estadounidense[/dim]\n")
+    
+    # Supported countries with flags
+    console.print("[bold yellow]🌍 PAÍSES SOPORTADOS[/bold yellow]")
+    console.print("NowPayments opera globalmente. Algunos países destacados:\n")
+    
+    flags = (
+        "🇺🇸 🇧🇷 🇦🇷 🇨🇴 🇲🇽 🇨🇱 🇵🇪 🇪🇨 🇻🇪 🇺🇾 "
+        "🇪🇸 🇩🇪 🇫🇷 🇮🇹 🇬🇧 🇵🇹 🇳🇱 🇧🇪 🇨🇭 🇦🇹 "
+        "🇯🇵 🇰🇷 🇦🇺 🇨🇦 🇮🇳 🇸🇬 🇦🇪 🇮🇱 🇿🇦 🇳🇬"
+    )
+    console.print(f"[bold]{flags}[/bold]\n")
+    
+    console.print(
+        "[dim]Estados Unidos, Brasil, Argentina, Colombia, México, Chile, Perú,\n"
+        "Ecuador, Venezuela, Uruguay, España, Alemania, Francia, Italia,\n"
+        "Reino Unido, Portugal, Países Bajos, Bélgica, Suiza, Austria,\n"
+        "Japón, Corea del Sur, Australia, Canadá, India, Singapur,\n"
+        "Emiratos Árabes, Israel, Sudáfrica, Nigeria, ¡y más![/dim]\n"
+    )
+    
+    # How it works
+    console.print("[bold yellow]⚙️ ¿CÓMO FUNCIONA?[/bold yellow]\n")
+    
+    console.print("[bold cyan]1.[/bold cyan] [bold]Seleccionas un paquete[/bold]")
+    console.print("   Elige el paquete de créditos o Premium que desees.\n")
+    
+    console.print("[bold cyan]2.[/bold cyan] [bold]Generamos tu link único[/bold]")
+    console.print("   Se crea una factura [bold green]exclusiva para ti[/bold green].")
+    console.print("   Este link está [bold]asociado a tu cuenta[/bold] de forma segura.\n")
+    
+    console.print("[bold cyan]3.[/bold cyan] [bold]Realizas el pago[/bold]")
+    console.print("   Envías USDT (TRC-20) a la dirección indicada.")
+    console.print("   Puedes usar [bold]Binance, Trust Wallet, MetaMask[/bold], etc.\n")
+    
+    console.print("[bold cyan]4.[/bold cyan] [bold]Recibimos la confirmación[/bold]")
+    console.print("   NowPayments detecta tu pago y nos notifica")
+    console.print("   automáticamente mediante un sistema de [bold]IPN (Instant Payment Notification)[/bold].\n")
+    
+    console.print("[bold cyan]5.[/bold cyan] [bold]¡Créditos acreditados![/bold]")
+    console.print("   Tus créditos se agregan [bold green]instantáneamente[/bold green]")
+    console.print("   a tu cuenta. ¡Sin intervención manual!\n")
+    
+    # Security
+    console.print("[bold yellow]🔒 SEGURIDAD[/bold yellow]\n")
+    
+    console.print("• [bold]No almacenamos datos de pago[/bold]")
+    console.print("  NowPayments procesa todo de forma segura.\n")
+    
+    console.print("• [bold]Links únicos por transacción[/bold]")
+    console.print("  Cada factura tiene un ID único vinculado a tu usuario.\n")
+    
+    console.print("• [bold]Verificación automática[/bold]")
+    console.print("  El sistema valida cada pago en la blockchain.\n")
+    
+    console.print("• [bold]Cifrado de extremo a extremo[/bold]")
+    console.print("  Todas las comunicaciones usan HTTPS/TLS.\n")
+    
+    # Platforms
+    console.print("[bold yellow]📱 APPS RECOMENDADAS PARA PAGAR[/bold yellow]")
+    console.print("• [bold]Binance[/bold] - Exchange líder mundial")
+    console.print("• [bold]Trust Wallet[/bold] - Wallet móvil segura")
+    console.print("• [bold]MetaMask[/bold] - Wallet para navegador")
+    console.print("• [bold]Coinbase[/bold] - Exchange regulado")
+    console.print("• [bold]OKX[/bold] - Exchange global")
+    console.print("• [bold]Bybit[/bold] - Exchange de derivados\n")
+    
+    # Support
+    console.print("[bold yellow]📞 SOPORTE[/bold yellow]")
+    console.print("¿Tienes problemas con un pago?")
+    console.print("Contacta: [bold cyan]support@kaliroot.dev[/bold cyan]\n")
+    
+    console.print("[bold cyan]═══════════════════════════════════════════════════════════════[/bold cyan]")
+    
+    input("\n[Presiona Enter para volver...]")
+
+
 def upgrade_menu():
     """Handle premium upgrade and credit purchases."""
     from .config import CREDIT_PACKAGES, SUBSCRIPTION_PRICE_USD, SUBSCRIPTION_BONUS_CREDITS
@@ -894,6 +986,10 @@ def upgrade_menu():
         else:
             premium_option = None
         
+        # Help option
+        help_option = str(menu_idx)
+        print_menu_option(help_option, "❓ ¿Cómo pagar?", "Información sobre el proceso de pago")
+        
         print_menu_option("0", "Volver")
         console.rule(style="cyan")
         
@@ -902,7 +998,10 @@ def upgrade_menu():
         if choice == "0":
             break
         
-        # Handle credit package purchase
+        # Show payment help
+        if choice == help_option:
+            show_payment_help()
+            continue
         try:
             choice_num = int(choice)
             if 1 <= choice_num <= len(CREDIT_PACKAGES):
