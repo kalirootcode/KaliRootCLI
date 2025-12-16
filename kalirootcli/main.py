@@ -862,20 +862,19 @@ def show_payment_help():
     console.print("[bold yellow]🌍 PAÍSES SOPORTADOS[/bold yellow]")
     console.print("NowPayments opera globalmente. Algunos países destacados:\n")
     
-    flags = (
-        "🇺🇸 🇧🇷 🇦🇷 🇨🇴 🇲🇽 🇨🇱 🇵🇪 🇪🇨 🇻🇪 🇺🇾 "
-        "🇪🇸 🇩🇪 🇫🇷 🇮🇹 🇬🇧 🇵🇹 🇳🇱 🇧🇪 🇨🇭 🇦🇹 "
-        "🇯🇵 🇰🇷 🇦🇺 🇨🇦 🇮🇳 🇸🇬 🇦🇪 🇮🇱 🇿🇦 🇳🇬"
-    )
-    console.print(f"[bold]{flags}[/bold]\n")
     
-    console.print(
-        "[dim]Estados Unidos, Brasil, Argentina, Colombia, México, Chile, Perú,\n"
-        "Ecuador, Venezuela, Uruguay, España, Alemania, Francia, Italia,\n"
-        "Reino Unido, Portugal, Países Bajos, Bélgica, Suiza, Austria,\n"
-        "Japón, Corea del Sur, Australia, Canadá, India, Singapur,\n"
-        "Emiratos Árabes, Israel, Sudáfrica, Nigeria, ¡y más![/dim]\n"
-    )
+    # Clean text grid
+    regions = [
+        "🇺🇸 USA   🇧🇷 BRA   🇦🇷 ARG   🇨🇴 COL   🇲🇽 MEX",
+        "🇪🇸 ESP   🇩🇪 DEU   🇫🇷 FRA   🇮🇹 ITA   🇬🇧 GBR",
+        "🇨🇳 CHN   🇯🇵 JPN   🇰🇷 KOR   🇮🇳 IND   🇦🇺 AUS",
+        "🇨🇦 CAN   🇷🇺 RUS   🇿🇦 ZAF   🇳🇬 NGA   🇦🇪 UAE"
+    ]
+    
+    for row in regions:
+        console.print(f"[bold cyan]  {row}[/bold cyan]")
+    
+    console.print("\n[dim]Soporte completo en América, Europa, Asia y África.[/dim]\n")
     
     # How it works
     console.print("[bold yellow]⚙️ ¿CÓMO FUNCIONA?[/bold yellow]\n")
