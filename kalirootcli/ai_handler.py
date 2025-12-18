@@ -32,6 +32,7 @@ class AIMode(Enum):
     """AI Operational Modes."""
     CONSULTATION = "consultation"   # Free: Explanations, basic help
     OPERATIONAL = "operational"     # Premium: Scripts, analysis, complex flows
+    AGENT = "agent"                 # Autonomous: OODA Loop, JSON output
 
 
 from .rag_engine import KnowledgeBase
@@ -44,21 +45,44 @@ class AIHandler:
     Advanced AI Handler for Cybersecurity Operations.
     """
     
-    def __init__(self, user_id: str):
+    def __init__(self, user_id: str, plan: str = "free"):
         self.user_id = user_id
+        self.plan = plan
         self.is_premium = is_user_subscribed(user_id)
+        
+        # Import security manager
+        try:
+            from .security import security_manager, get_rate_limit_message
+            self._security = security_manager
+            self._get_rate_limit_message = get_rate_limit_message
+        except ImportError:
+            self._security = None
+            self._get_rate_limit_message = None
         
     def get_mode(self) -> AIMode:
         """Determine AI mode based on subscription."""
         return AIMode.OPERATIONAL if self.is_premium else AIMode.CONSULTATION
 
-    def can_query(self) -> Tuple[bool, str]:
+    def can_query(self, query: str = "") -> Tuple[bool, str]:
         """
-        Check if user can query based on credit/sub status.
+        Check if user can query based on credit/sub status and rate limits.
         Also validates API configuration.
         """
         if not GROQ_API_KEY:
             return False, "E01: API de IA no configurada. Contacta soporte."
+        
+        # Security checks (rate-limiting, abuse detection)
+        if self._security:
+            result = self._security.check_access(
+                user_id=self.user_id,
+                plan=self.plan if not self.is_premium else "elite",
+                action="ai_query",
+                query=query
+            )
+            if not result.allowed:
+                if self._get_rate_limit_message:
+                    return False, self._get_rate_limit_message(result)
+                return False, f"Límite alcanzado: {result.reason}"
         
         if self.is_premium:
             return True, "Premium Access"
@@ -69,31 +93,49 @@ class AIHandler:
         
         return False, "Saldo insuficiente. Adquiere créditos o Premium."
     
-    def get_response(self, query: str) -> str:
+    def get_response(self, query: str, raw: bool = False, mode_override: Optional[AIMode] = None) -> str:
         """
         Get professional AI response.
         """
         if not groq_client:
             return FALLBACK_AI_TEXT
         
-        mode = self.get_mode()
+        mode = mode_override or self.get_mode()
         
         # Check for complex scripts if free
         if mode == AIMode.CONSULTATION:
             if any(k in query.lower() for k in ["script", "exploit", "código completo", "generate"]):
                 pass 
         
+        # Track timing for logging
+        import time
+        start_time = time.time()
+        
         try:
             # 1. RAG RETRIEVAL (The "Thought" Process)
-            # Check local memory for known vulnerabilities associated with the query
-            rag_context = rag.get_context(query)
+            rag_context = ""
+            if mode != AIMode.AGENT:
+                # Check local memory only for non-agent queries to avoid context pollution
+                rag_context = rag.get_context(query)
             
             # Get conversation history (Reduced to save tokens)
-            history = get_chat_history(self.user_id, limit=3)
+            history = []
+            if mode != AIMode.AGENT:
+                history = get_chat_history(self.user_id, limit=3)
             
             # Build professional prompt with RAG injected
             system_prompt = self._build_system_prompt(mode)
             user_prompt = self._build_user_context(query, history, rag_context)
+            
+            # Adjust parameters for Agent mode to prevent RateLimit (TPM)
+            max_tok = 3000
+            temp = 0.5
+            
+            if mode == AIMode.OPERATIONAL:
+                temp = 0.3
+            elif mode == AIMode.AGENT:
+                max_tok = 1200 # Sufficient for JSON steps, saves TPM
+                temp = 0.2
             
             response = groq_client.chat.completions.create(
                 model=GROQ_MODEL,
@@ -101,17 +143,40 @@ class AIHandler:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.3 if mode == AIMode.OPERATIONAL else 0.5,
-                max_tokens=3000,
+                temperature=temp,
+                max_tokens=max_tok,
                 top_p=0.95
             )
             
             if response.choices and response.choices[0].message.content:
                 raw_text = response.choices[0].message.content
                 
+                # Calculate metrics
+                latency_ms = int((time.time() - start_time) * 1000)
+                input_tokens = getattr(response.usage, 'prompt_tokens', 0) if response.usage else 0
+                output_tokens = getattr(response.usage, 'completion_tokens', 0) if response.usage else 0
+                
+                # Log usage for security tracking
+                try:
+                    from .database_manager import log_usage
+                    from .security import is_interactive_session, get_session_fingerprint
+                    log_usage(
+                        user_id=self.user_id,
+                        action_type="ai_query",
+                        input_tokens=input_tokens,
+                        output_tokens=output_tokens,
+                        latency_ms=latency_ms,
+                        is_tty=is_interactive_session(),
+                        client_hash=get_session_fingerprint()
+                    )
+                except Exception:
+                    pass  # Non-critical, don't fail the response
+                
                 # Save interaction for auditing/history
                 save_chat_interaction(self.user_id, query, raw_text)
                 
+                if raw:
+                    return raw_text
                 return self.format_for_terminal(raw_text)
             
             return FALLBACK_AI_TEXT
@@ -224,6 +289,22 @@ Respondes directamente desde una terminal. Tu objetivo es ser una herramienta OP
 - Si el usuario pide generar herramientas complejas, invítalo a actualizar a Premium para el modo Operativo.
 - Sé conciso y teórico.
 """
+        elif mode == AIMode.AGENT:
+            mode_instructions = """
+[MODO: AGENTE AUTÓNOMO (DOMINION)]
+- Eres un INGENIERO DE SOFTWARE SENIOR trabajando dentro de un entorno automatizado (Agent Loop).
+- TU ÚNICO OUTPUT DEBE SER JSON.
+- SIGUE ESTE FLUJO DE TRABAJO ESTRICTO:
+  1. INVESTIGAR: Si el objetivo es ambiguo o complejo, usa `web_search` PRIMERO.
+     - PRO TIP: Si la búsqueda en español falla, INTENTA INMEDIATAMENTE EN INGLÉS (ej: 'python nmap scan script').
+  2. VERIFICAR: Antes de escribir código, verifica el entorno (`which <herramienta>`, `ls -la`, `pip show`).
+  3. IMPLEMENTAR: Escribe código modular, robusto y con manejo de errores (try/except).
+  4. EJECUTAR: Corre el código y ANALIZA la salida.
+- MANEJO DE ERRORES (CRÍTICO):
+  - NO repitas una acción que falló o fue cancelada con los mismos parámetros. Busca una alternativa o arregla el error.
+  - Si recibes un "SYSTEM AUTOMATIC BLOCK", es porque estás en un bucle. CAMBIA OBLIGATORIAMENTE DE ESTRATEGIA.
+  - Lee los mensajes de error: si falta una librería, instálala. Si falta un archivo, créalo.
+"""
         else:
             mode_instructions = """
 [MODO: OPERATIVO (PREMIUM)]
@@ -232,6 +313,8 @@ Respondes directamente desde una terminal. Tu objetivo es ser una herramienta OP
 - Si piden un script, entrégalo COMPLETO, modular y con manejo de errores.
 - Prioriza la eficacia técnica.
 """
+
+
 
         # Ethics (CRITICAL)
         ethics = """
@@ -349,11 +432,11 @@ Respondes directamente desde una terminal. Tu objetivo es ser una herramienta OP
                 "remediation": ["Manual review required."]
             }
 
-def get_ai_response(user_id: str, query: str) -> str:
+def get_ai_response(user_id: str, query: str, plan: str = "free") -> str:
     """Convenience function."""
-    handler = AIHandler(user_id)
+    handler = AIHandler(user_id, plan=plan)
     
-    can, reason = handler.can_query()
+    can, reason = handler.can_query(query)
     if not can:
         return f"[red]❌ Acceso Denegado: {reason}[/red]"
     

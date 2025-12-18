@@ -20,7 +20,8 @@ from ..ui.display import (
     print_success, 
     print_error,
     confirm,
-    print_info
+    print_info,
+    clear_screen
 )
 from ..api_client import api_client
 from .repos_data import TOP_REPOS
@@ -39,7 +40,7 @@ class RepoBrowser:
         total_pages = math.ceil(len(self.repos) / self.page_size)
         
         while True:
-            console.clear()
+            clear_screen()
             print_header("📦 GIT ARSENAL (TOP 100+)")
             
             start_idx = current_page * self.page_size
@@ -97,7 +98,7 @@ class RepoBrowser:
             return
             
         while True:
-            console.clear()
+            clear_screen()
             print_header(f"🔍 Resultados: '{query}'")
             
             for i, tool in enumerate(results, 1):
@@ -127,7 +128,7 @@ class RepoBrowser:
         total_pages = math.ceil(len(target_repos) / self.page_size)
         
         while True:
-            console.clear()
+            clear_screen()
             print_header(f"📦 {category_name.upper()}")
             
             start_idx = current_page * self.page_size
@@ -182,7 +183,7 @@ class RepoBrowser:
             description = "Conéctate para ver la descripción generada por IA."
 
         while True:
-            console.clear()
+            clear_screen()
             print_header(f"🛠️  {tool['name']}")
             
             # Display AI Description

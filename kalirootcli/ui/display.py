@@ -302,13 +302,37 @@ def print_ai_response(response: str, mode: str = "CONSULTATION", command: str = 
 
 
 def clear_screen() -> None:
-    """Clear the terminal screen."""
+    """
+    Clear the terminal screen COMPLETELY - no trace left.
+    Uses multiple techniques to ensure total cleanup:
+    1. ANSI escape sequences for cursor reset and screen clear
+    2. Clear scrollback buffer
+    3. System clear command as fallback
+    """
+    import os
+    import sys
+    
+    # Method 1: ANSI escape sequences (most reliable)
+    # \033[H - Move cursor to home position (0,0)
+    # \033[2J - Clear entire screen
+    # \033[3J - Clear scrollback buffer (xterm extension, widely supported)
+    sys.stdout.write('\033[H\033[2J\033[3J')
+    sys.stdout.flush()
+    
+    # Method 2: Use system clear command for extra cleanup
+    if os.name == 'nt':
+        os.system('cls')
+    else:
+        # For Unix/Linux/Mac - use clear with -x to clear scrollback too
+        os.system('clear -x 2>/dev/null || clear')
+    
+    # Method 3: Rich console clear (for any Rich-specific cleanup)
     console.clear()
 
 
 def clear_and_show_banner() -> None:
-    """Clear screen and redisplay banner (for menu returns)."""
-    console.clear()
+    """Clear screen COMPLETELY and redisplay banner (for menu returns)."""
+    clear_screen()
     print_banner()
 
 

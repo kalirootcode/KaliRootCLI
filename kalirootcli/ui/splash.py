@@ -13,6 +13,28 @@ except ImportError:
 
 console = Console()
 
+
+def _clear_terminal() -> None:
+    """
+    Clear the terminal COMPLETELY - no trace left.
+    Uses ANSI escape sequences and system commands.
+    """
+    import os
+    import sys
+    
+    # ANSI escape sequences for complete clear
+    sys.stdout.write('\033[H\033[2J\033[3J')
+    sys.stdout.flush()
+    
+    # System clear command
+    if os.name == 'nt':
+        os.system('cls')
+    else:
+        os.system('clear -x 2>/dev/null || clear')
+    
+    # Rich console clear
+    console.clear()
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # COLOR PALETTE (Based on skull image)
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -190,7 +212,7 @@ def animated_splash(skip_animation: bool = False, duration: float = 5.0) -> None
         duration: Duration of loading animation in seconds (default 5)
     """
     # Clear screen first
-    console.clear()
+    _clear_terminal()
     
     if skip_animation:
         _show_static_splash()
@@ -392,12 +414,12 @@ def animated_splash(skip_animation: bool = False, duration: float = 5.0) -> None
             time.sleep(0.04)
     
     # Final clear
-    console.clear()
+    _clear_terminal()
 
 
 def _show_static_splash() -> None:
     """Show static splash without animation - fully centered."""
-    console.clear()
+    _clear_terminal()
     
     term_width, term_height = get_terminal_size()
     

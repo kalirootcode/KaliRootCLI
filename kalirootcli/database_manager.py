@@ -364,3 +364,131 @@ def get_subscription_info(user_id: str) -> Optional[dict]:
     except Exception as e:
         logger.error(f"Error getting subscription info: {e}")
         return None
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# USAGE LOGGING (Security & Analytics)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def log_usage(
+    user_id: str,
+    action_type: str,
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    latency_ms: int = 0,
+    is_tty: bool = True,
+    client_hash: str = ""
+) -> bool:
+    """
+    Log a usage event for security tracking and analytics.
+    
+    Args:
+        user_id: User identifier
+        action_type: 'ai_query', 'agent_run', 'payment', etc.
+        input_tokens: Tokens in input
+        output_tokens: Tokens in output
+        latency_ms: Response time in milliseconds
+        is_tty: Whether running in interactive terminal
+        client_hash: Non-reversible fingerprint of client
+    
+    Returns:
+        True if logged successfully
+    """
+    try:
+        supabase = get_supabase()
+        
+        supabase.table("cli_usage_log").insert({
+            "user_id": user_id,
+            "action_type": action_type,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "latency_ms": latency_ms,
+            "is_tty": is_tty,
+            "client_hash": client_hash[:16] if client_hash else None
+        }).execute()
+        
+        return True
+        
+    except Exception as e:
+        # Don't fail the main operation if logging fails
+        logger.debug(f"Usage logging failed (non-critical): {e}")
+        return False
+
+
+def check_server_rate_limit(
+    user_id: str,
+    action_type: str,
+    window_minutes: int,
+    max_count: int
+) -> bool:
+    """
+    Check rate limit server-side using database.
+    
+    Returns:
+        True if within limits, False if rate limited
+    """
+    try:
+        supabase = get_supabase()
+        
+        result = supabase.rpc(
+            "check_rate_limit",
+            {
+                "p_user_id": user_id,
+                "p_action": action_type,
+                "p_window_minutes": window_minutes,
+                "p_max_count": max_count
+            }
+        ).execute()
+        
+        if isinstance(result.data, bool):
+            return result.data
+        elif isinstance(result.data, list) and len(result.data) > 0:
+            return bool(result.data[0])
+        
+        # Default to allowing if we can't check
+        return True
+        
+    except Exception as e:
+        logger.debug(f"Server rate limit check failed: {e}")
+        # Fail open - allow if we can't verify
+        return True
+
+
+def get_usage_stats(user_id: str, hours: int = 24) -> dict:
+    """
+    Get usage statistics for a user.
+    
+    Returns:
+        Dict with query counts and usage patterns
+    """
+    try:
+        supabase = get_supabase()
+        
+        # Get count of actions in the last N hours
+        cutoff = (datetime.utcnow() - timedelta(hours=hours)).isoformat()
+        
+        result = supabase.table("cli_usage_log") \
+            .select("action_type, created_at") \
+            .eq("user_id", user_id) \
+            .gte("created_at", cutoff) \
+            .execute()
+        
+        if not result.data:
+            return {"total": 0, "by_action": {}}
+        
+        # Count by action type
+        by_action = {}
+        for row in result.data:
+            action = row.get("action_type", "unknown")
+            by_action[action] = by_action.get(action, 0) + 1
+        
+        return {
+            "total": len(result.data),
+            "by_action": by_action,
+            "hours": hours
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting usage stats: {e}")
+        return {"total": 0, "by_action": {}, "error": str(e)}
+

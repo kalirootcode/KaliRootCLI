@@ -2,10 +2,12 @@
 Main entry point for KaliRoot CLI
 Professional Cybersecurity CLI with AI, Web Search, and Agent Capabilities.
 
-Version: 5.0.2 - DOMINION
+Version: 5.3.41 - DOMINION
 """
 
 import sys
+import os
+import time
 import logging
 from getpass import getpass
 import warnings
@@ -31,7 +33,8 @@ from .ui.display import (
     get_input,
     confirm,
     print_panel,
-    clear_and_show_banner
+    clear_and_show_banner,
+    clear_screen
 )
 
 # Import new modules
@@ -54,6 +57,17 @@ except ImportError:
     AGENT_AVAILABLE = False
     file_agent = None
     planner = None
+
+# Mobile features (haptics, notifications)
+try:
+    from .mobile import success_pulse, error_pulse, warning_pulse, payment_success
+    HAPTICS_AVAILABLE = True
+except ImportError:
+    HAPTICS_AVAILABLE = False
+    success_pulse = lambda: None
+    error_pulse = lambda: None
+    warning_pulse = lambda: None
+    payment_success = lambda: None
 
 # Configure logging
 logging.basicConfig(level=logging.WARNING)
@@ -86,7 +100,7 @@ def authenticate() -> bool:
             api_client.logout()
     
     while True:
-        console.clear()  # Clean presentation for auth menu
+        clear_screen()  # Clean presentation for auth menu
         print_banner()   # Show banner clearly
         console.print("\n[bold cyan]           AUTENTICACIÓN          [/bold cyan]\n")
         
@@ -121,10 +135,12 @@ def authenticate() -> bool:
                     else:
                         console.print(f"\n[yellow]📊 Modo FREE - Créditos: {data.get('credits', 0)}[/yellow]")
                 print_success("¡Login exitoso!")
+                success_pulse()  # Haptic feedback on mobile
                 return True
             else:
                 error = result.get("error", "Error de autenticación")
                 print_error(error)
+                error_pulse()  # Haptic feedback on mobile
                 
                 # Offer to resend verification
                 if "verific" in error.lower():
@@ -200,7 +216,7 @@ def main_menu():
         status = status_result["data"]
         sys_info = detector.get_system_info()
         
-        console.clear()
+        clear_screen()
         
         mode = "OPERATIVO" if status.get("is_premium") else "CONSULTA"
         is_premium = status.get("is_premium", False)
@@ -400,7 +416,7 @@ def ai_console(status: Dict[str, Any]):
             error_msg = result.get("error", "Error desconocido")
             if "credits" in error_msg.lower() or "créditos" in error_msg.lower():
                 # Persuasive out-of-credits message
-                console.clear()
+                clear_screen()
                 console.print("\n[bold red]😔 ¡Ups! Te quedaste sin créditos...[/bold red]\n")
                 console.print("[bold white]Pero estábamos en algo importante.[/bold white]")
                 console.print(f"[cyan]Tu consulta era valiosa y DOMINION estaba listo para darte[/cyan]")
@@ -843,7 +859,7 @@ def list_plans_menu():
 
 def show_payment_help():
     """Display comprehensive help about the payment process."""
-    console.clear()
+    clear_screen()
     print_banner(show_skull=False)
     
     console.print("[bold cyan]═══════════════════════════════════════════════════════════════[/bold cyan]")
@@ -937,7 +953,7 @@ def upgrade_menu():
     from .config import CREDIT_PACKAGES, SUBSCRIPTION_PRICE_USD, SUBSCRIPTION_BONUS_CREDITS
     
     while True:
-        console.clear()
+        clear_screen()
         print_banner(show_skull=False)
         
         # Get current status
@@ -1068,7 +1084,7 @@ def main_menu():
         status = status_result["data"]
         sys_info = detector.get_system_info()
         
-        console.clear()
+        clear_screen()
         
         mode = "OPERATIVO" if status.get("is_premium") else "CONSULTA"
         is_premium = status.get("is_premium", False)
@@ -1143,7 +1159,7 @@ def main_menu():
             
         elif choice == "2":
             if not is_premium:
-                console.clear()
+                clear_screen()
                 console.print("\n[bold yellow]⭐ AGENTECREATOR - EXCLUSIVO PREMIUM ⭐[/bold yellow]\n")
                 console.print("[bold white]¡Estás a punto de desbloquear el poder real de DOMINION![/bold white]\n")
                 console.print("[cyan]Con el Modo Agente puedes:[/cyan]")
@@ -1206,7 +1222,7 @@ def tools_menu():
     browser = RepoBrowser()
 
     while True:
-        console.clear()
+        clear_screen()
         print_banner(show_skull=False)
         
         # Original 3
@@ -1331,7 +1347,7 @@ def ai_console_mode():
     
     # === CHAT SELECTION MENU ===
     while True:
-        console.clear()
+        clear_screen()
         print_banner(show_skull=False)
         
         chats = chat_manager.list_chats()
@@ -1421,7 +1437,7 @@ def run_chat_session(chat_manager, session):
         session: ChatSession to interact with
     """
     while True:
-        console.clear()
+        clear_screen()
         # Elegant Chat Title
         from rich.align import Align
         from rich.panel import Panel
@@ -1540,7 +1556,7 @@ Responde al último mensaje del usuario de forma natural y coherente con el cont
                 status_res = api_client.get_status()
                 is_user_premium = status_res.get("data", {}).get("is_premium", False) if status_res.get("success") else False
                 
-                console.clear()
+                clear_screen()
                 console.print("\n[bold red]😔 ¡Se agotaron tus créditos![/bold red]\n")
                 console.print("[bold white]Estábamos en algo importante...[/bold white]")
                 console.print("[cyan]Tu última consulta era valiosa y DOMINION estaba[/cyan]")
@@ -1582,7 +1598,7 @@ def config_menu():
             
         data = status_res["data"]
         
-        console.clear()
+        clear_screen()
         print_banner(show_skull=False)
         console.print(f"👤 Usuario: {data.get('username')}")
         console.print(f"📧 Email: {data.get('email')}")
@@ -1612,81 +1628,130 @@ def agent_mode():
     status = api_client.get_status()["data"]
     is_premium = status.get("is_premium", False)
     
-    # Session state
-    current_context = "Nuevo Proyecto"
-    
     while True:
-        console.clear()
-        print_header("🤖 KALIROOT AGENT CREATOR")
+        clear_screen()
+        from rich.align import Align
+        from rich.panel import Panel
+        from rich.table import Table
+        from rich.layout import Layout
+        
+        # Premium Header
+        console.print(Panel(
+            Align.center("[bold white]🤖 DOMINION AGENT CREATOR[/bold white]\n[dim]Autonomous Security Operations Engine[/dim]"),
+            border_style="cyan",
+            padding=(0, 2),
+            expand=True
+        ))
+        
+        # Current Project Status
+        if file_agent.current_project:
+            console.print(Panel(
+                f"[bold cyan]Proyecto Activo:[/bold cyan] [white]{file_agent.current_project}[/white]\n[dim]{file_agent.get_project_path()}[/dim]",
+                title="Estado de Sesión",
+                border_style="green",
+                padding=(0, 1)
+            ))
+        else:
+            console.print(Panel(
+                Align.center("[dim]No hay proyecto activo. Inicia uno nuevo para comenzar.[/dim]"),
+                border_style="dim",
+                padding=(0, 1)
+            ))
+
+        console.print()
+        
+        # Menu Options Table
+        table = Table(show_header=False, box=None, padding=(0, 2))
+        table.add_column("Key", style="bold cyan", justify="right")
+        table.add_column("Action", style="white")
+        table.add_column("Description", style="dim")
+        
+        table.add_row("[N]", "Nuevo Desafío", "Inicia una tarea autónoma desde cero")
+        table.add_row("[C]", "Reanudar Proyecto", "Continúa un proyecto guardado")
+        table.add_row("[R]", "Quick Scaffold", "Genera estructura de archivos sin IA")
+        table.add_row("")
+        table.add_row("[0]", "Volver", "Regresar al menú principal")
+        
+        console.print(table)
+        console.print()
         
         if not is_premium:
-            console.print("[yellow]⚠️  Modo Free: La creación de proyectos consume créditos altos.[/yellow]")
-            console.print("[dim]Actualiza a Premium para uso ilimitado y soporte de proyectos complejos.[/dim]\n")
+            console.print("[dim yellow]⚠️  Modo Free Limitado: Funciones avanzadas restringidas.[/dim yellow]\n")
+
+        choice = get_input(f"Dominion ({file_agent.current_project or 'Idle'})").strip()
         
-        # Display Context
-        if file_agent.current_project:
-            current_context = f"Proyecto Activo: [green]{file_agent.current_project}[/green]"
-            print_panel(
-                f"[bold]Proyecto:[/bold] {file_agent.current_project}\n[dim]{file_agent.get_project_path()}[/dim]",
-                title="Estado de Sesión",
-                style="green"
-            )
-        else:
-            console.print("[dim]No hay proyecto activo. Comienza describiendo uno nuevo.[/dim]\n")
-        
-        console.print("\n[bold cyan]Instrucciones:[/bold cyan]")
-        console.print(" • Describe un nuevo proyecto para crearlo.")
-        console.print(" • Si ya tienes uno activo, pide cambios (ej: 'añade un README', 'cambia el color').")
-        console.print(" • Escribe '0' para volver al menú principal.\n")
-        
-        instruction = get_input(f"Agente ({file_agent.current_project or 'Nuevo'})").strip()
-        
-        if instruction == "0":
+        if choice == "0":
             break
             
-        if not instruction:
-            continue
+        elif choice.lower() == 'n' or (len(choice) > 3 and " " in choice):
+            # Allow direct typing of goal usually, but now we enforce menu for structure?
+            # User wants "Consola AI" feel. Let's support both: direct text = New Goal, or 'n' = Prompt for goal.
             
-        # Execute Task
-        with show_loading("🤖 El Agente está trabajando (Planificando y Codificando)..."):
-            result = file_agent.run_task(instruction)
-        
-        if result["success"]:
-            # Success Output
-            console.print("\n[bold green]✅ Tarea Completada[/bold green]")
-            console.print(f"[dim]{result.get('summary')}[/dim]\n")
+            goal = choice
+            if choice.lower() == 'n':
+                goal = get_input("Describe el objetivo del agente").strip()
             
-            if result.get("created"):
-                console.print("[bold]Archivos Creados:[/bold]")
-                for f in result["created"]:
-                    console.print(f"  [green]+ {f}[/green]")
+            if not goal: continue
+            
+            # Start New
+            # Create a new project name based on timestamp
+            project_name = "project_" + str(int(time.time()))[-4:]
+            file_agent.set_project(project_name)
+            
+            # Execute
+            from .agent_engine import run_dominion_agent
+            from .mobile import success_pulse
+            
+            current_user_id = api_client.user_id or "00000000-0000-0000-0000-000000000000"
+            try: success_pulse()
+            except: pass
+
+            run_dominion_agent(
+                user_id=current_user_id, 
+                goal=goal, 
+                project_path=os.path.join(file_agent.base_dir, project_name)
+            )
+            print_success("Operación finalizada.")
+            input("\nPresiona Enter...")
+
+        elif choice.lower() == 'c':
+            # List projects
+            projects = [d for d in os.listdir(file_agent.base_dir) if os.path.isdir(os.path.join(file_agent.base_dir, d))]
+            if not projects:
+                print_error("No se encontraron proyectos.")
+                time.sleep(1.5)
+                continue
+            
+            console.print("\n[bold cyan]Proyectos Disponibles:[/bold cyan]")
+            for i, p in enumerate(projects):
+                console.print(f" [cyan]{i+1}.[/cyan] {p}")
+            
+            p_choice = get_input("Número (0 para cancelar)")
+            if p_choice.isdigit():
+                idx = int(p_choice) - 1
+                if 0 <= idx < len(projects):
+                    project_name = projects[idx]
+                    file_agent.set_project(project_name)
                     
-            if result.get("updated"):
-                console.print("[bold]Archivos Modificados:[/bold]")
-                for f in result["updated"]:
-                    console.print(f"  [yellow]~ {f}[/yellow]")
-            
-            # Update session context name if changed
-            if result.get("project"):
-                file_agent.set_project(result["project"])
-            
-            console.print("\n[dim]El contexto del proyecto se ha actualizado. Puedes pedir más cambios.[/dim]")
-            
-        else:
-            # Error Handling
-            error_msg = result.get("error", "Unknown error")
-            print_error(f"Fallo en la ejecución: {error_msg}")
-            
-            if "créditos" in error_msg.lower():
-                console.print("\n[bold yellow]¿Deseas recargar créditos y obtener acceso Premium?[/bold yellow]")
-                print_menu_option("1", "Comprar Ahora ($10/mes)")
-                print_menu_option("0", "Volver")
-                
-                if get_input("Opción") == "1":
-                    upgrade_menu()
+                    # Execute Resume
+                    from .agent_engine import run_dominion_agent
+                    current_user_id = api_client.user_id or "00000000-0000-0000-0000-000000000000"
+                    
+                    run_dominion_agent(
+                        user_id=current_user_id, 
+                        goal="Continuar", 
+                        project_path=os.path.join(file_agent.base_dir, project_name)
+                    )
+                    print_success("Sesión reanudada.")
+                    input("\nPresiona Enter...")
 
-        input("\nPresiona Enter para continuar...")
-
+        elif choice.lower() == 'r':
+            sub_task = get_input("Nombre de herramienta/estructura")
+            if sub_task:
+                with show_loading("Generando..."):
+                    result = file_agent.run_task(sub_task)
+                    print_success("Estructura creada.")
+                    time.sleep(1)
 
 def settings_menu() -> bool:
     """Settings menu. Returns True if should exit app."""
@@ -1695,7 +1760,7 @@ def settings_menu() -> bool:
     sys_info = detector.get_system_info()
     
     console.print(f"[bold]Sistema:[/bold] {detector.get_distro_name()}")
-    console.print(f"[bold]Usuario:[/bold] {api_client.username}")
+    console.print(f"[bold]Usuario:[/bold] {api_client.email or 'Invitado'}")
     console.print(f"[bold]Shell:[/bold] {sys_info['shell']}")
     
     # Module status
@@ -1744,7 +1809,7 @@ def main():
             animated_splash(skip_animation=False, duration=5.0)
         
         # Clear and show main banner
-        console.clear()
+        clear_screen()
         print_banner()
         
         # System info

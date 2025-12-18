@@ -2,11 +2,28 @@
 Extra utilities for the tools menu.
 """
 import os
+import sys
 import subprocess
 import webbrowser
 from rich.console import Console
 
 console = Console()
+
+
+def _clear_terminal() -> None:
+    """Clear the terminal COMPLETELY - no trace left."""
+    # ANSI escape sequences for complete clear
+    sys.stdout.write('\033[H\033[2J\033[3J')
+    sys.stdout.flush()
+    
+    # System clear command
+    if os.name == 'nt':
+        os.system('cls')
+    else:
+        os.system('clear -x 2>/dev/null || clear')
+    
+    # Rich console clear
+    console.clear()
 
 def install_gdown():
     """Install gdown if not present."""
@@ -52,7 +69,7 @@ def gdrive_downloader():
 def show_metasploit_resources():
     """Show Metasploit resources and links."""
     while True:
-        console.clear()
+        _clear_terminal()
         console.print("\n[bold red]⚡ METASPLOIT RESOURCES[/bold red]\n")
         
         options = [

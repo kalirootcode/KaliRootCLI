@@ -54,7 +54,7 @@ class AuthManager:
         Returns:
             dict with user data if successful, None if failed
         """
-        from .ui.display import console, print_error, print_success, print_info, print_warning
+        from .ui.display import console, print_error, print_success, print_info, print_warning, clear_screen
         
         console.print("\n[bold rgb(255,69,0)]📝 REGISTRO DE USUARIO[/bold rgb(255,69,0)]")
         console.print("[dim]Se requiere verificación por correo electrónico[/dim]\n")
@@ -129,7 +129,7 @@ AL ACEPTAR, CONFIRMAS QUE:
    ✅ Eximes de toda responsabilidad al equipo de KR-CLI.
 """
         
-        console.clear()
+        clear_screen()
         console.print("[bold red]⚠️  IMPORTANTE: TÉRMINOS Y CONDICIONES DE USO[/bold red]")
         console.print(terms_text)
         console.print("────────────────────────────────────────────────────────────────")

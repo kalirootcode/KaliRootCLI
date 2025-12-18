@@ -135,7 +135,7 @@ class WebSearchAgent:
                 SearchResult(
                     title=r.get("title", ""),
                     url=r.get("href", ""),
-                    snippet=r.get("body", ""),
+                    body=r.get("body", ""),
                     source="DuckDuckGo"
                 )
                 for r in results
@@ -174,7 +174,7 @@ class WebSearchAgent:
                         results.append(SearchResult(
                             title=title,
                             url=url,
-                            snippet=snippet,
+                            body=snippet,
                             source="DuckDuckGo (Fallback)"
                         ))
                 except Exception as e:

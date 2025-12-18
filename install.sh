@@ -49,6 +49,35 @@ detect_environment() {
     fi
 }
 
+# Install Termux system packages (required for compiling Python libraries)
+install_termux_deps() {
+    if [ "$ENVIRONMENT" != "termux" ]; then
+        return 0
+    fi
+    
+    echo -e "${BLUE}📱 Installing Termux system packages...${NC}"
+    echo -e "${YELLOW}   This may take a few minutes on first install.${NC}"
+    
+    # Update package lists
+    pkg update -y 2>/dev/null || true
+    
+    # Essential build tools and libraries
+    pkg install -y python clang make pkg-config 2>/dev/null || true
+    
+    # Libraries needed for common Python packages
+    pkg install -y libxml2 libxslt libjpeg-turbo freetype libpng 2>/dev/null || true
+    pkg install -y openssl libcrypt 2>/dev/null || true
+    
+    # Termux API for mobile-specific features (notifications, vibration, share)
+    pkg install -y termux-api 2>/dev/null || true
+    
+    # Optional: Git for cloning repositories
+    pkg install -y git 2>/dev/null || true
+    
+    echo -e "${GREEN}✅ Termux packages installed${NC}"
+    echo ""
+}
+
 # Install dependencies
 install_dependencies() {
     echo -e "${BLUE}📦 Installing Python dependencies...${NC}"
@@ -116,6 +145,7 @@ main() {
     detect_environment
     echo ""
     
+    install_termux_deps  # Install Termux system packages first
     install_dependencies
     create_directories
     copy_files

@@ -705,6 +705,15 @@ PROJECT_STRUCTURES = {
             "flags.md": "# Flags\n\n| Challenge | Flag | Points | Solver |\n|-----------|------|--------|--------|\n",
             "scripts/template.py": "#!/usr/bin/env python3\n# CTF Challenge Solution\n\nfrom pwn import *\n\ncontext.log_level = 'debug'\n\ndef solve():\n    pass\n\nif __name__ == '__main__':\n    solve()\n"
         }
+    },
+    "scanner_tool": {
+        "dirs": ["core", "modules", "utils", "reports", "data"],
+        "files": {
+            "main.py": "#!/usr/bin/env python3\n\"\"\"\n{name} - Advanced Security Scanner\n\"\"\"\nimport argparse\nfrom core.engine import ScannerEngine\n\ndef main():\n    parser = argparse.ArgumentParser(description='{description}')\n    parser.add_argument('target', help='Target to scan')\n    args = parser.parse_args()\n    engine = ScannerEngine(args.target)\n    engine.run()\n\nif __name__ == '__main__':\n    main()\n",
+            "core/engine.py": "class ScannerEngine:\n    def __init__(self, target):\n        self.target = target\n    def run(self):\n        print(f'[*] Scanning {self.target}...')\n",
+            "requirements.txt": "requests\nrich\nscapy\n",
+            "README.md": "# {name}\n\n{description}\n\n## Installation\n`pip install -r requirements.txt`\n"
+        }
     }
 }
 
