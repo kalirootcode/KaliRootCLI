@@ -337,8 +337,8 @@ async def ai_query(req: AIQueryRequest, user: dict = Depends(get_current_user)):
     credits = profile.get("credit_balance", 0)
     
     # Check if can query
-    if not is_premium and credits <= 0:
-        raise HTTPException(status_code=402, detail="Sin créditos disponibles. Actualiza a Premium.")
+    if credits <= 0:
+        raise HTTPException(status_code=402, detail="Sin créditos disponibles. Recarga créditos en la Tienda.")
     
     # Build prompt
     mode = "OPERATIVO" if is_premium else "CONSULTA"
@@ -401,13 +401,11 @@ REGLAS DE RESPUESTA:
         
         ai_response = response.choices[0].message.content
         
-        # Deduct credit if not premium
-        new_credits = credits
-        if not is_premium:
-            new_credits = credits - 1
-            supabase_admin.table("cli_users").update({
-                "credit_balance": new_credits
-            }).eq("id", user_id).execute()
+        # Deduct credit for ALL users
+        new_credits = credits - 1
+        supabase_admin.table("cli_users").update({
+            "credit_balance": new_credits
+        }).eq("id", user_id).execute()
         
         # Log to chat history
         supabase_admin.table("cli_chat_history").insert([
@@ -418,7 +416,7 @@ REGLAS DE RESPUESTA:
         return {
             "response": ai_response,
             "mode": mode,
-            "credits_remaining": new_credits if not is_premium else None
+            "credits_remaining": new_credits
         }
         
     except Exception as e:

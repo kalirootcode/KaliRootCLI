@@ -85,9 +85,10 @@ class AIHandler:
                 return False, f"Límite alcanzado: {result.reason}"
         
         if self.is_premium:
-            return True, "Premium Access"
+            # Check premium status logic if needed (e.g. rate limits)
+            pass 
         
-        # Free users deduct credits
+        # All users deduct credits (Premium might have larger pools)
         if deduct_credit(self.user_id):
             return True, "Credit deducted"
         
@@ -124,8 +125,13 @@ class AIHandler:
                 history = get_chat_history(self.user_id, limit=3)
             
             # Build professional prompt with RAG injected
-            system_prompt = self._build_system_prompt(mode)
-            user_prompt = self._build_user_context(query, history, rag_context)
+            # For AGENT mode, use minimal system prompt (context is in user prompt)
+            if mode == AIMode.AGENT:
+                system_prompt = "Code generator. Respond only with valid JSON."
+                user_prompt = query  # Agent engine already built the full context
+            else:
+                system_prompt = self._build_system_prompt(mode)
+                user_prompt = self._build_user_context(query, history, rag_context)
             
             # Adjust parameters for Agent mode to prevent RateLimit (TPM)
             max_tok = 3000
@@ -134,7 +140,7 @@ class AIHandler:
             if mode == AIMode.OPERATIONAL:
                 temp = 0.3
             elif mode == AIMode.AGENT:
-                max_tok = 1200 # Sufficient for JSON steps, saves TPM
+                max_tok = 1500  # Reduced for faster responses
                 temp = 0.2
             
             response = groq_client.chat.completions.create(
@@ -291,19 +297,31 @@ Respondes directamente desde una terminal. Tu objetivo es ser una herramienta OP
 """
         elif mode == AIMode.AGENT:
             mode_instructions = """
-[MODO: AGENTE AUTÓNOMO (DOMINION)]
-- Eres un INGENIERO DE SOFTWARE SENIOR trabajando dentro de un entorno automatizado (Agent Loop).
-- TU ÚNICO OUTPUT DEBE SER JSON.
-- SIGUE ESTE FLUJO DE TRABAJO ESTRICTO:
-  1. INVESTIGAR: Si el objetivo es ambiguo o complejo, usa `web_search` PRIMERO.
-     - PRO TIP: Si la búsqueda en español falla, INTENTA INMEDIATAMENTE EN INGLÉS (ej: 'python nmap scan script').
-  2. VERIFICAR: Antes de escribir código, verifica el entorno (`which <herramienta>`, `ls -la`, `pip show`).
-  3. IMPLEMENTAR: Escribe código modular, robusto y con manejo de errores (try/except).
-  4. EJECUTAR: Corre el código y ANALIZA la salida.
-- MANEJO DE ERRORES (CRÍTICO):
-  - NO repitas una acción que falló o fue cancelada con los mismos parámetros. Busca una alternativa o arregla el error.
-  - Si recibes un "SYSTEM AUTOMATIC BLOCK", es porque estás en un bucle. CAMBIA OBLIGATORIAMENTE DE ESTRATEGIA.
-  - Lee los mensajes de error: si falta una librería, instálala. Si falta un archivo, créalo.
+[MODO: AGENTE AUTÓNOMO (DOMINION) - VSCODE STYLE AGENT]
+- Eres un ASISTENTE DE IA AVANZADO integrado en el editor (similar a Copilot/Cursor).
+- TU OBJETIVO: Resolver la tarea del usuario con eficiencia, elegancia y profesionalismo.
+- TU PERSONALIDAD (en el campo "thought"):
+  - Habla como un experto Senior. Sé claro, conciso y profesional.
+  - Explica QUÉ harás y POR QUÉ de forma breve antes de hacerlo.
+  - Usa un tono alentador y técnico ("Procedo a...", "Verificando...", "Solución implementada").
+
+[REGLAS CRÍTICAS DE EJECUCIÓN]
+1. OUTPUT: EXCLUSIVAMENTE JSON válido.
+2. NO REPETIR:
+   - Si ya escribiste un archivo y fue exitoso, NO lo vuelvas a escribir idéntico.
+   - Si ejecutaste un comando y dio el resultado esperado, NO lo repitas. ¡Usa la acción final!
+3. DETECTAR ÉXITO:
+   - Si la salida de `shell_run` muestra el resultado deseado (ej. "Hola Mundo"), TU TAREA HA TERMINADO.
+   - Usa la acción `complete` inmediatamente para cerrar el proceso.
+
+[FLUJO DE PENSAMIENTO]
+1. Analiza el HISTORIAL. ¿Ya hice esto? ¿Funcionó?
+2. Si lo anterior falló, CAMBIA de estrategia. No repitas lo mismo.
+3. Si el objetivo está cumplido, finaliza.
+
+[MANEJO DE ERRORES]
+- Si recibes "SYSTEM BLOCK", detente y revalúa.
+- Si un comando falla, lee el error y arréglalo (instala librerías, corrige sintaxis).
 """
         else:
             mode_instructions = """

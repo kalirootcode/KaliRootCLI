@@ -2,7 +2,7 @@
 Main entry point for KaliRoot CLI
 Professional Cybersecurity CLI with AI, Web Search, and Agent Capabilities.
 
-Version: 5.3.41 - DOMINION
+Version: 5.3.42 - DOMINION
 """
 
 import sys
@@ -282,9 +282,9 @@ def main_menu():
         
         # Menu options
         print_menu_option("1", "🧠 CONSOLA AI", "Consultas de seguridad con búsqueda web")
-        print_menu_option("2", "🤖 MODO AGENTE", "Crear archivos, proyectos y planes")
+        print_menu_option("2", "🤖 AGENTE MANUAL", "Plantillas y scaffolding")
         print_menu_option("3", "📋 PLANIFICADOR", "Gestión de proyectos y auditorías")
-        print_menu_option("4", "⭐ UPGRADE", "Obtener acceso Premium")
+        print_menu_option("4", "🏪 TIENDA", "Obtener acceso Premium y Créditos")
         print_menu_option("5", "⚙️  CONFIGURACIÓN", "Cuenta y ajustes")
         print_menu_option("0", "🚪 SALIR")
         
@@ -539,6 +539,14 @@ def handle_special_command(command: str, web_search_enabled: bool) -> str:
 # AGENT MODE
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
+# Agent module check
+try:
+    from .agent import file_agent, list_templates
+    AGENT_AVAILABLE = True
+except ImportError:
+    AGENT_AVAILABLE = False
+
 def agent_menu():
     """Agent mode for file and project creation."""
     if not AGENT_AVAILABLE:
@@ -550,10 +558,10 @@ def agent_menu():
     while True:
         print_header("🤖 MODO AGENTE")
         
-        console.print("[dim]Crea archivos, proyectos y código automáticamente.[/dim]\n")
+        console.print("[dim]Crea archivos, proyectos y código con plantillas.[/dim]\n")
         
         print_menu_option("1", "📄 Crear Script", "Python o Bash desde plantilla")
-        print_menu_option("2", "📁 Crear Proyecto", "Estructura completa de proyecto")
+        print_menu_option("2", "📁 Crear Proyecto", "Estructura estándar")
         print_menu_option("3", "📋 Ver Proyectos", "Lista de proyectos creados")
         print_menu_option("4", "🔧 Plantillas", "Ver plantillas disponibles")
         print_menu_option("0", "⬅️  Volver")
@@ -1139,14 +1147,13 @@ def main_menu():
         
         # Menu Options
         print_menu_option("1", "🧠 CONSOLA AI", "Consultas de seguridad con búsqueda web")
-        print_menu_option("2", "🤖 MODO AGENTECREATOR", "Crear proyectos y herramientas desde cero")
         if is_premium:
-            print_menu_option("3", "🔧 HERRAMIENTAS", "Port Scanner y más (Premium)")
-            print_menu_option("4", "🏪 TIENDA", "Obtener acceso Premium y Créditos")
-            print_menu_option("5", "⚙️  CONFIGURACIÓN", "Cuenta y ajustes")
-        else:
-            print_menu_option("3", "🏪 TIENDA", "Obtener acceso Premium y Créditos")
+            print_menu_option("2", "🔧 HERRAMIENTAS", "Port Scanner y más (Premium)")
+            print_menu_option("3", "🏪 TIENDA", "Créditos y suscripción")
             print_menu_option("4", "⚙️  CONFIGURACIÓN", "Cuenta y ajustes")
+        else:
+            print_menu_option("2", "🏪 TIENDA", "Obtener acceso Premium y Créditos")
+            print_menu_option("3", "⚙️  CONFIGURACIÓN", "Cuenta y ajustes")
             
         print_menu_option("0", "🚪 SALIR")
         
@@ -1156,52 +1163,22 @@ def main_menu():
         
         if choice == "1":
             ai_console_mode()
-            
+                
         elif choice == "2":
-            if not is_premium:
-                clear_screen()
-                console.print("\n[bold yellow]⭐ AGENTECREATOR - EXCLUSIVO PREMIUM ⭐[/bold yellow]\n")
-                console.print("[bold white]¡Estás a punto de desbloquear el poder real de DOMINION![/bold white]\n")
-                console.print("[cyan]Con el Modo Agente puedes:[/cyan]")
-                console.print("  🚀 [bold]Crear proyectos completos[/bold] desde cero con IA")
-                console.print("  🔧 [bold]Generar herramientas[/bold] de pentesting personalizadas")
-                console.print("  📁 [bold]Estructurar código[/bold] en múltiples archivos automáticamente")
-                console.print("  🤖 [bold]Iterar con el agente[/bold] como un desarrollador senior a tu lado")
-                console.print("  ⚡ [bold]Acelerar tu trabajo 10x[/bold] con generación inteligente\n")
-                console.print("[bold green]💎 PREMIUM incluye:[/bold green]")
-                console.print("  • +250 créditos de bono mensuales")
-                console.print("  • Modelo AI avanzado (70B parámetros)")
-                console.print("  • Port Scanner, CVE Lookup, Script Generator")
-                console.print("  • Historial ilimitado de chats\n")
-                
-                console.rule(style="yellow")
-                print_menu_option("1", "💳 Comprar PREMIUM", "Desbloquear todas las funciones")
-                print_menu_option("0", "Volver", "Regresar al menú")
-                console.rule(style="yellow")
-                
-                sub_choice = get_input("¿Qué deseas hacer?")
-                if sub_choice == "1":
-                    upgrade_menu()
-            elif AGENT_AVAILABLE:
-                agent_mode()
-            else:
-                print_error("El módulo Agente no está instalado correctamente.")
-                
-        elif choice == "3":
             if is_premium:
                 tools_menu()
             else:
                 upgrade_menu()
             
-        elif choice == "4":
+        elif choice == "3":
             if is_premium:
                 upgrade_menu()
             else:
                 logged_out = config_menu()
                 if logged_out:
-                    break  # Exit main_menu to return to authentication
+                    break
         
-        elif choice == "5" and is_premium:
+        elif choice == "4" and is_premium:
             logged_out = config_menu()
             if logged_out:
                 break
@@ -1623,135 +1600,7 @@ def config_menu():
         elif choice == "0":
             return False  # Return False for normal exit
 
-def agent_mode():
-    """Direct Agent Creation Mode with Iterative Session."""
-    status = api_client.get_status()["data"]
-    is_premium = status.get("is_premium", False)
-    
-    while True:
-        clear_screen()
-        from rich.align import Align
-        from rich.panel import Panel
-        from rich.table import Table
-        from rich.layout import Layout
-        
-        # Premium Header
-        console.print(Panel(
-            Align.center("[bold white]🤖 DOMINION AGENT CREATOR[/bold white]\n[dim]Autonomous Security Operations Engine[/dim]"),
-            border_style="cyan",
-            padding=(0, 2),
-            expand=True
-        ))
-        
-        # Current Project Status
-        if file_agent.current_project:
-            console.print(Panel(
-                f"[bold cyan]Proyecto Activo:[/bold cyan] [white]{file_agent.current_project}[/white]\n[dim]{file_agent.get_project_path()}[/dim]",
-                title="Estado de Sesión",
-                border_style="green",
-                padding=(0, 1)
-            ))
-        else:
-            console.print(Panel(
-                Align.center("[dim]No hay proyecto activo. Inicia uno nuevo para comenzar.[/dim]"),
-                border_style="dim",
-                padding=(0, 1)
-            ))
 
-        console.print()
-        
-        # Menu Options Table
-        table = Table(show_header=False, box=None, padding=(0, 2))
-        table.add_column("Key", style="bold cyan", justify="right")
-        table.add_column("Action", style="white")
-        table.add_column("Description", style="dim")
-        
-        table.add_row("[N]", "Nuevo Desafío", "Inicia una tarea autónoma desde cero")
-        table.add_row("[C]", "Reanudar Proyecto", "Continúa un proyecto guardado")
-        table.add_row("[R]", "Quick Scaffold", "Genera estructura de archivos sin IA")
-        table.add_row("")
-        table.add_row("[0]", "Volver", "Regresar al menú principal")
-        
-        console.print(table)
-        console.print()
-        
-        if not is_premium:
-            console.print("[dim yellow]⚠️  Modo Free Limitado: Funciones avanzadas restringidas.[/dim yellow]\n")
-
-        choice = get_input(f"Dominion ({file_agent.current_project or 'Idle'})").strip()
-        
-        if choice == "0":
-            break
-            
-        elif choice.lower() == 'n' or (len(choice) > 3 and " " in choice):
-            # Allow direct typing of goal usually, but now we enforce menu for structure?
-            # User wants "Consola AI" feel. Let's support both: direct text = New Goal, or 'n' = Prompt for goal.
-            
-            goal = choice
-            if choice.lower() == 'n':
-                goal = get_input("Describe el objetivo del agente").strip()
-            
-            if not goal: continue
-            
-            # Start New
-            # Create a new project name based on timestamp
-            project_name = "project_" + str(int(time.time()))[-4:]
-            file_agent.set_project(project_name)
-            
-            # Execute
-            from .agent_engine import run_dominion_agent
-            from .mobile import success_pulse
-            
-            current_user_id = api_client.user_id or "00000000-0000-0000-0000-000000000000"
-            try: success_pulse()
-            except: pass
-
-            run_dominion_agent(
-                user_id=current_user_id, 
-                goal=goal, 
-                project_path=os.path.join(file_agent.base_dir, project_name)
-            )
-            print_success("Operación finalizada.")
-            input("\nPresiona Enter...")
-
-        elif choice.lower() == 'c':
-            # List projects
-            projects = [d for d in os.listdir(file_agent.base_dir) if os.path.isdir(os.path.join(file_agent.base_dir, d))]
-            if not projects:
-                print_error("No se encontraron proyectos.")
-                time.sleep(1.5)
-                continue
-            
-            console.print("\n[bold cyan]Proyectos Disponibles:[/bold cyan]")
-            for i, p in enumerate(projects):
-                console.print(f" [cyan]{i+1}.[/cyan] {p}")
-            
-            p_choice = get_input("Número (0 para cancelar)")
-            if p_choice.isdigit():
-                idx = int(p_choice) - 1
-                if 0 <= idx < len(projects):
-                    project_name = projects[idx]
-                    file_agent.set_project(project_name)
-                    
-                    # Execute Resume
-                    from .agent_engine import run_dominion_agent
-                    current_user_id = api_client.user_id or "00000000-0000-0000-0000-000000000000"
-                    
-                    run_dominion_agent(
-                        user_id=current_user_id, 
-                        goal="Continuar", 
-                        project_path=os.path.join(file_agent.base_dir, project_name)
-                    )
-                    print_success("Sesión reanudada.")
-                    input("\nPresiona Enter...")
-
-        elif choice.lower() == 'r':
-            sub_task = get_input("Nombre de herramienta/estructura")
-            if sub_task:
-                with show_loading("Generando..."):
-                    result = file_agent.run_task(sub_task)
-                    print_success("Estructura creada.")
-                    time.sleep(1)
 
 def settings_menu() -> bool:
     """Settings menu. Returns True if should exit app."""

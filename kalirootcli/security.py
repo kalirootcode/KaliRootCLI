@@ -30,34 +30,38 @@ PLAN_LIMITS = {
         "agent_per_hour": 0,
         "max_input_tokens": 1000,
         "max_output_tokens": 1500,
+        "daily_token_limit": 10000,  # Anti-abuse daily cap
         "cooldown_seconds": 300,  # 5 min
     },
     "starter": {
         "queries_per_minute": 5,
         "queries_per_hour": 60,
         "queries_per_day": 500,  # Based on credits
-        "agent_per_hour": 3,
+        "agent_per_hour": 5,
         "max_input_tokens": 2000,
         "max_output_tokens": 3000,
+        "daily_token_limit": 100000,
         "cooldown_seconds": 120,  # 2 min
     },
     "hacker_pro": {
         "queries_per_minute": 10,
         "queries_per_hour": 150,
         "queries_per_day": 1200,
-        "agent_per_hour": 10,
+        "agent_per_hour": 15,
         "max_input_tokens": 4000,
-        "max_output_tokens": 3000,
+        "max_output_tokens": 4000,
+        "daily_token_limit": 500000,
         "cooldown_seconds": 60,  # 1 min
     },
     "elite": {
-        "queries_per_minute": 15,
-        "queries_per_hour": 300,
-        "queries_per_day": 2500,
-        "agent_per_hour": 25,
+        "queries_per_minute": 20,
+        "queries_per_hour": 500,
+        "queries_per_day": 5000,
+        "agent_per_hour": 50,
         "max_input_tokens": 8000,
-        "max_output_tokens": 4000,
-        "cooldown_seconds": 30,  # 30 seg
+        "max_output_tokens": 4096,
+        "daily_token_limit": 2000000,  # 2M tokens/day
+        "cooldown_seconds": 15,  # 15 seg
     },
 }
 
