@@ -36,14 +36,131 @@ def _clear_terminal() -> None:
     console.clear()
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# COLOR PALETTE (Based on skull image)
+# COLOR PALETTE (Professional Blue/Cyan/Red Hacker Theme)
 # ═══════════════════════════════════════════════════════════════════════════════
-STYLE_BG = "rgb(0,0,0)"              # Black background
-STYLE_WHITE = "rgb(255,255,255)"      # White - main skull
-STYLE_ORANGE_RED = "rgb(255,69,0)"    # Orange-Red - glitch top
-STYLE_YELLOW = "rgb(255,165,0)"       # Yellow-Orange - transition
-STYLE_CYAN = "rgb(0,206,209)"         # Cyan - glitch bottom
-STYLE_PINK = "rgb(255,105,180)"       # Pink accent (optional)
+STYLE_BG = "rgb(10,10,10)"              # Deep black background
+STYLE_WHITE = "rgb(255,255,255)"        # Pure white
+STYLE_RED = "rgb(255,50,50)"            # Vibrant red - accent color
+STYLE_RED_BRIGHT = "rgb(255,100,100)"   # Bright red
+STYLE_BLUE_DARK = "rgb(0,50,150)"       # Dark blue - top accent
+STYLE_BLUE = "rgb(0,100,255)"           # Electric blue - middle
+STYLE_CYAN = "rgb(0,240,240)"           # Electric cyan - bottom accent
+STYLE_CYAN_BRIGHT = "rgb(0,255,255)"    # Bright cyan
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MATRIX RAIN ANIMATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def matrix_rain_animation(duration: float = 2.0) -> None:
+    """
+    Display Matrix-style falling characters animation.
+    Uses blue/cyan colors with red accents (1 in 10 chars) for professional hacker aesthetic.
+    Optimized for Kali Linux, Termux, and other terminal emulators.
+    
+    Args:
+        duration: Animation duration in seconds
+    """
+    import random
+    import os
+    
+    term_width, term_height = get_terminal_size()
+    
+    # Expanded Chinese characters (Matrix style) - more variety for professional look
+    chars = "田由甲申甴电甶男甸甹町画甼甽甾甿畀畁畂畃畄畅畆畇畈畉畊畋界畍畎畏畐畑" \
+            "日月金木水火土竹米糸貝見角言谷豆豕豸走足身車辛辰酉釆里麦麻黄黒" \
+            "龍龜亀鳥魚馬鹿麗麟麺麼黎黏點黨黯黴龕龍龜龠"
+    
+    # Create columns (every 2nd column to allow for double-width chars)
+    # Optimized for better terminal compatibility
+    columns = []
+    for x in range(0, term_width, 2):  # Step by 2 for double-width characters
+        columns.append({
+            'x': x,
+            'y': float(random.randint(-40, -5)),   # Staggered entry
+            'speed': random.uniform(0.6, 1.8),     # Varied speeds for depth
+            'length': random.randint(6, 18),       # Trail length variation
+            'red_positions': set(random.sample(range(20), k=2))  # Red accent positions
+        })
+    
+    start_time = time.time()
+    frame_count = 0
+    
+    # Use lower refresh rate for better compatibility with slower terminals
+    refresh_rate = 15 if os.environ.get('TERM', '').startswith('xterm') else 12
+    
+    with Live(console=console, refresh_per_second=refresh_rate, screen=True) as live:
+        while time.time() - start_time < duration:
+            output = Text()
+            
+            # Build frame - optimized structure
+            frame = [[' ' for _ in range(term_width)] for _ in range(term_height)]
+            frame_colors = [[None for _ in range(term_width)] for _ in range(term_height)]
+            
+            # Update and draw each column
+            for col in columns:
+                x = col['x']
+                if x >= term_width - 1:  # Safety check
+                    continue
+                    
+                head_y = int(col['y'])
+                length = col['length']
+                
+                # Draw trail with sparkle effect
+                for i in range(length):
+                    y_pos = head_y - i
+                    
+                    if 0 <= y_pos < term_height:
+                        # Random character for sparkle/glitch effect
+                        char_to_draw = random.choice(chars)
+                        frame[y_pos][x] = char_to_draw
+                        
+                        # Color logic: 1 in 10 characters is RED
+                        is_red_accent = (i in col['red_positions']) or (random.random() < 0.1)
+                        
+                        if is_red_accent:
+                            # Red accent character
+                            if i == 0:
+                                frame_colors[y_pos][x] = STYLE_RED_BRIGHT  # Bright red head
+                            else:
+                                frame_colors[y_pos][x] = STYLE_RED  # Red accent
+                        else:
+                            # Standard gradient coloring
+                            if i == 0:
+                                frame_colors[y_pos][x] = "white"  # White head
+                            elif i < 5:
+                                frame_colors[y_pos][x] = STYLE_CYAN  # Cyan upper body
+                            else:
+                                frame_colors[y_pos][x] = STYLE_BLUE  # Blue tail
+                
+                # Move column down
+                col['y'] += col['speed']
+                
+                # Respawn when off screen
+                if head_y - length >= term_height:
+                    col['y'] = float(random.randint(-20, -3))
+                    col['speed'] = random.uniform(0.6, 1.8)
+                    col['length'] = random.randint(6, 18)
+                    col['red_positions'] = set(random.sample(range(20), k=2))
+            
+            # Render frame with optimized output
+            for row_idx, row in enumerate(frame):
+                for col_idx, char in enumerate(row):
+                    color = frame_colors[row_idx][col_idx]
+                    if color:
+                        output.append(char, style=f"bold {color}")
+                    else:
+                        output.append(char)
+                output.append("\n")
+            
+            live.update(output)
+            frame_count += 1
+            
+            # Adaptive sleep for smoother animation
+            time.sleep(0.05 if refresh_rate >= 15 else 0.06)
+
+
+
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -126,9 +243,9 @@ def render_skull_text(term_width: int) -> Text:
         padding = max(0, (term_width - len(line)) // 2)
         centered_line = " " * padding + line
         
-        # Apply gradient: orange-red (top) -> white (middle) -> cyan (bottom)
+        # Apply gradient: cyan (top) -> white (middle) -> cyan (bottom)
         if progress < 0.3:
-            result.append(centered_line + "\n", style=f"bold {STYLE_ORANGE_RED}")
+            result.append(centered_line + "\n", style=f"bold {STYLE_BLUE_DARK}")
         elif progress < 0.7:
             result.append(centered_line + "\n", style=f"bold {STYLE_WHITE}")
         else:
@@ -157,13 +274,13 @@ def render_kr_cli_banner(term_width: int) -> Text:
         centered = " " * padding + line
         
         # Apply strict 3-color gradient
-        # Top = Orange-Red
-        # Middle = Yellow
+        # Top = Blue
+        # Middle = Electric Blue
         # Bottom = Cyan
         if i < total_lines / 3:
-            result.append(centered + "\n", style=f"bold {STYLE_ORANGE_RED}")
+            result.append(centered + "\n", style=f"bold {STYLE_BLUE_DARK}")
         elif i < 2 * total_lines / 3:
-            result.append(centered + "\n", style=f"bold {STYLE_YELLOW}")
+            result.append(centered + "\n", style=f"bold {STYLE_BLUE}")
         else:
             result.append(centered + "\n", style=f"bold {STYLE_CYAN}")
     
@@ -188,7 +305,7 @@ def create_loading_display(progress_pct: float, term_width: int, status: str) ->
     
     result.append(" " * padding)
     result.append("  ⟨ ", style=STYLE_CYAN)
-    result.append("█" * filled, style=f"bold {STYLE_YELLOW}")
+    result.append("█" * filled, style=f"bold {STYLE_BLUE}")
     result.append("▒" * empty, style="dim white")
     result.append(" ⟩  ", style=STYLE_CYAN)
     result.append(pct, style=f"bold {STYLE_WHITE}")
@@ -204,8 +321,12 @@ def create_loading_display(progress_pct: float, term_width: int, status: str) ->
 
 def animated_splash(skip_animation: bool = False, duration: float = 5.0) -> None:
     """
-    Main animated splash screen with professional presentation.
-    Features fade-in effects, perfect centering, and polished animations.
+    Enhanced animated splash with Matrix intro.
+    
+    Sequence:
+    1. Matrix rain animation (2 seconds)
+    2. Banner + loading bar animation
+    3. Program starts
     
     Args:
         skip_animation: If True, shows static version
@@ -218,204 +339,179 @@ def animated_splash(skip_animation: bool = False, duration: float = 5.0) -> None
         _show_static_splash()
         return
     
+    # Phase 1: MATRIX RAIN (2 seconds)
+    matrix_rain_animation(duration=2.0)
+    
+    # Clear for next phase
+    _clear_terminal()
+    
+    # Phase 2: BANNER + LOADING BAR
     # Get terminal size
     term_width, term_height = get_terminal_size()
     
-    # Pre-render all static elements
-    skull = get_skull_logo()
-    skull_lines = skull.strip().split('\n')
-    
-    # KR-CLI banner
-    # IMPORT RAW BANNER directly to avoid stripping/padding issues
+    # Import KR-CLI banner
     from .display import BANNER_ASCII
     kr_lines = [line for line in BANNER_ASCII.split('\n') if line.strip()]
     
-    # Calculate max width for centering
-    max_logo_width = max(len(line) for line in skull_lines)
-    
     # Subtitle elements
     sub_line = "═" * 50
-    title_text = "⚡  DOMINION v3.0  ⚡"
+    title_text = "⚡  DOMINION v3.5 (5.3.45)  ⚡"
     desc_text = "Advanced AI Security Operations"
     
-    # Calculate total content height
-    skull_height = len(skull_lines)
-    kr_height = len(kr_lines)
-    subtitle_height = 4
-    loading_height = 4
-    spacing = 3
-    total_content_height = skull_height + spacing + kr_height + spacing + subtitle_height + spacing + loading_height
+    # Calculate dimensions for centering
+    max_banner_width = max(len(line) for line in kr_lines)
+    subtitle_width = len(sub_line)
+    max_content_width = max(max_banner_width, subtitle_width)
+    
+    banner_height = len(kr_lines)
+    subtitle_height = 4  # Two separator lines + title + description
+    loading_height = 4   # Loading bar section
+    total_content_height = banner_height + 1 + subtitle_height + 1 + loading_height
     
     # Vertical centering
     top_padding = max(0, (term_height - total_content_height) // 2)
     
-    # Phase 1: Fade-in animation for logo (0.8 seconds)
-    fade_duration = 0.8
-    fade_start = time.time()
+    # Horizontal padding
+    banner_padding = max(0, (term_width - max_banner_width) // 2)
+    subtitle_padding = max(0, (term_width - subtitle_width) // 2)
     
-    # Pre-calculate padding for consistency
-    max_skull_width = max(len(line) for line in skull_lines) if skull_lines else 0
-    skull_padding = max(0, (term_width - max_skull_width) // 2)
-
+    # Animated loading
+    loading_start = time.time()
+    loading_duration = duration - 2.0  # Subtract Matrix time
+    
     with Live(console=console, refresh_per_second=30, screen=True) as live:
-        # Fade in logo
-        while time.time() - fade_start < fade_duration:
-            elapsed = time.time() - fade_start
-            fade_progress = min(elapsed / fade_duration, 1.0)
+        while True:
+            elapsed = time.time() - loading_start
+            if elapsed >= loading_duration:
+                break
+            
+            progress = min(elapsed / loading_duration, 1.0)
             
             output = Text()
+            
+            # Top padding
             output.append("\n" * top_padding)
             
-            # Show progressively more lines with fade effect
-            visible_lines = int(len(skull_lines) * fade_progress)
-            
-            for i in range(visible_lines):
-                line = skull_lines[i]
-                progress = i / max(len(skull_lines) - 1, 1)
+            # === KR-CLI BANNER (with gradient) ===
+            kr_total = len(kr_lines)
+            for i, line in enumerate(kr_lines):
+                line_progress = i / max(kr_total - 1, 1)
                 
-                # Center the line using BLOCK padding
-                
-                # Apply gradient coloring
-                if progress < 0.3:
-                    style = STYLE_ORANGE_RED
-                elif progress < 0.7:
-                    style = STYLE_WHITE
+                # Blue → Cyan gradient
+                if line_progress < 0.33:
+                    style = STYLE_BLUE_DARK
+                elif line_progress < 0.66:
+                    style = STYLE_BLUE
                 else:
                     style = STYLE_CYAN
                 
-                output.append(" " * skull_padding + line + "\n", style=style)
+                output.append(" " * banner_padding + line + "\n", style=f"bold {style}")
+            
+            output.append("\n")
+            
+            # === SUBTITLE SECTION ===
+            output.append(" " * subtitle_padding + sub_line + "\n", style=STYLE_BLUE_DARK)
+            
+            # Title (centered within subtitle)
+            title_pad = (subtitle_width - len(title_text)) // 2
+            output.append(" " * subtitle_padding, style=STYLE_BLUE)
+            output.append(title_text, style=f"bold {STYLE_BLUE}")
+            output.append("\n")
+            
+            # Description
+            desc_pad = (subtitle_width - len(desc_text)) // 2
+            output.append(" " * (subtitle_padding + desc_pad))
+            output.append(desc_text + "\n", style=f"italic {STYLE_CYAN}")
+            
+            output.append(" " * subtitle_padding + sub_line + "\n", style=STYLE_BLUE_DARK)
+            output.append("\n")
+            
+            # === LOADING BAR (Responsive) ===
+            bar_width = min(40, term_width - 10)
+            bar_padding = max(0, (term_width - bar_width) // 2)
+            
+            filled = int(bar_width * progress)
+            empty = bar_width - filled
+            
+            output.append(" " * bar_padding)
+            output.append("║ ", style=STYLE_CYAN)
+            output.append("█" * filled, style=f"bold {STYLE_BLUE}")
+            output.append("░" * empty, style=f"dim {STYLE_CYAN}")
+            output.append(" ║\n", style=STYLE_CYAN)
+            
+            # Progress percentage
+            pct_text = f"{int(progress * 100)}%"
+            pct_padding = max(0, (term_width - len(pct_text)) // 2)
+            output.append(" " * pct_padding)
+            output.append(pct_text, style=f"bold {STYLE_CYAN}")
+            output.append("\n\n")
+            
+            # Status message (various stages)
+            if progress < 0.2:
+                status_msg = "⚡ Initializing Systems..."
+                status_color = STYLE_BLUE_DARK
+            elif progress < 0.4:
+                status_msg = "🔐 Loading Security Modules..."
+                status_color = STYLE_BLUE
+            elif progress < 0.6:
+                status_msg = "🤖 Activating AI Engine..."
+                status_color = STYLE_CYAN
+            elif progress < 0.8:
+                status_msg = "🔧 Configuring Tools..."
+                status_color = STYLE_BLUE
+            else:
+                status_msg = "✨ Finalizing Setup..."
+                status_color = STYLE_CYAN
+            
+            status_padding = max(0, (term_width - len(status_msg)) // 2)
+            output.append(" " * status_padding)
+            output.append(status_msg, style=f"bold {status_color}")
             
             live.update(output)
             time.sleep(0.03)
         
-        # Show complete logo briefly
-        time.sleep(0.2)
+        # Show completion briefly
+        output = Text()
+        output.append("\n" * top_padding)
         
-        # Phase 2: Main animation with all elements (remaining duration)
-        main_start = time.time()
-        main_duration = duration - fade_duration - 0.2
-        
-        while True:
-            elapsed = time.time() - main_start
-            progress = min(elapsed / main_duration, 1.0)
-            
-            output = Text()
-            
-            # Top padding for vertical centering
-            output.append("\n" * top_padding)
-            
-            # === SKULL LOGO (block centered) ===
-            # Calculate skull padding once
-            max_skull_width = max(len(line) for line in skull_lines) if skull_lines else 0
-            skull_padding = max(0, (term_width - max_skull_width) // 2)
-            
-            for i, line in enumerate(skull_lines):
-                line_progress = i / max(len(skull_lines) - 1, 1)
-                
-                # Apply gradient coloring
-                if line_progress < 0.3:
-                    style = STYLE_ORANGE_RED
-                elif line_progress < 0.7:
-                    style = STYLE_WHITE
-                else:
-                    style = STYLE_CYAN
-                
-                output.append(" " * skull_padding + line + "\n", style=style)
-            
-            output.append("\n")
-            
-            # === KR-CLI TEXT (block centered) ===
-            # Calculate banner padding once
-            max_kr_width = max(len(line) for line in kr_lines) if kr_lines else 0
-            kr_padding = max(0, (term_width - max_kr_width) // 2)
-            
-            for i, line in enumerate(kr_lines):
-                line_progress = i / max(len(kr_lines) - 1, 1)
-                
-                if line_progress < 0.33:
-                    style = f"bold {STYLE_ORANGE_RED}"
-                elif line_progress < 0.66:
-                    style = f"bold {STYLE_YELLOW}"
-                else:
-                    style = f"bold {STYLE_CYAN}"
-                
-                output.append(" " * kr_padding + line + "\n", style=style)
-            
-            output.append("\n")
-            
-            # === SUBTITLE BOX (perfectly centered) ===
-            sub_padding = max(0, (term_width - len(sub_line)) // 2)
-            title_padding = max(0, (term_width - len(title_text)) // 2)
-            desc_padding = max(0, (term_width - len(desc_text)) // 2)
-            
-            output.append(" " * sub_padding + sub_line + "\n", style=STYLE_ORANGE_RED)
-            output.append(" " * title_padding, style="")
-            output.append("⚡  ", style=STYLE_YELLOW)
-            output.append("DOMINION", style="bold white")
-            output.append(" v3.0  ⚡\n", style=STYLE_YELLOW)
-            output.append(" " * desc_padding + desc_text + "\n", style=f"italic {STYLE_CYAN}")
-            output.append(" " * sub_padding + sub_line + "\n", style=STYLE_ORANGE_RED)
-            
-            output.append("\n")
-            
-            # === LOADING BAR (enhanced professional style) ===
-            bar_width = 45
-            filled = int(bar_width * progress)
-            empty = bar_width - filled
-            
-            # Status text based on progress
-            if progress < 0.2:
-                status = "⚙  Initializing System"
-                status_color = STYLE_CYAN
-            elif progress < 0.4:
-                status = "📦  Loading Core Modules"
-                status_color = STYLE_YELLOW
-            elif progress < 0.6:
-                status = "🔌  Establishing Connection"
-                status_color = STYLE_ORANGE_RED
-            elif progress < 0.8:
-                status = "🔐  Securing Channel"
-                status_color = STYLE_CYAN
-            elif progress < 1.0:
-                status = "✨  Finalizing Setup"
-                status_color = STYLE_YELLOW
+        # Final banner
+        for i, line in enumerate(kr_lines):
+            line_progress = i / max(kr_total - 1, 1)
+            if line_progress < 0.33:
+                style = STYLE_BLUE_DARK
+            elif line_progress < 0.66:
+                style = STYLE_BLUE
             else:
-                status = "✓  Ready to Launch"
-                status_color = "bold green"
-            
-            # Progress percentage
-            pct = f"{int(progress * 100)}%"
-            
-            # Build loading bar line
-            bar_char_filled = "█"
-            bar_char_empty = "░"
-            bar_display = bar_char_filled * filled + bar_char_empty * empty
-            
-            loading_line = f"  ╠ {bar_display} ╣  {pct:>4}"
-            loading_padding = max(0, (term_width - len(loading_line)) // 2)
-            
-            output.append(" " * loading_padding + "  ╠ ", style="dim white")
-            output.append(bar_char_filled * filled, style=f"bold {STYLE_YELLOW}")
-            output.append(bar_char_empty * empty, style="dim white")
-            output.append(" ╣  ", style="dim white")
-            output.append(pct, style=f"bold {STYLE_WHITE}")
-            output.append("\n\n")
-            
-            # Status message (centered)
-            status_padding = max(0, (term_width - len(status)) // 2)
-            output.append(" " * status_padding + status, style=f"{status_color}")
-            
-            live.update(output)
-            
-            if progress >= 1.0:
-                time.sleep(0.6)
-                break
-            
-            time.sleep(0.04)
+                style = STYLE_CYAN
+            output.append(" " * banner_padding + line + "\n", style=f"bold {style}")
+        
+        output.append("\n")
+        output.append(" " * subtitle_padding + sub_line + "\n", style=STYLE_BLUE_DARK)
+        title_pad = (subtitle_width - len(title_text)) // 2
+        output.append(" " * subtitle_padding)
+        output.append(title_text + "\n", style=f"bold {STYLE_BLUE}")
+        desc_pad = (subtitle_width - len(desc_text)) // 2
+        output.append(" " * (subtitle_padding + desc_pad))
+        output.append(desc_text + "\n", style=f"italic {STYLE_CYAN}")
+        output.append(" " * subtitle_padding + sub_line + "\n", style=STYLE_BLUE_DARK)
+        output.append("\n")
+        
+        # Full bar
+        output.append(" " * bar_padding)
+        output.append("║ ", style=STYLE_CYAN)
+        output.append("█" * bar_width, style=f"bold {STYLE_BLUE}")
+        output.append(" ║\n", style=STYLE_CYAN)
+        
+        output.append(" " * ((term_width - 4) // 2))
+        output.append("100%\n\n", style=f"bold {STYLE_CYAN}")
+        
+        output.append(" " * ((term_width - 12) // 2))
+        output.append("✅ Ready!\n", style=f"bold {STYLE_CYAN}")
+        
+        live.update(output)
+        time.sleep(0.5)
     
-    # Final clear
     _clear_terminal()
-
 
 def _show_static_splash() -> None:
     """Show static splash without animation - fully centered."""
@@ -452,7 +548,7 @@ def _show_static_splash() -> None:
         progress = i / max(len(skull_lines) - 1, 1)
         
         if progress < 0.3:
-            style = STYLE_ORANGE_RED
+            style = STYLE_BLUE_DARK
         elif progress < 0.7:
             style = STYLE_WHITE
         else:
@@ -470,9 +566,9 @@ def _show_static_splash() -> None:
     for i, line in enumerate(kr_lines):
         line_progress = i / max(len(kr_lines) - 1, 1)
         if line_progress < 0.33:
-            style = f"bold {STYLE_ORANGE_RED}"
+            style = f"bold {STYLE_BLUE_DARK}"
         elif line_progress < 0.66:
-            style = f"bold {STYLE_YELLOW}"
+            style = f"bold {STYLE_BLUE}"
         else:
             style = f"bold {STYLE_CYAN}"
             
@@ -482,20 +578,20 @@ def _show_static_splash() -> None:
     
     # Subtitle
     sub_line = "═" * 50
-    title_text = "⚡  DOMINION v3.0  ⚡"
+    title_text = "⚡  DOMINION v3.5 (5.3.45)  ⚡"
     desc_text = "Advanced AI Security Operations"
     
     sub_padding = max(0, (term_width - len(sub_line)) // 2)
     title_padding = max(0, (term_width - len(title_text)) // 2)
     desc_padding = max(0, (term_width - len(desc_text)) // 2)
     
-    output.append(" " * sub_padding + sub_line + "\n", style=STYLE_ORANGE_RED)
+    output.append(" " * sub_padding + sub_line + "\n", style=STYLE_BLUE_DARK)
     output.append(" " * title_padding, style="")
-    output.append("⚡  ", style=STYLE_YELLOW)
+    output.append("⚡  ", style=STYLE_BLUE)
     output.append("DOMINION", style="bold white")
-    output.append(" v3.0  ⚡\n", style=STYLE_YELLOW)
+    output.append(" v3.5  ⚡\n", style=STYLE_BLUE)
     output.append(" " * desc_padding + desc_text + "\n", style=f"italic {STYLE_CYAN}")
-    output.append(" " * sub_padding + sub_line, style=STYLE_ORANGE_RED)
+    output.append(" " * sub_padding + sub_line, style=STYLE_BLUE_DARK)
     
     console.print(output)
     console.print()
@@ -506,10 +602,10 @@ def _show_static_splash() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def get_style_red() -> str:
-    return STYLE_ORANGE_RED
+    return STYLE_BLUE_DARK
 
 def get_style_orange() -> str:
-    return STYLE_YELLOW
+    return STYLE_BLUE
 
 def get_style_cyan() -> str:
     return STYLE_CYAN

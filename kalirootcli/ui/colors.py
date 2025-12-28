@@ -1,5 +1,6 @@
 """
 Terminal colors and styling for KaliRoot CLI
+Professional Blue/Cyan Hacker Theme (Matrix Style)
 """
 
 
@@ -78,17 +79,72 @@ class Colors:
         return cls.colorize(text, cls.BOLD_WHITE)
 
 
-# Theme colors for the app
+# ═══════════════════════════════════════════════════════════════════════════════
+# HACKER BLUE/CYAN THEME - Matrix/Cyberpunk Style
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Core palette
+STYLE_BG_DEEP = "rgb(0,0,0)"              # Pure black background
+STYLE_TEXT = "rgb(255,255,255)"           # Pure white text
+STYLE_TEXT_DIM = "rgb(120,120,120)"       # Dimmed gray
+
+# Primary accents (Blue spectrum - Matrix style)
+STYLE_BLUE_DARK = "rgb(0,50,150)"         # Dark blue - deep accents
+STYLE_BLUE = "rgb(0,100,255)"             # Electric blue - main accent
+STYLE_BLUE_BRIGHT = "rgb(100,150,255)"    # Bright blue - highlights
+
+# Secondary accents (Cyan/Aqua - Hacker green-blue)
+STYLE_CYAN_DARK = "rgb(0,150,150)"        # Dark cyan
+STYLE_CYAN = "rgb(0,255,255)"             # Electric cyan/aqua
+STYLE_CYAN_BRIGHT = "rgb(100,255,255)"    # Bright cyan
+STYLE_MATRIX_GREEN = "rgb(0,255,65)"      # Matrix green accent
+
+# Status colors
+STYLE_SUCCESS = "rgb(0,255,65)"           # Matrix green
+STYLE_WARNING = "rgb(255,200,0)"          # Amber
+STYLE_ERROR = "rgb(255,50,50)"            # Red
+
+# Rainbow gradient (lolcat-style effect for banners)
+GRADIENT_BLUE_CYAN = [
+    "rgb(0,50,200)",       # Deep Blue
+    "rgb(0,100,255)",      # Blue
+    "rgb(0,150,255)",      # Light Blue
+    "rgb(0,200,255)",      # Sky Blue
+    "rgb(0,255,200)",      # Cyan-Green
+    "rgb(0,255,255)",      # Cyan
+]
+
+# Theme dictionary (Blue/Cyan hacker aesthetic)
 THEME = {
-    "primary": "rgb(255,140,0)",    # Dark Orange
-    "secondary": "yellow",
-    "success": "green",
-    "error": "red",
-    "warning": "yellow",
-    "info": "rgb(255,140,0)",       # Dark Orange (was blue)
-    "muted": "dim white",
-    "accent": "magenta",
-    "header": "bold rgb(255,69,0)", # Orange Red (was bold cyan)
-    "menu_item": "white",
-    "menu_number": "rgb(255,140,0)", # Dark Orange (was cyan)
+    # Backgrounds
+    "bg": STYLE_BG_DEEP,
+    
+    # Text
+    "text": STYLE_TEXT,
+    "text_dim": STYLE_TEXT_DIM,
+    
+    # Primary accents
+    "primary": STYLE_BLUE,
+    "primary_light": STYLE_BLUE_BRIGHT,
+    "header": STYLE_BLUE_DARK,
+    
+    # Secondary accents
+    "secondary": STYLE_CYAN,
+    "border": STYLE_CYAN,
+    "accent": STYLE_CYAN_BRIGHT,
+    
+    # Status
+    "success": STYLE_SUCCESS,
+    "error": STYLE_ERROR,
+    "warning": STYLE_WARNING,
+    "info": STYLE_CYAN,
+    
+    # UI elements
+    "menu_number": STYLE_BLUE,
+    "menu_item": STYLE_TEXT,
+    "menu_desc": STYLE_TEXT_DIM,
+    "divider": STYLE_CYAN_DARK,
+    
+    # Legacy compatibility
+    "muted": STYLE_TEXT_DIM,
 }

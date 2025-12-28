@@ -34,7 +34,7 @@ class ReportGenerator:
             name='DominionTitle',
             parent=self.styles['Heading1'],
             fontSize=24,
-            textColor=colors.HexColor('#FF4500'), # Orange-Red
+            textColor=colors.HexColor('#00FFFF'), # Cyan
             alignment=1, # Center
             spaceAfter=30
         ))

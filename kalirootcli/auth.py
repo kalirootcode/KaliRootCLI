@@ -56,12 +56,12 @@ class AuthManager:
         """
         from .ui.display import console, print_error, print_success, print_info, print_warning, clear_screen
         
-        console.print("\n[bold rgb(255,69,0)]📝 REGISTRO DE USUARIO[/bold rgb(255,69,0)]")
+        console.print("\n[bold rgb(0,255,255)]📝 REGISTRO DE USUARIO[/bold rgb(0,255,255)]")
         console.print("[dim]Se requiere verificación por correo electrónico[/dim]\n")
         
         # Get email
         while True:
-            email = console.input("[rgb(255,140,0)]📧 Email: [/rgb(255,140,0)]").strip().lower()
+            email = console.input("[rgb(0,100,255)]📧 Email: [/rgb(0,100,255)]").strip().lower()
             
             if not email:
                 print_error("El email no puede estar vacío")
@@ -74,7 +74,7 @@ class AuthManager:
             break
         
         # Get username (optional)
-        username = console.input("[rgb(255,140,0)]👤 Username (opcional, Enter para usar email): [/rgb(255,140,0)]").strip()
+        username = console.input("[rgb(0,100,255)]👤 Username (opcional, Enter para usar email): [/rgb(0,100,255)]").strip()
         if not username:
             username = email.split("@")[0]
         
@@ -157,7 +157,7 @@ AL ACEPTAR, CONFIRMAS QUE:
         
         if result.get("success"):
             console.print("\n[bold green]✅ ¡REGISTRO EXITOSO![/bold green]\n")
-            console.print(f"📧 Enviamos un correo de verificación a: [rgb(255,140,0)]{email}[/rgb(255,140,0)]")
+            console.print(f"📧 Enviamos un correo de verificación a: [rgb(0,100,255)]{email}[/rgb(0,100,255)]")
             console.print("\n[yellow]⚠️  IMPORTANTE:[/yellow]")
             console.print("1. Revisa tu bandeja de entrada (y spam)")
             console.print("2. Haz clic en el enlace de verificación")
@@ -177,10 +177,10 @@ AL ACEPTAR, CONFIRMAS QUE:
         """
         from .ui.display import console, print_error, print_success, print_warning, print_info
         
-        console.print("\n[bold rgb(255,69,0)]🔐 INICIAR SESIÓN[/bold rgb(255,69,0)]\n")
+        console.print("\n[bold rgb(0,255,255)]🔐 INICIAR SESIÓN[/bold rgb(0,255,255)]\n")
         
         # Get email
-        email = console.input("[rgb(255,140,0)]📧 Email: [/rgb(255,140,0)]").strip().lower()
+        email = console.input("[rgb(0,100,255)]📧 Email: [/rgb(0,100,255)]").strip().lower()
         
         if not email:
             print_error("Email es requerido")
@@ -226,9 +226,9 @@ AL ACEPTAR, CONFIRMAS QUE:
             clear_screen()
             print_banner(show_skull=False)
             
-            console.print("  [bold rgb(255,140,0)]1.[/bold rgb(255,140,0)] 🔐 Iniciar sesión")
-            console.print("  [bold rgb(255,140,0)]2.[/bold rgb(255,140,0)] 📝 Registrarse (email verificado)")
-            console.print("  [bold rgb(255,140,0)]0.[/bold rgb(255,140,0)] ❌ Salir\n")
+            console.print("  [bold rgb(0,100,255)]1.[/bold rgb(0,100,255)] 🔐 Iniciar sesión")
+            console.print("  [bold rgb(0,100,255)]2.[/bold rgb(0,100,255)] 📝 Registrarse (email verificado)")
+            console.print("  [bold rgb(0,100,255)]0.[/bold rgb(0,100,255)] ❌ Salir\n")
             
             choice = get_input("Opción")
             

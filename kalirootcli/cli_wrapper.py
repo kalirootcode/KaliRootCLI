@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 from .api_client import api_client
 
-TABLE_HEADER = "[bold rgb(255,69,0)]KaliRoot CLI[/bold rgb(255,69,0)]"
+TABLE_HEADER = "[bold rgb(0,255,255)]KaliRoot CLI[/bold rgb(0,255,255)]"
 
 def execute_and_analyze(args):
     """Execute command and analyze key outputs."""
@@ -64,7 +64,7 @@ def execute_and_analyze(args):
                 return
             
             # Confirm analysis
-            console.print(f"\n[bold rgb(255,69,0)]✨ Análisis de IA disponible (1 crédito)[/bold rgb(255,69,0)]")
+            console.print(f"\n[bold rgb(0,255,255)]✨ Análisis de IA disponible (1 crédito)[/bold rgb(0,255,255)]")
             confirm_analysis = Prompt.ask("¿Analizar resultados?", choices=["Y", "n"], default="Y")
             
             if confirm_analysis.lower() == "n":

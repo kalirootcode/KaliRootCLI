@@ -2,7 +2,7 @@
 Main entry point for KaliRoot CLI
 Professional Cybersecurity CLI with AI, Web Search, and Agent Capabilities.
 
-Version: 5.3.42 - DOMINION
+Version: 5.3.45 - DOMINION
 """
 
 import sys
@@ -245,12 +245,12 @@ def main_menu():
         from rich import box
         
         # 1. System Info (Centered & Compact)
-        sys_info_text = f"[bold rgb(255,140,0)]OS:[/bold rgb(255,140,0)] {sys_info['distro']}  │  [bold rgb(255,140,0)]Shell:[/bold rgb(255,140,0)] {sys_info['shell']}  │  [bold rgb(255,140,0)]Root:[/bold rgb(255,140,0)] {sys_info['root']}"
-        console.print(Align.center(Panel(sys_info_text, border_style="dim rgb(255,69,0)", padding=(0, 2), title="[dim]System[/dim]")))
+        sys_info_text = f"[bold rgb(0,100,255)]OS:[/bold rgb(0,100,255)] {sys_info['distro']}  │  [bold rgb(0,100,255)]Shell:[/bold rgb(0,100,255)] {sys_info['shell']}  │  [bold rgb(0,100,255)]Root:[/bold rgb(0,100,255)] {sys_info['root']}"
+        console.print(Align.center(Panel(sys_info_text, border_style="dim rgb(0,255,255)", padding=(0, 2), title="[dim]System[/dim]")))
         
         # 2. User Dashboard (Elegant Grid)
         user_table = Table(show_header=False, box=None, padding=(0, 2))
-        user_table.add_column("Key", style="bold rgb(255,140,0)", justify="right")
+        user_table.add_column("Key", style="bold rgb(0,100,255)", justify="right")
         user_table.add_column("Value", style="white")
         
         user_table.add_row("Identity 👤", status.get('username') or status.get('email'))
@@ -260,8 +260,8 @@ def main_menu():
         
         dashboard_panel = Panel(
             user_table,
-            title="[bold rgb(255,69,0)] DOMINION DASHBOARD [/bold rgb(255,69,0)]",
-            border_style="rgb(255,69,0)",
+            title="[bold rgb(0,255,255)] DOMINION DASHBOARD [/bold rgb(0,255,255)]",
+            border_style="rgb(0,255,255)",
             padding=(1, 2)
         )
         console.print(dashboard_panel)
@@ -959,6 +959,7 @@ def show_payment_help():
 def upgrade_menu():
     """Handle premium upgrade and credit purchases."""
     from .config import CREDIT_PACKAGES, SUBSCRIPTION_PRICE_USD, SUBSCRIPTION_BONUS_CREDITS
+    from rich.panel import Panel
     
     while True:
         clear_screen()
@@ -977,22 +978,44 @@ def upgrade_menu():
         console.print("[bold cyan]═══ PAQUETES DISPONIBLES ═══[/bold cyan]\n")
         
         # Display all credit packages
+        print_descriptions = [
+            "  • [italic]Ideal para iniciarse. Tu primer paso en ciberseguridad.[/italic]",
+            "  • [italic]Para estudiantes serios. Profundiza sin límites.[/italic]",
+            "  • [italic]Potencia máxima. Para operaciones intensivas.[/italic]"
+        ]
+        
         for i, pkg in enumerate(CREDIT_PACKAGES, 1):
             emoji = "💳" if i == 1 else "⚡" if i == 2 else "💎"
+            desc = print_descriptions[i-1] if i-1 < len(print_descriptions) else ""
+            
             console.print(f"[bold yellow]{emoji} PAQUETE {pkg['name'].upper()}[/bold yellow]")
             console.print(f"  • [bold]{pkg['credits']} créditos[/bold] para consultas AI")
             console.print(f"  • Válidos por 30 días")
+            console.print(desc)
             console.print(f"  • [bold green]${pkg['price']:.0f} USD (USDT)[/bold green]\n")
         
         # Premium Package
         if not is_premium:
-            console.print("[bold magenta]👑 PAQUETE PREMIUM[/bold magenta]")
-            console.print(f"  • [bold]{SUBSCRIPTION_BONUS_CREDITS} créditos[/bold] mensuales")
-            console.print("  • Modelo AI 70B (respuestas profesionales)")
-            console.print("  • Port Scanner, CVE Lookup, Script Generator")
-            console.print("  • Modo Agente para crear proyectos")
-            console.print("  • Historial ilimitado de chats")
-            console.print(f"  • [bold green]${SUBSCRIPTION_PRICE_USD:.0f} USD/mes (USDT)[/bold green]\n")
+            console.print(Panel(
+                f"""
+[bold gold1]👑 DOMINION ELITE ARCHITECTURE (PREMIUM)[/bold gold1]
+
+[bold white]Desbloquea el verdadero poder de la Inteligencia Artificial Ofensiva.[/bold white]
+
+[bold cyan]⚡ VENTAJAS TÁCTICAS:[/bold cyan]
+ • [bold]1200 CRÉDITOS MENSUALES[/bold] (Recarga automática)
+ • [bold]MODELO 70B NEURAL[/bold]: Razonamiento superior y generación de scripts complejos.
+ • [bold]SUITE DE HERRAMIENTAS[/bold]: Port Scanner, CVE Lookup & Auto-Exploit Planning.
+ • [bold]MODO AGENTE AUTÓNOMO[/bold]: Crea proyectos y estructuras completas con un comando.
+ • [bold]MEMORIA INFINITA[/bold]: Historial de chats ilimitado y persistente.
+
+[dim]Tu arsenal de ciberseguridad, actualizado al máximo nivel.[/dim]
+                """,
+                title="[bold green]💎 RECOMENDADO[/bold green]",
+                border_style="gold1",
+                padding=(1, 2)
+            ))
+            console.print(f"[bold green]Precio Especial: ${SUBSCRIPTION_PRICE_USD:.0f} USD/mes (USDT)[/bold green]\n")
         
         console.rule(style="cyan")
         
@@ -1120,13 +1143,13 @@ def main_menu():
         from rich.table import Table
         from rich.panel import Panel
         
-        sys_info_text = f"[bold rgb(255,140,0)]OS:[/bold rgb(255,140,0)] {sys_info['distro']}  │  [bold rgb(255,140,0)]Shell:[/bold rgb(255,140,0)] {sys_info['shell']}  │  [bold rgb(255,140,0)]Root:[/bold rgb(255,140,0)] {sys_info['root']}"
-        console.print(Align.center(Panel(sys_info_text, border_style="dim rgb(255,69,0)", padding=(0, 2), title="[dim]System[/dim]")))
+        sys_info_text = f"[bold rgb(0,100,255)]OS:[/bold rgb(0,100,255)] {sys_info['distro']}  │  [bold rgb(0,100,255)]Shell:[/bold rgb(0,100,255)] {sys_info['shell']}  │  [bold rgb(0,100,255)]Root:[/bold rgb(0,100,255)] {sys_info['root']}"
+        console.print(Align.center(Panel(sys_info_text, border_style="dim rgb(0,255,255)", padding=(0, 2), title="[dim]System[/dim]")))
         
         # 2. User Dashboard (Elegant Grid)
         # We use a table for alignment within a panel
         user_table = Table(show_header=False, box=None, padding=(0, 2))
-        user_table.add_column("Key", style="bold rgb(255,69,0)", justify="right")
+        user_table.add_column("Key", style="bold rgb(0,255,255)", justify="right")
         user_table.add_column("Value", style="white")
         
         user_table.add_row("Identity 👤", status.get('username') or status.get('email'))
@@ -1136,8 +1159,8 @@ def main_menu():
         
         dashboard_panel = Panel(
             user_table,
-            title="[bold rgb(255,69,0)] DOMINION DASHBOARD [/bold rgb(255,69,0)]",
-            border_style="rgb(255,69,0)",
+            title="[bold rgb(0,255,255)] DOMINION DASHBOARD [/bold rgb(0,255,255)]",
+            border_style="rgb(0,255,255)",
             padding=(1, 2)
         )
         console.print(dashboard_panel)
@@ -1157,7 +1180,7 @@ def main_menu():
             
         print_menu_option("0", "🚪 SALIR")
         
-        console.rule(style="dim rgb(255,69,0)")
+        console.rule(style="dim rgb(0,255,255)")
         
         choice = get_input("Selecciona")
         
@@ -1218,10 +1241,11 @@ def tools_menu():
         print_menu_option("11", "📡 WiFi Auditing", "Aircrack-ng, Wifite, Fluxion")
         print_menu_option("12", "🔑 Password Cracking", "Hydra, John, Hashcat")
         print_menu_option("13", "🎣 Social Engineering", "Phishing & Engineering Tools")
+        print_menu_option("14", "🎭 Fsociety Framework", "Pentesting modular completo")
 
         print_menu_option("0", "Volver")
         
-        console.rule(style="dim rgb(255,69,0)")
+        console.rule(style="dim rgb(0,255,255)")
         choice = get_input("Selecciona")
         
         if choice == "0":
@@ -1304,6 +1328,9 @@ def tools_menu():
             browser.browse_category("Passwords")
         elif choice == "13":
             browser.browse_category("Social Eng")
+        elif choice == "14":
+            from .tools.fsociety_handler import run_fsociety_menu
+            run_fsociety_menu()
             
             input("\nPresiona Enter para continuar...")
 
@@ -1355,7 +1382,7 @@ def ai_console_mode():
                 print_menu_option("E", "Exportar Chat", "Guardar como Markdown")
         print_menu_option("0", "Volver", "Regresar al menú principal")
         
-        console.rule(style="rgb(255,69,0)")
+        console.rule(style="rgb(0,255,255)")
         choice = get_input("Selecciona").strip().lower()
         
         if choice == "0":
@@ -1389,7 +1416,7 @@ def ai_console_mode():
                         with open(filename, "w") as f:
                             f.write(f"# {chat['title']}\n\n")
                             f.write(f"*Exportado: {datetime.now().strftime('%Y-%m-%d %H:%M')}*\n\n---\n\n")
-                            for msg in session.get("messages", []):
+                            for msg in session.messages:
                                 role = "**Usuario:**" if msg["role"] == "user" else "**DOMINION:**"
                                 f.write(f"{role}\n{msg['content']}\n\n")
                         
@@ -1420,7 +1447,7 @@ def run_chat_session(chat_manager, session):
         from rich.panel import Panel
         console.print(Panel(
             Align.center(f"[bold white]💬 {session.title}[/bold white]"),
-            border_style="rgb(255,69,0)",
+            border_style="rgb(0,255,255)",
             padding=(0, 2),
             expand=True
         ))
@@ -1446,8 +1473,8 @@ def run_chat_session(chat_manager, session):
                 except:
                     content = msg['content']
                 
-                # Use consistent border colors: User=Cyan, AI=Orange-Red
-                border_color = "bright_cyan" if msg["role"] == "user" else "rgb(255,69,0)"
+                # Use consistent border colors: User=Cyan, AI=Cyan
+                border_color = "bright_cyan" if msg["role"] == "user" else "rgb(0,255,255)"
                 
                 console.print(Panel(
                     content,
@@ -1457,7 +1484,7 @@ def run_chat_session(chat_manager, session):
                     expand=False
                 ))
         
-        console.rule(style="rgb(255,69,0)")
+        console.rule(style="rgb(0,255,255)")
         console.print("[dim]Escribe '/exit' para volver | '/clear' para limpiar historial[/dim]\n")
         
         # Get user input
@@ -1517,7 +1544,7 @@ Responde al último mensaje del usuario de forma natural y coherente con el cont
             console.print(Panel(
                 response_content,
                 title="[bold magenta]KR-AI[/bold magenta]",
-                border_style="rgb(255,69,0)",
+                border_style="rgb(0,255,255)",
                 padding=(1, 2)
             ))
             console.print()

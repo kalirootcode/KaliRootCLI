@@ -121,19 +121,19 @@ TOP_REPOS = [
     {"name": "Gophish", "url": "https://github.com/gophish/gophish", "category": "Social Eng"},
     {"name": "KingPhisher", "url": "https://github.com/rsmusllp/king-phisher", "category": "Social Eng"},
     {"name": "Zphisher", "url": "https://github.com/htr-tech/zphisher", "category": "Social Eng"},
-    {"name": "HiddenEye", "url": "https://github.com/DarkSecDevelopers/HiddenEye", "category": "Social Eng"},
+    {"name": "SocialFish", "url": "https://github.com/UndeadSec/SocialFish", "category": "Social Eng"},
 
     # ─── EDUCATIONAL ───
     {"name": "DVWA", "url": "https://github.com/digininja/DVWA", "category": "Educational"},
     {"name": "Juice Shop", "url": "https://github.com/juice-shop/juice-shop", "category": "Educational"},
     {"name": "Metasploitable3", "url": "https://github.com/rapid7/metasploitable3", "category": "Educational"},
-    {"name": "SecGen", "url": "https://github.com/Claudio-Merloni/SecGen", "category": "Educational"},
+    {"name": "SecGen", "url": "https://github.com/cliffe/SecGen", "category": "Educational"},
 
     # ─── ANONYMITY ───
     {"name": "ProxyChains", "url": "https://github.com/haad/proxychains", "category": "Anonymity"},
     {"name": "Tor", "url": "https://github.com/torproject/tor", "category": "Anonymity"},
     {"name": "Kalitorify", "url": "https://github.com/brainfucksec/kalitorify", "category": "Anonymity"},
-    {"name": "Nipe", "url": "https://github.com/htr-tech/nipe", "category": "Anonymity"},
+    # Nipe removed - repository no longer maintained
 
     # ─── MISC / UTILS ───
     {"name": "PayloadAllTheThings", "url": "https://github.com/swisskyrepo/PayloadsAllTheThings", "category": "Resources"},
@@ -143,11 +143,9 @@ TOP_REPOS = [
     {"name": "Yara", "url": "https://github.com/VirusTotal/yara", "category": "Utils"},
 
     # ─── LABS & TRAINING ───
-    {"name": "HackTheBox Scripts", "url": "https://github.com/Hackplayers/hackthebox-scripts", "category": "Labs"},
-    {"name": "Auto-HTB", "url": "https://github.com/Z3R0ne/Auto-HTB", "category": "Labs"},
-    {"name": "TryHackMe-Scripts", "url": "https://github.com/MuirlandOracle/TryHackMe-Scripts", "category": "Labs"},
-    {"name": "VulnHub-Docker", "url": "https://github.com/c4pr1c3/vulnhub-docker", "category": "Labs"},
+    # Note: Many HTB/THM scripts repos are private or removed
     {"name": "Awesome-Hacking", "url": "https://github.com/Hack-with-Github/Awesome-Hacking", "category": "Resources"},
+    {"name": "Hacking Resources", "url": "https://github.com/vitalysim/Awesome-Hacking-Resources", "category": "Resources"},
 
     # ─── GOOGLE DRIVE ───
     {"name": "Gdown (GDrive Downloader)", "url": "https://github.com/wkentaro/gdown", "category": "Utils"},
@@ -156,11 +154,12 @@ TOP_REPOS = [
     {"name": "Binwalk", "url": "https://github.com/ReFirmLabs/binwalk", "category": "Forensics"},
     {"name": "Foremost", "url": "https://github.com/korczis/foremost", "category": "Forensics"},
     {"name": "Scalpel", "url": "https://github.com/sleuthkit/scalpel", "category": "Forensics"},
-    {"name": "Caine", "url": "https://github.com/CAINE-Linux/caine", "category": "Forensics"},
+    # Caine removed - not a GitHub repository (distributed as ISO from caine-live.net)
+    {"name": "Autopsy", "url": "https://github.com/sleuthkit/autopsy", "category": "Forensics"},
 
     # ─── TERMUX UTILS ───
     {"name": "Termux-API", "url": "https://github.com/termux/termux-api", "category": "Termux"},
     {"name": "Termux-Styling", "url": "https://github.com/termux/termux-styling", "category": "Termux"},
     {"name": "LazyMux", "url": "https://github.com/Gameye98/Lazymux", "category": "Termux"},
-    {"name": "Tool-X", "url": "https://github.com/Rajkumrdusad/Tool-X", "category": "Termux"},
+    {"name": "Katoolin", "url": "https://github.com/LionSec/katoolin", "category": "Termux"},
 ]

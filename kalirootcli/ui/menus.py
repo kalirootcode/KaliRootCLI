@@ -85,12 +85,12 @@ class MainMenu:
         grid.add_column(justify="right", ratio=1)
         
         grid.add_row(
-            f"[bold rgb(255,140,0)]👤 USER:[/bold rgb(255,140,0)] {self.username.upper()}",
+            f"[bold rgb(0,100,255)]👤 USER:[/bold rgb(0,100,255)] {self.username.upper()}",
             f"[bold {status_color}]● {mode_str} MODE[/bold {status_color}]"
         )
         
-        # Changed style from "blue" to "rgb(255,69,0)"
-        console.print(Panel(grid, style="rgb(255,69,0)", box=box.HEAVY))
+        # Changed style from "blue" to "rgb(0,255,255)"
+        console.print(Panel(grid, style="rgb(0,255,255)", box=box.HEAVY))
         
         # System status
         sys_info = detector.get_system_info()
@@ -151,7 +151,7 @@ class MainMenu:
         details = sub_manager.get_subscription_details()
         
         table = Table(box=box.SIMPLE)
-        table.add_column("Resource", style="rgb(255,140,0)")
+        table.add_column("Resource", style="rgb(0,100,255)")
         table.add_column("Value", style="white bold")
         
         table.add_row("Credits", str(details["credits"]))
@@ -218,7 +218,7 @@ class MainMenu:
 [bold]Created:[/bold] {profile['created_at']}
                 """,
                 title="Account Details",
-                border_style="rgb(255,69,0)"
+                border_style="rgb(0,255,255)"
             ))
         get_input("Press Enter...")
 
@@ -239,7 +239,7 @@ class MainMenu:
 [bold]Data Dir:[/bold] {detector.get_data_dir()}
             """,
             title="Environment",
-            border_style="rgb(255,69,0)"
+            border_style="rgb(0,255,255)"
         ))
         
         if confirm("Logout from this device?"):
@@ -252,16 +252,16 @@ class MainMenu:
         clear_and_show_banner()
         print_header("OPERATIONAL MANUAL")
         console.print("""
-[bold rgb(255,140,0)]1. Consultation Mode (Free)[/bold rgb(255,140,0)]
+[bold rgb(0,100,255)]1. Consultation Mode (Free)[/bold rgb(0,100,255)]
 - Theory, basic debugging, learning.
 - Rate limited.
 
-[bold rgb(255,69,0)]2. Operational Mode (Premium)[/bold rgb(255,69,0)]
+[bold rgb(0,255,255)]2. Operational Mode (Premium)[/bold rgb(0,255,255)]
 - Script generation, full payload analysis.
 - Automation workflow.
 - Priority processing.
 
-[bold rgb(255,165,0)]Safety Guidelines[/bold rgb(255,165,0)]
+[bold rgb(0,150,255)]Safety Guidelines[/bold rgb(0,150,255)]
 - All actions are logged locally.
 - Do not use for illegal activities.
 - Ethics filters are active.

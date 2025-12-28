@@ -126,22 +126,21 @@ class SubscriptionManager:
 def get_plan_comparison() -> str:
     """Return the comparison text for the UI."""
     return """
-[bold cyan]─── CONSULTATION (FREE) ───[/bold cyan]
- • Basic AI Q&A
- • Educational Explanations
- • Manual Execution
- • Rate Limited
- • 500 Credits
+[bold cyan]─── PAQUETE STARTER (FREE / BASIC) ───[/bold cyan]
+ • 500 créditos iniciales
+ • Modelo AI Standard
+ • Consultas básicas
+ • Validéz de pack: 30 días
+ • [dim]$10 USD (Si se recarga)[/dim]
 
-[bold green]─── OPERATIONAL (PREMIUM) ───[/bold green]
- • [bold]Full Script Generation[/bold]
- • [bold]Vulnerability Analysis[/bold]
- • [bold]Automated Workflows[/bold]
- • [bold]Priority Processing[/bold]
- • [bold]Unlimited Queries[/bold]
- • [bold]1200 Credits/Mo[/bold]
+[bold green]👑 PAQUETE PREMIUM (SUBSCRIPCIÓN) ───[/bold green]
+ • [bold]1200 créditos mensuales[/bold]
+ • [bold]Modelo AI 70B (respuestas profesionales)[/bold]
+ • [bold]Port Scanner, CVE Lookup, Script Generator[/bold]
+ • [bold]Modo Agente para crear proyectos[/bold]
+ • [bold]Historial ilimitado de chats[/bold]
  
- PRICE: $10.00 / Month
+ PRICE: $20 USD/mes (USDT)
 """
 
 

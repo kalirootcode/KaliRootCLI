@@ -37,7 +37,7 @@ def send_notification(
     notification_id: str = "krcli",
     priority: str = "high",
     vibrate: bool = True,
-    led_color: str = "ff6900",  # KR-CLI orange
+    led_color: str = "0064ff",  # KR-CLI blue
     sound: bool = True
 ) -> bool:
     """
