@@ -270,39 +270,28 @@ Aceptamos criptomonedas a través de NowPayments:
 
 ---
 
-## 🔧 Configuración Avanzada (Opcional)
+## 🔧 Solución de Problemas
 
-Si instalaste desde código fuente y quieres configurar el backend:
-
-### **Variables de Entorno**
-
-Crea un archivo `.env` con tus credenciales:
-
+### **Error: "No module named 'kalirootcli'"**
 ```bash
-# Copiar plantilla
-cp .env.example .env
-
-# Editar configuración
-nano .env
+# Reinstalar el paquete
+pip uninstall kr-cli-dominion
+pip install kr-cli-dominion
 ```
 
-```env
-# Groq API (IA)
-GROQ_API_KEY=tu_clave_groq_aquí
+### **Error: "Authentication failed"**
+- Verifica que hayas confirmado tu email
+- Revisa tu bandeja de spam
+- Intenta reenviar el email de verificación
 
-# Supabase (Base de datos)
-SUPABASE_URL=https://tu-proyecto.supabase.co
-SUPABASE_ANON_KEY=tu_clave_anon
-SUPABASE_SERVICE_KEY=tu_clave_service
+### **Error en Termux: "Failed building wheel"**
+```bash
+# Instalar dependencias del sistema
+pkg install python libxml2 libxslt clang cmake rust build-essential
 
-# NowPayments (Pagos - opcional)
-NOWPAYMENTS_API_KEY=tu_clave_nowpayments
+# Reintentar instalación
+pip install kr-cli-dominion
 ```
-
-**Obtener claves:**
-- **Groq**: https://console.groq.com/keys (Gratis)
-- **Supabase**: https://supabase.com (Plan gratuito disponible)
-- **NowPayments**: https://nowpayments.io (Solo si aceptas pagos)
 
 ---
 
