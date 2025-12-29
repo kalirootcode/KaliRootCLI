@@ -119,6 +119,57 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         logger.error(f"Auth error: {e}")
         raise HTTPException(status_code=401, detail="Authentication failed")
 
+
+def check_and_reset_daily_credits(user_id: str, user_data: dict) -> dict:
+    """
+    Verifica si han pasado 24h y resetea créditos a 20 para TODOS los usuarios.
+    Se aplica cuando el usuario tiene 0 créditos o cuando han pasado 24h.
+    Retorna los datos actualizados del usuario.
+    """
+    current_credits = user_data.get("credit_balance", 0)
+    reset_date = user_data.get("daily_credits_reset_date")
+    
+    # Si tiene créditos > 20, no hacer nada (tiene créditos comprados)
+    if current_credits > 20:
+        return user_data
+    
+    # Si tiene 0 créditos o han pasado 24h, resetear a 20
+    needs_reset = False
+    
+    if current_credits == 0:
+        needs_reset = True
+    elif reset_date:
+        try:
+            last_reset = datetime.fromisoformat(reset_date.replace("Z", "+00:00"))
+            now = datetime.now(last_reset.tzinfo)
+            hours_since_reset = (now - last_reset).total_seconds() / 3600
+            
+            if hours_since_reset >= 24:
+                needs_reset = True
+        except:
+            # Si hay error parseando fecha, resetear
+            needs_reset = True
+    else:
+        # Primera vez, inicializar
+        needs_reset = True
+    
+    if needs_reset:
+        now = datetime.utcnow()
+        try:
+            supabase_admin.table("cli_users").update({
+                "credit_balance": 20,
+                "daily_credits_reset_date": now.isoformat()
+            }).eq("id", user_id).execute()
+            
+            user_data["credit_balance"] = 20
+            user_data["daily_credits_reset_date"] = now.isoformat()
+            
+            logger.info(f"Reset daily credits for user {user_id}: 20 credits")
+        except Exception as e:
+            logger.error(f"Error resetting credits for user {user_id}: {e}")
+    
+    return user_data
+
 # ===== AUTH ENDPOINTS =====
 
 @app.get("/")
@@ -159,11 +210,16 @@ async def register(req: RegisterRequest):
                         "ip_address": "0.0.0.0" # Could extract from request if available
                     }).execute()
                     
-                    # Also initialize credits (as previously done)
+                    # Initialize credits for new user (20 daily credits)
                     try:
-                        pass # Credits logic is handled by triggers usually or can be explicit here if needed
-                    except:
-                        pass
+                        supabase_admin.table("cli_users").update({
+                            "credit_balance": 20,
+                            "daily_credits_reset_date": datetime.utcnow().isoformat()
+                        }).eq("id", response.user.id).execute()
+                        logger.info(f"Initialized new user {response.user.id} with 20 credits")
+                    except Exception as e:
+                        logger.error(f"Error initializing credits: {e}")
+                        # Don't block registration if this fails
                         
                 except Exception as e:
                     logger.error(f"Error saving terms acceptance: {e}")
@@ -288,6 +344,9 @@ async def get_user_status(user: dict = Depends(get_current_user)):
     
     profile = result.data[0]
     
+    # CHECK AND RESET DAILY CREDITS FOR ALL USERS
+    profile = check_and_reset_daily_credits(user_id, profile)
+    
     # Check subscription expiry
     is_premium = False
     days_left = 0
@@ -328,6 +387,9 @@ async def ai_query(req: AIQueryRequest, user: dict = Depends(get_current_user)):
     
     profile = result.data[0]
     
+    # CHECK AND RESET DAILY CREDITS FOR ALL USERS
+    profile = check_and_reset_daily_credits(user_id, profile)
+    
     # Check subscription
     is_premium = False
     if profile.get("subscription_status") == "premium" and profile.get("subscription_expiry_date"):
@@ -338,7 +400,10 @@ async def ai_query(req: AIQueryRequest, user: dict = Depends(get_current_user)):
     
     # Check if can query
     if credits <= 0:
-        raise HTTPException(status_code=402, detail="Sin créditos disponibles. Recarga créditos en la Tienda.")
+        raise HTTPException(
+            status_code=402, 
+            detail="Sin créditos disponibles. Actualiza a Premium o compra créditos en la Tienda."
+        )
     
     # Build prompt
     mode = "OPERATIVO" if is_premium else "CONSULTA"
