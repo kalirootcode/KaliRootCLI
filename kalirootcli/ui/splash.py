@@ -54,9 +54,12 @@ STYLE_CYAN_BRIGHT = "rgb(0,255,255)"    # Bright cyan
 
 def matrix_rain_animation(duration: float = 2.0) -> None:
     """
-    Display Matrix-style falling characters animation.
-    Uses blue/cyan colors with red accents (1 in 10 chars) for professional hacker aesthetic.
-    Optimized for Kali Linux, Termux, and other terminal emulators.
+    Professional Matrix-style rain animation with blue-cyan gradient.
+    Features:
+    - Full screen coverage with dense character rain
+    - Smooth blue → cyan gradient (no red)
+    - Characters morph/change as they fall
+    - Optimized for terminal performance
     
     Args:
         duration: Animation duration in seconds
@@ -66,84 +69,87 @@ def matrix_rain_animation(duration: float = 2.0) -> None:
     
     term_width, term_height = get_terminal_size()
     
-    # Expanded Chinese characters (Matrix style) - more variety for professional look
-    chars = "田由甲申甴电甶男甸甹町画甼甽甾甿畀畁畂畃畄畅畆畇畈畉畊畋界畍畎畏畐畑" \
-            "日月金木水火土竹米糸貝見角言谷豆豕豸走足身車辛辰酉釆里麦麻黄黒" \
-            "龍龜亀鳥魚馬鹿麗麟麺麼黎黏點黨黯黴龕龍龜龠"
+    # Expanded character set for variety - mix of symbols, numbers, and katakana
+    chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" \
+            "ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ" \
+            "!@#$%^&*()_+-=[]{}|;:,.<>?/~`"
     
-    # Create columns (every 2nd column to allow for double-width chars)
-    # Optimized for better terminal compatibility
+    # Create DENSE columns (every column for full coverage)
     columns = []
-    for x in range(0, term_width, 2):  # Step by 2 for double-width characters
+    for x in range(0, term_width):
         columns.append({
             'x': x,
-            'y': float(random.randint(-40, -5)),   # Staggered entry
-            'speed': random.uniform(0.6, 1.8),     # Varied speeds for depth
-            'length': random.randint(6, 18),       # Trail length variation
-            'red_positions': set(random.sample(range(20), k=2))  # Red accent positions
+            'y': float(random.randint(-50, -5)),      # Staggered start
+            'speed': random.uniform(0.8, 2.2),        # Varied speeds
+            'length': random.randint(8, 25),          # Varied trail lengths
+            'chars': [random.choice(chars) for _ in range(30)]  # Pre-generate morphing chars
         })
     
     start_time = time.time()
     frame_count = 0
     
-    # Use lower refresh rate for better compatibility with slower terminals
-    refresh_rate = 15 if os.environ.get('TERM', '').startswith('xterm') else 12
+    # Adaptive refresh rate
+    refresh_rate = 20 if os.environ.get('TERM', '').startswith('xterm') else 15
     
     with Live(console=console, refresh_per_second=refresh_rate, screen=True) as live:
         while time.time() - start_time < duration:
             output = Text()
             
-            # Build frame - optimized structure
+            # Build frame
             frame = [[' ' for _ in range(term_width)] for _ in range(term_height)]
             frame_colors = [[None for _ in range(term_width)] for _ in range(term_height)]
             
             # Update and draw each column
             for col in columns:
                 x = col['x']
-                if x >= term_width - 1:  # Safety check
+                if x >= term_width:
                     continue
                     
                 head_y = int(col['y'])
                 length = col['length']
                 
-                # Draw trail with sparkle effect
+                # Draw trail with morphing characters
                 for i in range(length):
                     y_pos = head_y - i
                     
                     if 0 <= y_pos < term_height:
-                        # Random character for sparkle/glitch effect
-                        char_to_draw = random.choice(chars)
+                        # Character morphing: use different char from pre-generated list
+                        char_index = (frame_count + i) % len(col['chars'])
+                        char_to_draw = col['chars'][char_index]
                         frame[y_pos][x] = char_to_draw
                         
-                        # Color logic: 1 in 10 characters is RED
-                        is_red_accent = (i in col['red_positions']) or (random.random() < 0.1)
+                        # BLUE → CYAN GRADIENT (no red)
+                        # Position in trail (0 = head, 1 = tail)
+                        trail_progress = i / max(length - 1, 1)
                         
-                        if is_red_accent:
-                            # Red accent character
-                            if i == 0:
-                                frame_colors[y_pos][x] = STYLE_RED_BRIGHT  # Bright red head
-                            else:
-                                frame_colors[y_pos][x] = STYLE_RED  # Red accent
+                        if i == 0:
+                            # Head: Bright white/cyan
+                            frame_colors[y_pos][x] = "bright_white"
+                        elif i < 3:
+                            # Near head: Bright cyan
+                            frame_colors[y_pos][x] = STYLE_CYAN_BRIGHT
+                        elif trail_progress < 0.4:
+                            # Upper trail: Cyan
+                            frame_colors[y_pos][x] = STYLE_CYAN
+                        elif trail_progress < 0.7:
+                            # Middle trail: Electric Blue
+                            frame_colors[y_pos][x] = STYLE_BLUE
                         else:
-                            # Standard gradient coloring
-                            if i == 0:
-                                frame_colors[y_pos][x] = "white"  # White head
-                            elif i < 5:
-                                frame_colors[y_pos][x] = STYLE_CYAN  # Cyan upper body
-                            else:
-                                frame_colors[y_pos][x] = STYLE_BLUE  # Blue tail
+                            # Tail: Deep Blue (fading)
+                            frame_colors[y_pos][x] = STYLE_BLUE_DARK
                 
                 # Move column down
                 col['y'] += col['speed']
                 
                 # Respawn when off screen
                 if head_y - length >= term_height:
-                    col['y'] = float(random.randint(-20, -3))
-                    col['speed'] = random.uniform(0.6, 1.8)
-                    col['length'] = random.randint(6, 18)
-                    col['red_positions'] = set(random.sample(range(20), k=2))
+                    col['y'] = float(random.randint(-30, -5))
+                    col['speed'] = random.uniform(0.8, 2.2)
+                    col['length'] = random.randint(8, 25)
+                    # Regenerate morphing characters
+                    col['chars'] = [random.choice(chars) for _ in range(30)]
             
-            # Render frame with optimized output
+            # Render frame
             for row_idx, row in enumerate(frame):
                 for col_idx, char in enumerate(row):
                     color = frame_colors[row_idx][col_idx]
@@ -156,8 +162,8 @@ def matrix_rain_animation(duration: float = 2.0) -> None:
             live.update(output)
             frame_count += 1
             
-            # Adaptive sleep for smoother animation
-            time.sleep(0.05 if refresh_rate >= 15 else 0.06)
+            # Smooth animation timing
+            time.sleep(0.04)
 
 
 
