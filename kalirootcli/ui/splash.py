@@ -499,22 +499,36 @@ def _show_static_splash() -> None:
 
     output.append("\n")
     
-    # Subtitle
-    sub_line = "═" * 50
-    title_text = "⚡  DOMINION v3.5 (5.3.45)  ⚡"
-    desc_text = "Advanced AI Security Operations"
+    # ═══════════════════════════════════════════════════════════════════
+    # SUBTITLE - Professional centered layout
+    # ═══════════════════════════════════════════════════════════════════
     
-    sub_padding = max(0, (term_width - len(sub_line)) // 2)
-    title_padding = max(0, (term_width - len(title_text)) // 2)
-    desc_padding = max(0, (term_width - len(desc_text)) // 2)
+    output.append("\n")
     
-    output.append(" " * sub_padding + sub_line + "\n", style=STYLE_BLUE_DARK)
-    output.append(" " * title_padding, style="")
-    output.append("⚡  ", style=STYLE_BLUE)
+    # Top separator line
+    separator_line = "━" * 60
+    sep_padding = max(0, (term_width - len(separator_line)) // 2)
+    output.append(" " * sep_padding + separator_line + "\n", style=STYLE_BLUE_DARK)
+    
+    # Version and edition line
+    version_line = "⚡  DOMINION v3.5  •  Release 5.5.1  ⚡"
+    ver_padding = max(0, (term_width - len(version_line)) // 2)
+    output.append(" " * ver_padding, style="")
+    output.append("⚡  ", style=STYLE_CYAN_BRIGHT)
     output.append("DOMINION", style="bold white")
-    output.append(" v3.5  ⚡\n", style=STYLE_BLUE)
-    output.append(" " * desc_padding + desc_text + "\n", style=f"italic {STYLE_CYAN}")
-    output.append(" " * sub_padding + sub_line, style=STYLE_BLUE_DARK)
+    output.append(" v3.5  ", style=STYLE_CYAN_BRIGHT)
+    output.append("•", style="dim white")
+    output.append("  Release ", style=STYLE_BLUE)
+    output.append("5.5.1", style="bold rgb(0,255,255)")
+    output.append("  ⚡\n", style=STYLE_CYAN_BRIGHT)
+    
+    # Description line
+    desc_line = "Advanced AI-Powered Security Operations Platform"
+    desc_padding = max(0, (term_width - len(desc_line)) // 2)
+    output.append(" " * desc_padding + desc_line + "\n", style=f"italic {STYLE_CYAN}")
+    
+    # Bottom separator line
+    output.append(" " * sep_padding + separator_line, style=STYLE_BLUE_DARK)
     
     console.print(output)
     console.print()
