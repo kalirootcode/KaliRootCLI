@@ -1328,6 +1328,8 @@ def tools_menu():
         
         elif choice == "3":
             # CVE Lookup
+            clear_screen()
+            print_banner(show_skull=False)
             console.print("\n[bold cyan]═══ CVE LOOKUP ═══[/bold cyan]\n")
             keyword = get_input("Buscar CVE (ej: apache, wordpress, ssh)")
             

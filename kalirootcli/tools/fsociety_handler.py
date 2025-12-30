@@ -144,11 +144,20 @@ class FsocietyHandler:
         from rich.panel import Panel
         from rich.columns import Columns
         from rich.text import Text
+        from rich.align import Align
         
-        # Header with ASCII art style - perfectly aligned
-        console.print("\n[bold red]╔════════════════════════════════════════════════════════════════╗[/bold red]")
-        console.print("[bold red]║[/bold red]   [bold white]🎭 FSOCIETY HACKING FRAMEWORK[/bold white] [dim](Inspired by Mr. Robot)[/dim]   [bold red]║[/bold red]")
-        console.print("[bold red]╚════════════════════════════════════════════════════════════════╝[/bold red]\n")
+        # Header with Panel
+        header_text = Text()
+        header_text.append("🎭 FSOCIETY HACKING FRAMEWORK\n", style="bold white")
+        header_text.append("(Inspired by Mr. Robot)", style="dim white")
+        
+        header_panel = Panel(
+            Align.center(header_text),
+            border_style="red",
+            padding=(0, 2)
+        )
+        console.print(header_panel)
+        console.print()
         
         # Description Panel
         desc_panel = Panel(
@@ -376,8 +385,43 @@ def run_fsociety_menu():
     handler = FsocietyHandler()
     
     while True:
-        clear_screen()  # Clear screen on entry
-        print_header("🎭 FSOCIETY FRAMEWORK")
+        clear_screen()
+        
+        # KR-CLI Banner with Fsociety title
+        banner_ascii = """
+██╗  ██╗██████╗        ██████╗██╗     ██╗
+██║ ██╔╝██╔══██╗      ██╔════╝██║     ██║
+█████╔╝ ██████╔╝█████╗██║     ██║     ██║
+██╔═██╗ ██╔══██╗╚════╝██║     ██║     ██║
+██║  ██╗██║  ██║      ╚██████╗███████╗██║
+╚═╝  ╚═╝╚═╝  ╚═╝       ╚═════╝╚══════╝╚═╝
+"""
+        from rich.text import Text
+        from rich.panel import Panel
+        from rich.align import Align
+        from rich import box
+        from ..ui.colors import STYLE_BLUE_DARK, STYLE_BLUE, STYLE_CYAN, STYLE_TEXT, GRADIENT_BLUE_CYAN
+        
+        lines = banner_ascii.strip().split("\n")
+        banner_rich = Text()
+        total_lines = len(lines)
+        
+        for i, line in enumerate(lines):
+            progress = i / max(total_lines - 1, 1)
+            color_idx = int(progress * (len(GRADIENT_BLUE_CYAN) - 1))
+            color = GRADIENT_BLUE_CYAN[color_idx]
+            banner_rich.append(line + "\n", style=f"bold {color}")
+        
+        centered_banner = Align.center(banner_rich)
+        console.print(Panel(
+            centered_banner,
+            box=box.DOUBLE_EDGE,
+            border_style=STYLE_CYAN,
+            title=f"[bold {STYLE_TEXT}]🎭 FSOCIETY FRAMEWORK[/bold {STYLE_TEXT}]",
+            subtitle=f"[italic {STYLE_CYAN}]Inspired by Mr. Robot[/italic {STYLE_CYAN}]",
+            padding=(1, 4)
+        ))
+        console.print()
         
         handler.show_info()
         

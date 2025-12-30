@@ -61,7 +61,40 @@ class RepoBrowser:
         
         while True:
             clear_screen()
-            print_header("📦 GIT ARSENAL (TOP 100+)")
+            
+            # KR-CLI Banner with Panel
+            banner_ascii = """
+██╗  ██╗██████╗        ██████╗██╗     ██╗
+██║ ██╔╝██╔══██╗      ██╔════╝██║     ██║
+█████╔╝ ██████╔╝█████╗██║     ██║     ██║
+██╔═██╗ ██╔══██╗╚════╝██║     ██║     ██║
+██║  ██╗██║  ██║      ╚██████╗███████╗██║
+╚═╝  ╚═╝╚═╝  ╚═╝       ╚═════╝╚══════╝╚═╝
+"""
+            from rich.text import Text
+            from rich import box
+            from ..ui.colors import STYLE_BLUE_DARK, STYLE_BLUE, STYLE_CYAN, STYLE_TEXT, GRADIENT_BLUE_CYAN
+            
+            lines = banner_ascii.strip().split("\n")
+            banner_rich = Text()
+            total_lines = len(lines)
+            
+            for i, line in enumerate(lines):
+                progress = i / max(total_lines - 1, 1)
+                color_idx = int(progress * (len(GRADIENT_BLUE_CYAN) - 1))
+                color = GRADIENT_BLUE_CYAN[color_idx]
+                banner_rich.append(line + "\n", style=f"bold {color}")
+            
+            centered_banner = Align.center(banner_rich)
+            console.print(Panel(
+                centered_banner,
+                box=box.DOUBLE_EDGE,
+                border_style=STYLE_CYAN,
+                title=f"[bold {STYLE_TEXT}]📦 GIT ARSENAL - TOP 100+ TOOLS[/bold {STYLE_TEXT}]",
+                subtitle=f"[italic {STYLE_CYAN}]Security Tools Repository[/italic {STYLE_CYAN}]",
+                padding=(1, 4)
+            ))
+            console.print()
             
             start_idx = current_page * self.page_size
             end_idx = min(start_idx + self.page_size, len(self.repos))
@@ -149,7 +182,40 @@ class RepoBrowser:
         
         while True:
             clear_screen()
-            print_header(f"📦 {category_name.upper()}")
+            
+            # KR-CLI Banner with category name
+            banner_ascii = """
+██╗  ██╗██████╗        ██████╗██╗     ██╗
+██║ ██╔╝██╔══██╗      ██╔════╝██║     ██║
+█████╔╝ ██████╔╝█████╗██║     ██║     ██║
+██╔═██╗ ██╔══██╗╚════╝██║     ██║     ██║
+██║  ██╗██║  ██║      ╚██████╗███████╗██║
+╚═╝  ╚═╝╚═╝  ╚═╝       ╚═════╝╚══════╝╚═╝
+"""
+            from rich.text import Text
+            from rich import box
+            from ..ui.colors import STYLE_BLUE_DARK, STYLE_BLUE, STYLE_CYAN, STYLE_TEXT, GRADIENT_BLUE_CYAN
+            
+            lines = banner_ascii.strip().split("\n")
+            banner_rich = Text()
+            total_lines = len(lines)
+            
+            for i, line in enumerate(lines):
+                progress = i / max(total_lines - 1, 1)
+                color_idx = int(progress * (len(GRADIENT_BLUE_CYAN) - 1))
+                color = GRADIENT_BLUE_CYAN[color_idx]
+                banner_rich.append(line + "\n", style=f"bold {color}")
+            
+            centered_banner = Align.center(banner_rich)
+            console.print(Panel(
+                centered_banner,
+                box=box.DOUBLE_EDGE,
+                border_style=STYLE_CYAN,
+                title=f"[bold {STYLE_TEXT}]📦 {category_name.upper()}[/bold {STYLE_TEXT}]",
+                subtitle=f"[italic {STYLE_CYAN}]Security Tools Collection[/italic {STYLE_CYAN}]",
+                padding=(1, 4)
+            ))
+            console.print()
             
             start_idx = current_page * self.page_size
             end_idx = min(start_idx + self.page_size, len(target_repos))
@@ -204,11 +270,42 @@ class RepoBrowser:
 
         while True:
             clear_screen()
-            print_header(f"🛠️  {tool['name']}")
+            
+            # KR-CLI Banner with tool name
+            banner_ascii = """
+██╗  ██╗██████╗        ██████╗██╗     ██╗
+██║ ██╔╝██╔══██╗      ██╔════╝██║     ██║
+█████╔╝ ██████╔╝█████╗██║     ██║     ██║
+██╔═██╗ ██╔══██╗╚════╝██║     ██║     ██║
+██║  ██╗██║  ██║      ╚██████╗███████╗██║
+╚═╝  ╚═╝╚═╝  ╚═╝       ╚═════╝╚══════╝╚═╝
+"""
+            from rich.text import Text
+            from rich import box
+            from ..ui.colors import STYLE_BLUE_DARK, STYLE_BLUE, STYLE_CYAN, STYLE_TEXT, GRADIENT_BLUE_CYAN
+            
+            lines = banner_ascii.strip().split("\n")
+            banner_rich = Text()
+            total_lines = len(lines)
+            
+            for i, line in enumerate(lines):
+                progress = i / max(total_lines - 1, 1)
+                color_idx = int(progress * (len(GRADIENT_BLUE_CYAN) - 1))
+                color = GRADIENT_BLUE_CYAN[color_idx]
+                banner_rich.append(line + "\n", style=f"bold {color}")
+            
+            centered_banner = Align.center(banner_rich)
+            console.print(Panel(
+                centered_banner,
+                box=box.DOUBLE_EDGE,
+                border_style=STYLE_CYAN,
+                title=f"[bold {STYLE_TEXT}]🛠️  {tool['name'].upper()}[/bold {STYLE_TEXT}]",
+                subtitle=f"[italic {STYLE_CYAN}]{tool['category']}[/italic {STYLE_CYAN}]",
+                padding=(1, 4)
+            ))
+            console.print()
             
             # Display AI Description
-            # Import Panel inside method to avoid import loop if any
-            from rich.panel import Panel 
             console.print(Panel(
                 Markdown(description),
                 title="[bold rgb(0,255,255)]⚡ Análisis DOMINION AI[/bold rgb(0,255,255)]",
