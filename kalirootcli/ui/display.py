@@ -181,16 +181,16 @@ def print_ai_response(response: str, mode: str = "CONSULTATION", command: str = 
     # Keyword highlighter function
     def highlight_keywords(text):
         # 1. Backticks content (commands) → Magenta
-        text = re.sub(r'`([^`]+)`', rf'[bold {STYLE_BLUE}]\\1[/bold {STYLE_BLUE}]', text)
+        text = re.sub(r'`([^`]+)`', rf'[bold {STYLE_BLUE}]\1[/bold {STYLE_BLUE}]', text)
         
         # 2. Bold markers **text** → Bold White
-        text = re.sub(r'\*\*([^*]+)\*\*', rf'[bold {STYLE_TEXT}]\\1[/bold {STYLE_TEXT}]', text)
+        text = re.sub(r'\*\*([^*]+)\*\*', rf'[bold {STYLE_TEXT}]\1[/bold {STYLE_TEXT}]', text)
         
         # 3. Technical keywords → Cyan
         keywords = ["apache", "nginx", "openssh", "nmap", "curl", "ubuntu", "linux", "kali", "tcp", "udp", "http", "https", "ssl", "tls"]
         for kw in keywords:
             pattern = re.compile(r'\b(' + re.escape(kw) + r')\b', re.IGNORECASE)
-            text = pattern.sub(rf"[{STYLE_CYAN}]\\1[/{STYLE_CYAN}]", text)
+            text = pattern.sub(rf"[{STYLE_CYAN}]\1[/{STYLE_CYAN}]", text)
             
         return text
 

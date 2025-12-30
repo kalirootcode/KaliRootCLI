@@ -1292,7 +1292,9 @@ def tools_menu():
             break
         
         elif choice == "1":
-            # Port Scanner (Logic kept same)
+            # Port Scanner
+            clear_screen()
+            print_banner(show_skull=False)
             console.print("\n[bold cyan]═══ PORT SCANNER ═══[/bold cyan]\n")
             host = get_input("IP o Hostname a escanear")
             
