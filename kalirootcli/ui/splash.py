@@ -300,10 +300,10 @@ def animated_splash(skip_animation: bool = False, duration: float = 5.0) -> None
     from .display import BANNER_ASCII
     kr_lines = [line for line in BANNER_ASCII.split('\n') if line.strip()]
     
-    # Subtitle elements
+    # Subtitle configuration
     sub_line = "═" * 50
-    title_text = "⚡  DOMINION v3.5 (5.3.45)  ⚡"
-    desc_text = "Advanced AI Security Operations"
+    title_text = "⚡  NO SYSTEM IS SAFE  ⚡"
+    desc_text = "Every Firewall Has a Weakness"
     
     # Calculate dimensions for centering
     max_banner_width = max(len(line) for line in kr_lines)
@@ -500,7 +500,7 @@ def _show_static_splash() -> None:
     output.append("\n")
     
     # ═══════════════════════════════════════════════════════════════════
-    # SUBTITLE - Professional centered layout
+    # SUBTITLE - Hacker message
     # ═══════════════════════════════════════════════════════════════════
     
     output.append("\n")
@@ -510,20 +510,16 @@ def _show_static_splash() -> None:
     sep_padding = max(0, (term_width - len(separator_line)) // 2)
     output.append(" " * sep_padding + separator_line + "\n", style=STYLE_BLUE_DARK)
     
-    # Version and edition line
-    version_line = "⚡  DOMINION v3.5  •  Release 5.5.1  ⚡"
-    ver_padding = max(0, (term_width - len(version_line)) // 2)
-    output.append(" " * ver_padding, style="")
+    # Main hacker message
+    hacker_msg = "⚡  NO SYSTEM IS SAFE  ⚡"
+    msg_padding = max(0, (term_width - len(hacker_msg)) // 2)
+    output.append(" " * msg_padding, style="")
     output.append("⚡  ", style=STYLE_CYAN_BRIGHT)
-    output.append("DOMINION", style="bold white")
-    output.append(" v3.5  ", style=STYLE_CYAN_BRIGHT)
-    output.append("•", style="dim white")
-    output.append("  Release ", style=STYLE_BLUE)
-    output.append("5.5.1", style="bold rgb(0,255,255)")
+    output.append("NO SYSTEM IS SAFE", style="bold white")
     output.append("  ⚡\n", style=STYLE_CYAN_BRIGHT)
     
     # Description line
-    desc_line = "Advanced AI-Powered Security Operations Platform"
+    desc_line = "Every Firewall Has a Weakness"
     desc_padding = max(0, (term_width - len(desc_line)) // 2)
     output.append(" " * desc_padding + desc_line + "\n", style=f"italic {STYLE_CYAN}")
     
