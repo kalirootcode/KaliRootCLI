@@ -163,69 +163,10 @@ def matrix_rain_animation(duration: float = 2.0) -> None:
 
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# SKULL LOGO (Recreation of banner.txt - proper size)
-# ═══════════════════════════════════════════════════════════════════════════════
-
-# Devil skull with horns - recreated from banner.txt at proper size
-SKULL_LOGO = r"""
-              ......    ..........        ...               
-            .',:;.',''..,:cllllllc;'.    .,'. ....          
-            ''lXO,.,,:lx0XWMMMMMMWNKko;..''cxl.....         
-           ..,OMWKxdkXMMMMMMMMMMMMMMMMN0ddONMWl..           
-            .'OMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNc..           
-              ,OWMMMMMMMMMMMMMMMMMMMMMMMMMMMXl'.            
-           ....'oXMMMWWWWWWMMMMMMWWWWWWWMMWO;,;'.           
-           .'',..lXOccccccclKMMNxcccccccdXNc.',,'..         
-             ...'dK:......,.dMM0,.....','dO;.,'...          
-                .':l,....',;cccc:. ...',lc..'''.            
-               .'.oNKdlllodc''..,oollloONO,....             
-           ......;xkkkXMMWx,,. ..cXMWMMMMMO'.               
-           ........;lxKMMWx,'..''cKMMMMN0xc;,.              
-               ...,;;oXMMMWKOOkO0NMMMWOc;,''                
-               .',;;,.cXMNk0MMMMXx00dl..,.                  
-                 ......cKXclWMMMk;xO;.''..                  
-                       .;c,,oxkx:'cl:;.                     
-                        .......''''..                  
-"""
-
-# Smaller version for small terminals
-SKULL_SMALL = r"""
-        ......    ..........        ...               
-            .',:;.',''..,:cllllllc;'.    .,'. ....          
-            ''lXO,.,,:lx0XWMMMMMMWNKko;..''cxl.....         
-           ..,OMWKxdkXMMMMMMMMMMMMMMMMN0ddONMWl..           
-            .'OMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNc..           
-              ,OWMMMMMMMMMMMMMMMMMMMMMMMMMMMXl'.            
-           ....'oXMMMWWWWWWMMMMMMWWWWWWWMMWO;,;'.           
-           .'',..lXOccccccclKMMNxcccccccdXNc.',,'..         
-             ...'dK:......,.dMM0,.....','dO;.,'...          
-                .':l,....',;cccc:. ...',lc..'''.            
-               .'.oNKdlllodc''..,oollloONO,....             
-           ......;xkkkXMMWx,,. ..cXMWMMMMMO'.               
-           ........;lxKMMWx,'..''cKMMMMN0xc;,.              
-               ...,;;oXMMMWKOOkO0NMMMWOc;,''                
-               .',;;,.cXMNk0MMMMXx00dl..,.                  
-                 ......cKXclWMMMk;xO;.''..                  
-                       .;c,,oxkx:'cl:;.                     
-                        .......''''..           
-"""
-
-
 def get_terminal_size() -> tuple:
     """Get current terminal size."""
     size = shutil.get_terminal_size((80, 24))
     return max(size.columns, 60), max(size.lines, 20)
-
-
-def get_skull_logo() -> str:
-    """Get appropriate skull logo based on terminal size."""
-    term_width, term_height = get_terminal_size()
-    
-    if term_width >= 70 and term_height >= 25:
-        return SKULL_LOGO
-    else:
-        return SKULL_SMALL
 
 
 def render_skull_text(term_width: int) -> Text:
@@ -519,10 +460,6 @@ def _show_static_splash() -> None:
     
     term_width, term_height = get_terminal_size()
     
-    # Get logo
-    skull = get_skull_logo()
-    skull_lines = skull.strip().split('\n')
-    
     # IMPORT RAW BANNER
     from .display import BANNER_ASCII
     kr_lines = [line for line in BANNER_ASCII.split('\n') if line.strip()]
@@ -530,35 +467,15 @@ def _show_static_splash() -> None:
     # Render all elements
     output = Text()
     
-    # Calculate vertical centering
-    skull_height = len(skull_lines)
+    # Calculate vertical centering (only banner + subtitle)
     kr_height = len(kr_lines)
     subtitle_height = 4
-    total_height = skull_height + 2 + kr_height + 2 + subtitle_height
+    total_height = kr_height + 2 + subtitle_height
     top_padding = max(0, (term_height - total_height) // 2)
     
     output.append("\n" * top_padding)
     
-    # Skull logo (centered with gradient)
-    # Calculate skull padding once
-    max_skull_width = max(len(line) for line in skull_lines) if skull_lines else 0
-    skull_padding = max(0, (term_width - max_skull_width) // 2)
-    
-    for i, line in enumerate(skull_lines):
-        progress = i / max(len(skull_lines) - 1, 1)
-        
-        if progress < 0.3:
-            style = STYLE_BLUE_DARK
-        elif progress < 0.7:
-            style = STYLE_WHITE
-        else:
-            style = STYLE_CYAN
-        
-        output.append(" " * skull_padding + line + "\n", style=style)
-    
-    output.append("\n")
-    
-    # KR-CLI (Block centered logic fixed)
+    # KR-CLI (Block centered logic)
     # Calculate banner padding once
     max_kr_width = max(len(line) for line in kr_lines) if kr_lines else 0
     kr_padding = max(0, (term_width - max_kr_width) // 2)
