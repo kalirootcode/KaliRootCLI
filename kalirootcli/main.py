@@ -871,23 +871,34 @@ def show_payment_help():
     print_banner(show_skull=False)
     
     console.print("[bold cyan]═══════════════════════════════════════════════════════════════[/bold cyan]")
-    console.print("[bold white]                    ❓ ¿CÓMO PAGAR?                           [/bold white]")
+    console.print("[bold white]           🚀 BIENVENIDO AL FUTURO DE LOS PAGOS           [/bold white]")
     console.print("[bold cyan]═══════════════════════════════════════════════════════════════[/bold cyan]\n")
     
+    # Future vision
+    console.print("[bold yellow]💎 EL DINERO DEL FUTURO YA ESTÁ AQUÍ[/bold yellow]")
+    console.print("Las [bold green]criptomonedas[/bold green] no son el futuro, [bold]son el presente[/bold].")
+    console.print("Gobiernos, bancos y corporaciones ya las usan. ¿Por qué tú no?\\n")
+    
+    console.print("[dim]• Sin intermediarios bancarios que cobren comisiones abusivas[/dim]")
+    console.print("[dim]• Sin límites geográficos ni horarios de atención[/dim]")
+    console.print("[dim]• Transacciones en minutos, no días[/dim]")
+    console.print("[dim]• TÚ controlas tu dinero, no un banco[/dim]\\n")
+    
+    console.print("[bold]Dominar las criptomonedas es dominar el futuro financiero.[/bold]")
+    console.print("[bold green]Este es tu primer paso hacia la independencia económica digital.[/bold green]\\n")
+    
     # Payment method
-    console.print("[bold yellow]💳 MÉTODO DE PAGO[/bold yellow]")
-    console.print("Utilizamos [bold green]NowPayments[/bold green], una plataforma líder mundial")
-    console.print("en procesamiento de pagos con criptomonedas.\n")
+    console.print("[bold yellow]💳 MÉTODO DE PAGO: SIMPLE Y SEGURO[/bold yellow]")
+    console.print("Usamos [bold green]NowPayments[/bold green], procesador líder mundial con +150 criptomonedas.\\n")
     
     console.print("[bold]Moneda aceptada:[/bold] [bold green]USDT (Tether TRC-20)[/bold green]")
-    console.print("[dim]Stablecoin 1:1 con el dólar estadounidense[/dim]\n")
+    console.print("[dim]Stablecoin 1:1 con USD. Sin volatilidad, máxima estabilidad.[/dim]")
+    console.print("[dim]Red TRC-20: Comisiones de $1 USD, confirmación en 3 minutos.[/dim]\\n")
     
-    # Supported countries with flags
-    console.print("[bold yellow]🌍 PAÍSES SOPORTADOS[/bold yellow]")
-    console.print("NowPayments opera globalmente. Algunos países destacados:\n")
+    # Global reach
+    console.print("[bold yellow]🌍 DISPONIBLE EN TODO EL MUNDO[/bold yellow]")
+    console.print("NowPayments opera [bold]sin restricciones geográficas[/bold]. Algunos países:\\n")
     
-    
-    # Clean text grid
     regions = [
         "🇺🇸 USA   🇧🇷 BRA   🇦🇷 ARG   🇨🇴 COL   🇲🇽 MEX",
         "🇪🇸 ESP   🇩🇪 DEU   🇫🇷 FRA   🇮🇹 ITA   🇬🇧 GBR",
@@ -898,62 +909,91 @@ def show_payment_help():
     for row in regions:
         console.print(f"[bold cyan]  {row}[/bold cyan]")
     
-    console.print("\n[dim]Soporte completo en América, Europa, Asia y África.[/dim]\n")
+    console.print("\\n[dim]América, Europa, Asia, África, Oceanía. Sin fronteras.[/dim]\\n")
     
-    # How it works
-    console.print("[bold yellow]⚙️ ¿CÓMO FUNCIONA?[/bold yellow]\n")
+    # How it works - simplified
+    console.print("[bold yellow]⚙️ PROCESO AUTOMATIZADO (3 PASOS)[/bold yellow]\\n")
     
-    console.print("[bold cyan]1.[/bold cyan] [bold]Seleccionas un paquete[/bold]")
-    console.print("   Elige el paquete de créditos o Premium que desees.\n")
+    console.print("[bold cyan]1.[/bold cyan] [bold]Selecciona tu paquete[/bold] → Generamos link único")
+    console.print("[bold cyan]2.[/bold cyan] [bold]Envías USDT[/bold] → Desde Binance, Trust Wallet, etc.")
+    console.print("[bold cyan]3.[/bold cyan] [bold]¡Listo![/bold] → Créditos acreditados automáticamente\\n")
     
-    console.print("[bold cyan]2.[/bold cyan] [bold]Generamos tu link único[/bold]")
-    console.print("   Se crea una factura [bold green]exclusiva para ti[/bold green].")
-    console.print("   Este link está [bold]asociado a tu cuenta[/bold] de forma segura.\n")
+    console.print("[bold green]Todo el proceso toma menos de 5 minutos.[/bold green]")
+    console.print("[dim]Sistema IPN (Instant Payment Notification) detecta tu pago en blockchain.[/dim]\\n")
     
-    console.print("[bold cyan]3.[/bold cyan] [bold]Realizas el pago[/bold]")
-    console.print("   Envías USDT (TRC-20) a la dirección indicada.")
-    console.print("   Puedes usar [bold]Binance, Trust Wallet, MetaMask[/bold], etc.\n")
+    # Premium benefits - technical details
+    console.print("[bold yellow]👑 ¿QUÉ OBTIENES CON PREMIUM?[/bold yellow]\\n")
     
-    console.print("[bold cyan]4.[/bold cyan] [bold]Recibimos la confirmación[/bold]")
-    console.print("   NowPayments detecta tu pago y nos notifica")
-    console.print("   automáticamente mediante un sistema de [bold]IPN (Instant Payment Notification)[/bold].\n")
+    console.print("[bold white]🧠 MODELO IA SUPERIOR[/bold white]")
+    console.print("• Free: [dim]Llama 3.1 8B (8 mil millones de parámetros)[/dim]")
+    console.print("• Premium: [bold green]Llama 3.3 70B (70 mil millones de parámetros)[/bold green]")
+    console.print("  [bold]8.75x más potente[/bold]. Respuestas más precisas y contextuales.\\n")
     
-    console.print("[bold cyan]5.[/bold cyan] [bold]¡Créditos acreditados![/bold]")
-    console.print("   Tus créditos se agregan [bold green]instantáneamente[/bold green]")
-    console.print("   a tu cuenta. ¡Sin intervención manual!\n")
+    console.print("[bold white]⚡ CAPACIDADES TÉCNICAS[/bold white]")
+    console.print("• [bold]Context Window:[/bold] 128K tokens (equivale a ~300 páginas)")
+    console.print("• [bold]Reasoning:[/bold] Análisis profundo de código y vulnerabilidades")
+    console.print("• [bold]Tool Calling:[/bold] Ejecución de comandos y scripts avanzados")
+    console.print("• [bold]Multi-turn:[/bold] Conversaciones largas con memoria perfecta\\n")
+    
+    console.print("[bold white]🎯 VENTAJAS OPERATIVAS[/bold white]")
+    console.print("• [bold green]Créditos ilimitados[/bold green] - Sin preocuparte por quedarte sin queries")
+    console.print("• [bold]Prioridad en respuestas[/bold] - Latencia reducida 40%")
+    console.print("• [bold]Acceso a funciones beta[/bold] - Nuevas features antes que nadie")
+    console.print("• [bold]Soporte prioritario[/bold] - Respuesta en <24h\\n")
+    
+    console.print("[bold white]💰 RETORNO DE INVERSIÓN[/bold white]")
+    console.print("$20/mes = [bold]~$0.66 por día[/bold]")
+    console.print("Menos que un café. Más que una universidad en ciberseguridad.\\n")
     
     # Security
-    console.print("[bold yellow]🔒 SEGURIDAD[/bold yellow]\n")
+    console.print("[bold yellow]🔒 SEGURIDAD BLOCKCHAIN[/bold yellow]\\n")
     
-    console.print("• [bold]No almacenamos datos de pago[/bold]")
-    console.print("  NowPayments procesa todo de forma segura.\n")
+    console.print("• [bold]Zero-Knowledge:[/bold] No guardamos datos de pago")
+    console.print("• [bold]Non-Custodial:[/bold] NowPayments no retiene tus fondos")
+    console.print("• [bold]Blockchain Verification:[/bold] Cada pago validado en TRON")
+    console.print("• [bold]End-to-End Encryption:[/bold] TLS 1.3 + AES-256\\n")
     
-    console.print("• [bold]Links únicos por transacción[/bold]")
-    console.print("  Cada factura tiene un ID único vinculado a tu usuario.\n")
+    # Recommended apps
+    console.print("[bold yellow]📱 APPS PARA PAGAR (ELIGE UNA)[/bold yellow]")
+    console.print("• [bold]Binance[/bold] - Exchange #1 mundial (más fácil para principiantes)")
+    console.print("• [bold]Trust Wallet[/bold] - Wallet móvil oficial de Binance")
+    console.print("• [bold]MetaMask[/bold] - Wallet para navegador (Chrome/Firefox)")
+    console.print("• [bold]Coinbase[/bold] - Exchange regulado USA")
+    console.print("• [bold]OKX[/bold] - Exchange con bajas comisiones")
+    console.print("• [bold]Bybit[/bold] - Exchange profesional\\n")
     
-    console.print("• [bold]Verificación automática[/bold]")
-    console.print("  El sistema valida cada pago en la blockchain.\n")
+    console.print("[bold green]💡 CONSEJO:[/bold green] Si no tienes cripto, crea cuenta en Binance.")
+    console.print("[dim]   Compra USDT con tarjeta y envíalo a la dirección que te demos.[/dim]\\n")
     
-    console.print("• [bold]Cifrado de extremo a extremo[/bold]")
-    console.print("  Todas las comunicaciones usan HTTPS/TLS.\n")
-    
-    # Platforms
-    console.print("[bold yellow]📱 APPS RECOMENDADAS PARA PAGAR[/bold yellow]")
-    console.print("• [bold]Binance[/bold] - Exchange líder mundial")
-    console.print("• [bold]Trust Wallet[/bold] - Wallet móvil segura")
-    console.print("• [bold]MetaMask[/bold] - Wallet para navegador")
-    console.print("• [bold]Coinbase[/bold] - Exchange regulado")
-    console.print("• [bold]OKX[/bold] - Exchange global")
-    console.print("• [bold]Bybit[/bold] - Exchange de derivados\n")
-    
-    # Support
-    console.print("[bold yellow]📞 SOPORTE[/bold yellow]")
-    console.print("¿Tienes problemas con un pago?")
-    console.print("Contacta: [bold cyan]support@kaliroot.dev[/bold cyan]\n")
+    # Support - Facebook Group
+    console.print("[bold yellow]📞 SOPORTE Y COMUNIDAD[/bold yellow]")
+    console.print("¿Problemas con el pago? ¿Dudas sobre el programa?")
+    console.print("[bold green]Únete a nuestra comunidad en Facebook:[/bold green]\n")
+    console.print("[bold cyan]🔗 https://web.facebook.com/share/g/1DNscrsKYp/[/bold cyan]")
+    console.print("[dim]Más de 1,000 usuarios activos compartiendo tips y soluciones.[/dim]\n")
     
     console.print("[bold cyan]═══════════════════════════════════════════════════════════════[/bold cyan]")
+    console.print("[bold white]        El futuro es descentralizado. Únete ahora.        [/bold white]")
+    console.print("[bold cyan]═══════════════════════════════════════════════════════════════[/bold cyan]\n")
     
-    input("\n[Presiona Enter para volver...]")
+    # Interactive menu
+    while True:
+        console.print("[bold yellow]Opciones:[/bold yellow]")
+        console.print("[bold cyan]1[/bold cyan] › Abrir grupo de Facebook")
+        console.print("[bold cyan]0[/bold cyan] › Volver al menú principal\n")
+        
+        choice = input("Selecciona una opción: ").strip()
+        
+        if choice == "1":
+            import webbrowser
+            console.print("\n[bold green]✓[/bold green] Abriendo grupo de Facebook en tu navegador...")
+            webbrowser.open("https://web.facebook.com/share/g/1DNscrsKYp/")
+            time.sleep(2)
+            console.print("[dim]Si no se abrió automáticamente, copia el enlace de arriba.[/dim]\n")
+        elif choice == "0":
+            break
+        else:
+            console.print("[bold red]✗[/bold red] Opción inválida. Intenta de nuevo.\n")
 
 
 def upgrade_menu():
