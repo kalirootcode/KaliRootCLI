@@ -430,13 +430,18 @@ def animated_splash(skip_animation: bool = False, duration: float = 5.0) -> None
             output.append(" " * banner_padding + line + "\n", style=f"bold {style}")
         
         output.append("\n")
+        
+        # Subtitle with proper centering (same as animation)
         output.append(" " * subtitle_padding + sub_line + "\n", style=STYLE_BLUE_DARK)
-        title_pad = (subtitle_width - len(title_text)) // 2
-        output.append(" " * subtitle_padding)
-        output.append(title_text + "\n", style=f"bold {STYLE_BLUE}")
-        desc_pad = (subtitle_width - len(desc_text)) // 2
-        output.append(" " * (subtitle_padding + desc_pad))
-        output.append(desc_text + "\n", style=f"italic {STYLE_CYAN}")
+        
+        # Title - properly centered
+        title_padding = max(0, (term_width - len(title_text)) // 2)
+        output.append(" " * title_padding + title_text + "\n", style=f"bold {STYLE_CYAN_BRIGHT}")
+        
+        # Description - centered
+        desc_padding = max(0, (term_width - len(desc_text)) // 2)
+        output.append(" " * desc_padding + desc_text + "\n", style=f"italic {STYLE_CYAN}")
+        
         output.append(" " * subtitle_padding + sub_line + "\n", style=STYLE_BLUE_DARK)
         output.append("\n")
         
