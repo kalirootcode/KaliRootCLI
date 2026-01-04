@@ -320,6 +320,24 @@ class APIClient:
                 return {"success": False, "error": resp.json().get("detail", "Error")}
         except Exception as e:
             return {"success": False, "error": str(e)}
+    
+    def log_session(self, system_info: Dict[str, Any]) -> Dict[str, Any]:
+        """Log CLI session with system information via API backend."""
+        try:
+            resp = requests.post(
+                f"{self.base_url}/api/session/log",
+                headers=self._headers(),
+                json=system_info,
+                timeout=15
+            )
+            
+            if resp.status_code == 200:
+                data = resp.json()
+                return {"success": data.get("success", False), "session_id": data.get("session_id")}
+            else:
+                return {"success": False, "error": resp.json().get("detail", "Session logging failed")}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
 
 # Global instance

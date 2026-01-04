@@ -97,6 +97,36 @@ class UserStatusResponse(BaseModel):
     days_left: int
     subscription_status: str
 
+class SessionLogRequest(BaseModel):
+    """Request model for logging CLI sessions with system info."""
+    public_ip: Optional[str] = None
+    local_ip: Optional[str] = None
+    is_vpn: bool = False
+    vpn_interface: Optional[str] = None
+    country: Optional[str] = None
+    country_code: Optional[str] = None
+    region: Optional[str] = None
+    city: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    isp: Optional[str] = None
+    hostname: Optional[str] = None
+    os_name: Optional[str] = None
+    os_version: Optional[str] = None
+    kernel_version: Optional[str] = None
+    cpu_model: Optional[str] = None
+    cpu_cores: Optional[int] = None
+    ram_total_gb: Optional[float] = None
+    disk_total_gb: Optional[float] = None
+    distro: Optional[str] = None
+    shell: Optional[str] = None
+    terminal: Optional[str] = None
+    timezone: Optional[str] = None
+    locale: Optional[str] = None
+    python_version: Optional[str] = None
+    screen_resolution: Optional[str] = None
+    machine_fingerprint: Optional[str] = None
+
 # ===== AUTH HELPERS =====
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     """Verify Supabase JWT and get user info."""
@@ -372,6 +402,57 @@ async def get_user_status(user: dict = Depends(get_current_user)):
         days_left=days_left,
         subscription_status=profile.get("subscription_status", "free")
     )
+
+# ===== SESSION TRACKING =====
+
+@app.post("/api/session/log")
+async def log_session(req: SessionLogRequest, user: dict = Depends(get_current_user)):
+    """Log CLI session with system information for security tracking."""
+    user_id = user["id"]
+    
+    try:
+        # Insert session data into cli_sessions table
+        result = supabase_admin.table("cli_sessions").insert({
+            "user_id": user_id,
+            "public_ip": req.public_ip,
+            "local_ip": req.local_ip,
+            "is_vpn": req.is_vpn,
+            "vpn_interface": req.vpn_interface,
+            "country": req.country,
+            "country_code": req.country_code,
+            "region": req.region,
+            "city": req.city,
+            "latitude": req.latitude,
+            "longitude": req.longitude,
+            "isp": req.isp,
+            "hostname": req.hostname,
+            "os_name": req.os_name,
+            "os_version": req.os_version,
+            "kernel_version": req.kernel_version,
+            "cpu_model": req.cpu_model,
+            "cpu_cores": req.cpu_cores,
+            "ram_total_gb": req.ram_total_gb,
+            "disk_total_gb": req.disk_total_gb,
+            "distro": req.distro,
+            "shell": req.shell,
+            "terminal": req.terminal,
+            "timezone": req.timezone,
+            "locale": req.locale,
+            "python_version": req.python_version,
+            "screen_resolution": req.screen_resolution,
+            "machine_fingerprint": req.machine_fingerprint
+        }).execute()
+        
+        if result.data and len(result.data) > 0:
+            session_id = result.data[0].get("id")
+            logger.info(f"Session logged for user {user_id}: {str(session_id)[:8]}...")
+            return {"success": True, "session_id": session_id}
+        
+        return {"success": False, "message": "No data returned"}
+        
+    except Exception as e:
+        logger.error(f"Session logging error for user {user_id}: {e}")
+        return {"success": False, "message": str(e)}
 
 # ===== AI ENDPOINTS =====
 

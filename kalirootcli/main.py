@@ -1860,21 +1860,19 @@ def main():
         # Collect and log system info after successful login
         try:
             from .system_collector import system_collector
-            from .database_manager import log_session_start
             
             # Collect system info
             with show_loading("Recopilando información del sistema..."):
                 system_info = system_collector.collect(include_ip=True)
             
-            # Log session to database
-            if api_client.user_id:
-                session_id = log_session_start(api_client.user_id, system_info.to_dict())
-                if session_id:
-                    print_success("Sesión registrada en la base de datos")
-                else:
-                    print_warning("No se pudo registrar la sesión (¿ejecutaste la migración SQL?)")
+            # Log session via API backend (works with pip install without .env)
+            result = api_client.log_session(system_info.to_dict())
+            if result.get("success"):
+                print_success("Sesión registrada")
+            else:
+                logger.debug(f"Session log: {result.get('error', 'unknown')}")
         except Exception as e:
-            print_warning(f"Error al registrar sesión: {e}")
+            logger.debug(f"Session collection error: {e}")
         
         # Main menu
         main_menu()
