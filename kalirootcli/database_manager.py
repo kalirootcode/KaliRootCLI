@@ -500,6 +500,7 @@ def get_usage_stats(user_id: str, hours: int = 24) -> dict:
 def log_session_start(user_id: str, system_info: dict) -> Optional[str]:
     """
     Log a new session with full system information.
+    Uses direct INSERT instead of RPC for better compatibility.
     
     Args:
         user_id: User identifier
@@ -511,42 +512,49 @@ def log_session_start(user_id: str, system_info: dict) -> Optional[str]:
     try:
         supabase = get_supabase()
         
-        result = supabase.rpc(
-            "log_cli_session",
-            {
-                "p_user_id": user_id,
-                "p_public_ip": system_info.get("public_ip"),
-                "p_local_ip": system_info.get("local_ip"),
-                "p_is_vpn": system_info.get("is_vpn", False),
-                "p_vpn_interface": system_info.get("vpn_interface"),
-                "p_hostname": system_info.get("hostname"),
-                "p_os_name": system_info.get("os_name"),
-                "p_os_version": system_info.get("os_version"),
-                "p_kernel_version": system_info.get("kernel_version"),
-                "p_cpu_model": system_info.get("cpu_model"),
-                "p_cpu_cores": system_info.get("cpu_cores"),
-                "p_ram_total_gb": system_info.get("ram_total_gb"),
-                "p_disk_total_gb": system_info.get("disk_total_gb"),
-                "p_distro": system_info.get("distro"),
-                "p_shell": system_info.get("shell"),
-                "p_terminal": system_info.get("terminal"),
-                "p_timezone": system_info.get("timezone"),
-                "p_locale": system_info.get("locale"),
-                "p_python_version": system_info.get("python_version"),
-                "p_screen_resolution": system_info.get("screen_resolution"),
-                "p_machine_fingerprint": system_info.get("machine_fingerprint")
-            }
-        ).execute()
+        # Direct INSERT to cli_sessions table
+        result = supabase.table("cli_sessions").insert({
+            "user_id": user_id,
+            "public_ip": system_info.get("public_ip"),
+            "local_ip": system_info.get("local_ip"),
+            "is_vpn": system_info.get("is_vpn", False),
+            "vpn_interface": system_info.get("vpn_interface"),
+            # Geolocation
+            "country": system_info.get("country"),
+            "country_code": system_info.get("country_code"),
+            "region": system_info.get("region"),
+            "city": system_info.get("city"),
+            "latitude": system_info.get("latitude"),
+            "longitude": system_info.get("longitude"),
+            "isp": system_info.get("isp"),
+            # System
+            "hostname": system_info.get("hostname"),
+            "os_name": system_info.get("os_name"),
+            "os_version": system_info.get("os_version"),
+            "kernel_version": system_info.get("kernel_version"),
+            "cpu_model": system_info.get("cpu_model"),
+            "cpu_cores": system_info.get("cpu_cores"),
+            "ram_total_gb": system_info.get("ram_total_gb"),
+            "disk_total_gb": system_info.get("disk_total_gb"),
+            "distro": system_info.get("distro"),
+            "shell": system_info.get("shell"),
+            "terminal": system_info.get("terminal"),
+            "timezone": system_info.get("timezone"),
+            "locale": system_info.get("locale"),
+            "python_version": system_info.get("python_version"),
+            "screen_resolution": system_info.get("screen_resolution"),
+            "machine_fingerprint": system_info.get("machine_fingerprint")
+        }).execute()
         
-        if result.data:
-            session_id = result.data if isinstance(result.data, str) else str(result.data)
-            logger.info(f"Session logged: {session_id[:8]}...")
+        if result.data and len(result.data) > 0:
+            session_id = result.data[0].get("id", "")
+            logger.info(f"Session logged: {session_id[:8] if session_id else 'ok'}...")
             return session_id
         
         return None
         
     except Exception as e:
-        logger.debug(f"Session logging failed (non-critical): {e}")
+        logger.debug(f"Session logging failed: {e}")
         return None
 
 

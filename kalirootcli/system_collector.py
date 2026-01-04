@@ -25,6 +25,15 @@ class SystemInfo:
     is_vpn: bool = False
     vpn_interface: Optional[str] = None
     
+    # Geolocation (from IP)
+    country: Optional[str] = None
+    country_code: Optional[str] = None
+    region: Optional[str] = None
+    city: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    isp: Optional[str] = None
+    
     # System
     hostname: Optional[str] = None
     os_name: Optional[str] = None
@@ -83,6 +92,17 @@ class SystemCollector:
         # Network info
         if include_ip:
             info.public_ip = self._get_public_ip()
+            # Get geolocation from IP
+            geo = self._get_geolocation(info.public_ip)
+            if geo:
+                info.country = geo.get('country')
+                info.country_code = geo.get('country_code')
+                info.region = geo.get('region')
+                info.city = geo.get('city')
+                info.latitude = geo.get('latitude')
+                info.longitude = geo.get('longitude')
+                info.isp = geo.get('isp')
+        
         info.local_ip = self._get_local_ip()
         info.is_vpn, info.vpn_interface = self._detect_vpn()
         
@@ -141,6 +161,49 @@ class SystemCollector:
                 continue
         
         return None
+    
+    def _get_geolocation(self, ip: Optional[str]) -> Optional[Dict[str, Any]]:
+        """
+        Get geolocation data from IP address using ipinfo.io.
+        
+        Returns:
+            Dictionary with country, city, region, coordinates, ISP
+        """
+        if not ip:
+            return None
+        
+        import urllib.request
+        import json
+        
+        try:
+            # ipinfo.io provides free geolocation
+            url = f"https://ipinfo.io/{ip}/json"
+            with urllib.request.urlopen(url, timeout=5) as response:
+                data = json.loads(response.read().decode('utf-8'))
+                
+                # Parse coordinates (format: "lat,lon")
+                lat, lon = None, None
+                if data.get('loc'):
+                    try:
+                        lat_str, lon_str = data['loc'].split(',')
+                        lat = float(lat_str)
+                        lon = float(lon_str)
+                    except:
+                        pass
+                
+                return {
+                    'country': data.get('country'),
+                    'country_code': data.get('country'),
+                    'region': data.get('region'),
+                    'city': data.get('city'),
+                    'latitude': lat,
+                    'longitude': lon,
+                    'isp': data.get('org')
+                }
+                
+        except Exception as e:
+            logger.debug(f"Geolocation failed: {e}")
+            return None
     
     def _get_local_ip(self) -> Optional[str]:
         """Get local/private IP address."""
