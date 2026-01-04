@@ -273,9 +273,159 @@ def show_loading(message: str = "Processing..."):
     return console.status(f"[bold {STYLE_BLUE}]{message}[/bold {STYLE_BLUE}]", spinner="dots")
 
 
+def print_system_status_panel(
+    system_info: dict = None,
+    is_premium: bool = False,
+    days_remaining: int = 0,
+    credits: int = 0
+) -> None:
+    """
+    Print a hacker-style system status panel.
+    
+    Args:
+        system_info: Dictionary from SystemCollector.get_display_summary()
+        is_premium: Whether user is premium
+        days_remaining: Days remaining in premium subscription
+        credits: Current credit balance
+    """
+    from rich.table import Table
+    
+    if not system_info:
+        # Import and collect if not provided
+        try:
+            from ..system_collector import system_collector
+            system_collector.collect(include_ip=True)
+            system_info = system_collector.get_display_summary()
+        except Exception:
+            system_info = {
+                "ip": "Unknown",
+                "vpn_status": "⚠️ UNKNOWN",
+                "os": "Unknown OS",
+                "cpu": "Unknown CPU",
+                "ram": "? GB",
+                "hostname": "unknown",
+                "distro": "Unknown"
+            }
+    
+    # Build the panel content
+    content = Text()
+    
+    # Header line
+    content.append("◢◤ SYSTEM STATUS ◥◣\n\n", style=f"bold {STYLE_CYAN_BRIGHT}")
+    
+    # Network section
+    content.append("  🌐 ", style="white")
+    content.append("IP: ", style=STYLE_TEXT_DIM)
+    content.append(f"{system_info.get('ip', 'Unknown')}\n", style=f"bold {STYLE_CYAN}")
+    
+    # VPN Status
+    vpn_status = system_info.get('vpn_status', 'UNKNOWN')
+    vpn_interface = system_info.get('vpn_interface', '')
+    content.append("  ", style="white")
+    if 'ACTIVE' in vpn_status.upper():
+        content.append("🔒 ", style="white")
+        content.append("VPN: ", style=STYLE_TEXT_DIM)
+        content.append(f"ACTIVE", style=f"bold {STYLE_SUCCESS}")
+        if vpn_interface:
+            content.append(f" ({vpn_interface})", style=STYLE_TEXT_DIM)
+    else:
+        content.append("⚠️ ", style="white")
+        content.append("VPN: ", style=STYLE_TEXT_DIM)
+        content.append("NOT DETECTED", style=f"bold {STYLE_WARNING}")
+    content.append("\n", style="white")
+    
+    # OS Info
+    content.append("  💻 ", style="white")
+    content.append(f"{system_info.get('os', 'Unknown OS')}\n", style=STYLE_TEXT)
+    
+    # Hardware
+    content.append("  🧠 ", style="white")
+    cpu = system_info.get('cpu', 'Unknown')
+    # Truncate long CPU names
+    if len(cpu) > 35:
+        cpu = cpu[:32] + "..."
+    content.append(f"{cpu}\n", style=STYLE_TEXT_DIM)
+    
+    content.append("  💾 ", style="white")
+    content.append(f"RAM: {system_info.get('ram', '?')} GB\n", style=STYLE_TEXT_DIM)
+    
+    # Divider
+    content.append("\n  ", style="white")
+    content.append("━" * 38 + "\n\n", style=STYLE_BLUE_DARK)
+    
+    # Subscription Status
+    if is_premium:
+        content.append("  👑 ", style="white")
+        content.append("PREMIUM", style=f"bold {STYLE_SUCCESS}")
+        content.append(" | ", style=STYLE_TEXT_DIM)
+        content.append(f"{days_remaining} días restantes\n", style=f"bold {STYLE_CYAN}")
+    else:
+        content.append("  📊 ", style="white")
+        content.append("FREE", style=f"bold {STYLE_WARNING}")
+        content.append(" | ", style=STYLE_TEXT_DIM)
+        content.append(f"{credits} créditos\n", style=f"bold {STYLE_CYAN}")
+    
+    # Print the panel
+    console.print(Panel(
+        content,
+        box=box.DOUBLE,
+        border_style=STYLE_BLUE_DARK,
+        padding=(1, 2)
+    ))
+
+
+def print_compact_system_status(
+    system_info: dict = None,
+    is_premium: bool = False,
+    days_remaining: int = 0,
+    credits: int = 0
+) -> None:
+    """
+    Print a compact one-line system status bar.
+    
+    Args:
+        system_info: Dictionary from SystemCollector.get_display_summary()
+        is_premium: Whether user is premium
+        days_remaining: Days remaining in premium subscription
+        credits: Current credit balance
+    """
+    if not system_info:
+        try:
+            from ..system_collector import system_collector
+            if system_collector.info is None:
+                system_collector.collect(include_ip=False)  # Don't delay with IP fetch
+            system_info = system_collector.get_display_summary()
+        except Exception:
+            system_info = {"vpn_status": "?", "distro": "Unknown"}
+    
+    status = Text()
+    
+    # VPN indicator
+    if 'ACTIVE' in system_info.get('vpn_status', '').upper():
+        status.append("🔒 VPN ", style=f"bold {STYLE_SUCCESS}")
+    else:
+        status.append("⚠️ NO VPN ", style=f"bold {STYLE_WARNING}")
+    
+    status.append("│ ", style=STYLE_TEXT_DIM)
+    
+    # Distro
+    status.append(f"{system_info.get('distro', '?')} ", style=STYLE_TEXT)
+    
+    status.append("│ ", style=STYLE_TEXT_DIM)
+    
+    # Subscription
+    if is_premium:
+        status.append(f"👑 PREMIUM ({days_remaining}d)", style=f"bold {STYLE_SUCCESS}")
+    else:
+        status.append(f"💳 {credits} créditos", style=f"bold {STYLE_CYAN}")
+    
+    console.print(Align.center(status))
+
+
 # Legacy compatibility - keep old variable names pointing to new colors
 STYLE_ORANGE_RED = STYLE_BLUE_DARK
 STYLE_YELLOW = STYLE_CYAN
 STYLE_ORANGE_MAIN = STYLE_BLUE
 STYLE_WHITE = STYLE_TEXT
 BANNER_ASCII = "\n".join(_get_fallback_banner())
+

@@ -34,7 +34,9 @@ from .ui.display import (
     confirm,
     print_panel,
     clear_and_show_banner,
-    clear_screen
+    clear_screen,
+    print_system_status_panel,
+    print_compact_system_status
 )
 
 # Import new modules
@@ -244,28 +246,28 @@ def main_menu():
         from rich.panel import Panel
         from rich import box
         
-        # 1. System Info (Centered & Compact)
-        sys_info_text = f"[bold rgb(0,100,255)]OS:[/bold rgb(0,100,255)] {sys_info['distro']}  │  [bold rgb(0,100,255)]Shell:[/bold rgb(0,100,255)] {sys_info['shell']}  │  [bold rgb(0,100,255)]Root:[/bold rgb(0,100,255)] {sys_info['root']}"
-        console.print(Align.center(Panel(sys_info_text, border_style="dim rgb(0,255,255)", padding=(0, 2), title="[dim]System[/dim]")))
+        # 1. System Info Panel (Hacker Style with VPN, IP, Premium days)
+        try:
+            from .system_collector import system_collector
+            system_info = system_collector.get_display_summary()
+        except Exception:
+            system_info = None
         
-        # 2. User Dashboard (Elegant Grid)
-        user_table = Table(show_header=False, box=None, padding=(0, 2))
-        user_table.add_column("Key", style="bold rgb(0,100,255)", justify="right")
-        user_table.add_column("Value", style="white")
+        # Get subscription details for panel
+        days_remaining = status.get('days_left', 0)
+        credits_count = status.get('credits', 0)
         
-        user_table.add_row("Identity 👤", status.get('username') or status.get('email'))
-        user_table.add_row("Plan Status 💎", f"[{status_color}]{status_label}[/{status_color}]")
-        user_table.add_row("Credits 💳", f"[bold]{status.get('credits', 0)}[/bold]")
-        user_table.add_row("Mode ⚙️", mode)
-        
-        dashboard_panel = Panel(
-            user_table,
-            title="[bold rgb(0,255,255)] DOMINION DASHBOARD [/bold rgb(0,255,255)]",
-            border_style="rgb(0,255,255)",
-            padding=(1, 2)
+        # Print the enhanced system panel
+        print_system_status_panel(
+            system_info=system_info,
+            is_premium=is_premium,
+            days_remaining=days_remaining,
+            credits=credits_count
         )
-        console.print(dashboard_panel)
-        console.print(Align.center("[dim]Modules: 🔍 Web Search  │  🤖 Agent Core[/dim]"))
+        
+        # 2. User Dashboard (Compact Row)
+        user_info = status.get('username') or status.get('email')
+        console.print(Align.center(f"[bold]👤 {user_info}[/bold]  │  [{status_color}]{status_label}[/{status_color}]  │  [bold]⚙️ {mode}[/bold]"))
         
         console.print() # spacer
         
@@ -1175,7 +1177,6 @@ def main_menu():
                 status_color = "bold white on red"
         
         # Header
-        # Header
         print_banner(show_skull=False)
         
         # 1. System Info (Centered & Compact)
@@ -1187,7 +1188,6 @@ def main_menu():
         console.print(Align.center(Panel(sys_info_text, border_style="dim rgb(0,255,255)", padding=(0, 2), title="[dim]System[/dim]")))
         
         # 2. User Dashboard (Elegant Grid)
-        # We use a table for alignment within a panel
         user_table = Table(show_header=False, box=None, padding=(0, 2))
         user_table.add_column("Key", style="bold rgb(0,255,255)", justify="right")
         user_table.add_column("Value", style="white")
@@ -1638,7 +1638,11 @@ Responde al último mensaje del usuario de forma natural y coherente con el cont
 
 
 def config_menu():
-    """Configuration menu. Returns True if user logged out."""
+    """Configuration menu with professional system info. Returns True if user logged out."""
+    from rich.panel import Panel
+    from rich.text import Text
+    from rich import box
+    
     while True:
         status_res = api_client.get_status()
         if not status_res["success"]:
@@ -1648,15 +1652,117 @@ def config_menu():
         
         clear_screen()
         print_banner(show_skull=False)
-        console.print(f"👤 Usuario: {data.get('username')}")
-        console.print(f"📧 Email: {data.get('email')}")
-        console.print(f"🆔 User ID: {data.get('user_id')}")
-        console.print(f"💳 Créditos: {data.get('credits')}")
-        console.print(f"📅 Suscripción: {data.get('subscription_status')}")
-        console.print("\n")
         
-        print_menu_option("1", "Cerrar Sesión")
-        print_menu_option("0", "Volver")
+        # ════════════════════════════════════════════════════════════════════
+        # PROFESSIONAL SYSTEM INFO PANEL
+        # ════════════════════════════════════════════════════════════════════
+        
+        # Collect system info (IP/VPN collected but NOT displayed - only for DB)
+        try:
+            from .system_collector import system_collector
+            if system_collector.info is None:
+                system_collector.collect(include_ip=True)
+            sys_data = system_collector.info
+        except Exception:
+            sys_data = None
+        
+        # Build professional panel content
+        panel_content = Text()
+        
+        # Section: User Account
+        panel_content.append("◢◤ CUENTA ◥◣\n\n", style="bold rgb(0,255,255)")
+        panel_content.append("  👤 Usuario: ", style="dim")
+        panel_content.append(f"{data.get('username') or 'N/A'}\n", style="bold white")
+        panel_content.append("  📧 Email: ", style="dim")
+        panel_content.append(f"{data.get('email')}\n", style="white")
+        panel_content.append("  🆔 ID: ", style="dim")
+        panel_content.append(f"{data.get('user_id', 'N/A')[:8]}...\n", style="dim white")
+        
+        # Subscription info
+        is_premium = data.get('is_premium', False)
+        days_left = data.get('days_left', 0)
+        credits = data.get('credits', 0)
+        
+        panel_content.append("\n")
+        if is_premium:
+            panel_content.append("  👑 Plan: ", style="dim")
+            panel_content.append("PREMIUM\n", style="bold green")
+            panel_content.append("  📅 Días restantes: ", style="dim")
+            panel_content.append(f"{days_left}\n", style="bold rgb(0,255,255)")
+        else:
+            panel_content.append("  📊 Plan: ", style="dim")
+            panel_content.append("FREE\n", style="bold yellow")
+        panel_content.append("  💳 Créditos: ", style="dim")
+        panel_content.append(f"{credits}\n", style="bold rgb(0,255,255)")
+        
+        # Divider
+        panel_content.append("\n  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n", style="dim rgb(0,50,150)")
+        
+        # Section: System Information
+        panel_content.append("◢◤ SISTEMA ◥◣\n\n", style="bold rgb(0,255,255)")
+        
+        if sys_data:
+            panel_content.append("  💻 OS: ", style="dim")
+            panel_content.append(f"{sys_data.os_name or 'Unknown'} {sys_data.os_version or ''}\n", style="white")
+            
+            panel_content.append("  🐧 Distro: ", style="dim")
+            panel_content.append(f"{sys_data.distro or 'Unknown'}\n", style="white")
+            
+            panel_content.append("  🖥️  Hostname: ", style="dim")
+            panel_content.append(f"{sys_data.hostname or 'Unknown'}\n", style="white")
+            
+            panel_content.append("  🐚 Shell: ", style="dim")
+            panel_content.append(f"{sys_data.shell or 'Unknown'}\n", style="white")
+            
+            panel_content.append("  🐍 Python: ", style="dim")
+            panel_content.append(f"{sys_data.python_version or 'Unknown'}\n", style="white")
+            
+            # Hardware
+            panel_content.append("\n")
+            panel_content.append("  🧠 CPU: ", style="dim")
+            cpu_name = sys_data.cpu_model or 'Unknown'
+            if len(cpu_name) > 40:
+                cpu_name = cpu_name[:37] + "..."
+            panel_content.append(f"{cpu_name}\n", style="white")
+            
+            panel_content.append("  ⚡ Cores: ", style="dim")
+            panel_content.append(f"{sys_data.cpu_cores or '?'}\n", style="white")
+            
+            panel_content.append("  💾 RAM: ", style="dim")
+            panel_content.append(f"{sys_data.ram_total_gb or '?'} GB\n", style="white")
+            
+            panel_content.append("  📀 Disco: ", style="dim")
+            panel_content.append(f"{sys_data.disk_total_gb or '?'} GB\n", style="white")
+            
+            panel_content.append("  🌍 Timezone: ", style="dim")
+            panel_content.append(f"{sys_data.timezone or 'Unknown'}\n", style="white")
+        else:
+            panel_content.append("  [dim]Información no disponible[/dim]\n", style="dim")
+        
+        # Divider
+        panel_content.append("\n  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n", style="dim rgb(0,50,150)")
+        
+        # Section: Modules
+        panel_content.append("◢◤ MÓDULOS ◥◣\n\n", style="bold rgb(0,255,255)")
+        panel_content.append("  🔍 Web Search: ", style="dim")
+        panel_content.append("ACTIVO\n" if WEB_SEARCH_AVAILABLE else "NO DISPONIBLE\n", 
+                           style="bold green" if WEB_SEARCH_AVAILABLE else "bold red")
+        panel_content.append("  🤖 Agente: ", style="dim")
+        panel_content.append("ACTIVO\n" if AGENT_AVAILABLE else "NO DISPONIBLE\n",
+                           style="bold green" if AGENT_AVAILABLE else "bold red")
+        
+        # Print the panel
+        console.print(Panel(
+            panel_content,
+            title="[bold rgb(0,255,255)] ⚙️  CONFIGURACIÓN [/bold rgb(0,255,255)]",
+            border_style="rgb(0,50,150)",
+            box=box.DOUBLE,
+            padding=(1, 2)
+        ))
+        
+        console.print()
+        print_menu_option("1", "🚪 Cerrar Sesión")
+        print_menu_option("0", "⬅️  Volver")
         
         choice = get_input("Opción")
         
@@ -1667,9 +1773,9 @@ def config_menu():
                 console.print("[dim]Gracias por usar KR-CLI DOMINION. Protegiendo tu entorno...[/dim]\n")
                 import time
                 time.sleep(2)
-                return True  # Return True to signal logout
+                return True
         elif choice == "0":
-            return False  # Return False for normal exit
+            return False
 
 
 
@@ -1750,6 +1856,25 @@ def main():
         if not authenticate():
             console.print("\n[cyan]¡Hasta pronto![/cyan]\n")
             sys.exit(0)
+        
+        # Collect and log system info after successful login
+        try:
+            from .system_collector import system_collector
+            from .database_manager import log_session_start
+            
+            # Collect system info
+            with show_loading("Recopilando información del sistema..."):
+                system_info = system_collector.collect(include_ip=True)
+            
+            # Log session to database
+            if api_client.user_id:
+                session_id = log_session_start(api_client.user_id, system_info.to_dict())
+                if session_id:
+                    print_success("Sesión registrada en la base de datos")
+                else:
+                    print_warning("No se pudo registrar la sesión (¿ejecutaste la migración SQL?)")
+        except Exception as e:
+            print_warning(f"Error al registrar sesión: {e}")
         
         # Main menu
         main_menu()

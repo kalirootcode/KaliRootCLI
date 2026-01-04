@@ -268,17 +268,19 @@ def create_loading_display(progress_pct: float, term_width: int, status: str) ->
 
 def animated_splash(skip_animation: bool = False, duration: float = 5.0) -> None:
     """
-    Enhanced animated splash with Matrix intro.
+    Enhanced animated splash with Matrix intro - Modern Hacker Style.
     
     Sequence:
     1. Matrix rain animation (2 seconds)
-    2. Banner + loading bar animation
+    2. Banner + loading bar animation (perfectly centered)
     3. Program starts
     
     Args:
         skip_animation: If True, shows static version
         duration: Duration of loading animation in seconds (default 5)
     """
+    import random
+    
     # Clear screen first
     _clear_terminal()
     
@@ -292,57 +294,79 @@ def animated_splash(skip_animation: bool = False, duration: float = 5.0) -> None
     # Clear for next phase
     _clear_terminal()
     
-    # Phase 2: BANNER + LOADING BAR
-    # Get terminal size
+    # Phase 2: BANNER + LOADING BAR (Modern Hacker Style)
     term_width, term_height = get_terminal_size()
     
     # Import KR-CLI banner
     from .display import BANNER_ASCII
     kr_lines = [line for line in BANNER_ASCII.split('\n') if line.strip()]
     
-    # Subtitle configuration
-    sub_line = "═" * 50
-    title_text = "⚡  NO SYSTEM IS SAFE  ⚡"
-    desc_text = "Every Firewall Has a Weakness"
+    # Modern hacker style configuration
+    title_text = "◢ NO SYSTEM IS SAFE ◣"
+    desc_text = "「 Every Firewall Has a Weakness 」"
     
-    # Calculate dimensions for centering
+    # Cyberpunk decorators
+    cyber_line = "▓░▒░▓░▒░▓░▒░▓░▒░▓░▒░▓░▒░▓░▒░▓░▒░▓░▒░▓░▒░▓"
+    
+    # Calculate dimensions for PERFECT centering
     max_banner_width = max(len(line) for line in kr_lines)
-    subtitle_width = len(sub_line)
-    max_content_width = max(max_banner_width, subtitle_width)
     
+    # Fixed bar width for consistent centering
+    bar_inner_width = 40
+    # Total bar visual: "┃▓▓▓░░░┃" = bar_inner_width + 2 brackets
+    bar_total_width = bar_inner_width + 2
+    
+    # Calculate all content heights
     banner_height = len(kr_lines)
-    subtitle_height = 4  # Two separator lines + title + description
-    loading_height = 4   # Loading bar section
-    total_content_height = banner_height + 1 + subtitle_height + 1 + loading_height
+    subtitle_height = 3  # cyber_line + title + desc
+    bar_section_height = 4  # bar + percentage + spacing + status
+    total_content_height = banner_height + 2 + subtitle_height + 2 + bar_section_height
     
-    # Vertical centering
+    # PERFECT vertical centering
     top_padding = max(0, (term_height - total_content_height) // 2)
     
-    # Horizontal padding
+    # PERFECT horizontal centering for each element
     banner_padding = max(0, (term_width - max_banner_width) // 2)
-    subtitle_padding = max(0, (term_width - subtitle_width) // 2)
+    cyber_padding = max(0, (term_width - len(cyber_line)) // 2)
+    title_padding = max(0, (term_width - len(title_text)) // 2)
+    desc_padding = max(0, (term_width - len(desc_text)) // 2)
+    bar_padding = max(0, (term_width - bar_total_width) // 2)
     
     # Animated loading
     loading_start = time.time()
-    loading_duration = duration - 2.0  # Subtract Matrix time
+    loading_duration = duration - 2.0
+    
+    # Glitch characters for hacker effect
+    glitch_chars = "░▒▓█▀▄╱╲╳"
     
     with Live(console=console, refresh_per_second=30, screen=True) as live:
+        frame_count = 0
+        
         while True:
             elapsed = time.time() - loading_start
             if elapsed >= loading_duration:
                 break
             
             progress = min(elapsed / loading_duration, 1.0)
+            frame_count += 1
             
             output = Text()
             
-            # Top padding
+            # Top padding for vertical centering
             output.append("\n" * top_padding)
             
             # === KR-CLI BANNER (with gradient) ===
             kr_total = len(kr_lines)
             for i, line in enumerate(kr_lines):
                 line_progress = i / max(kr_total - 1, 1)
+                
+                # Occasional glitch effect
+                if random.random() < 0.02 and frame_count % 5 == 0:
+                    glitched_line = ''.join(
+                        random.choice(glitch_chars) if c != ' ' and random.random() < 0.1 else c 
+                        for c in line
+                    )
+                    line = glitched_line
                 
                 # Blue → Cyan gradient
                 if line_progress < 0.33:
@@ -356,65 +380,60 @@ def animated_splash(skip_animation: bool = False, duration: float = 5.0) -> None
             
             output.append("\n")
             
-            # === SUBTITLE SECTION ===
-            output.append(" " * subtitle_padding + sub_line + "\n", style=STYLE_BLUE_DARK)
+            # === CYBERPUNK SUBTITLE SECTION ===
+            output.append(" " * cyber_padding + cyber_line + "\n", style=f"bold {STYLE_BLUE_DARK}")
             
-            # Title - properly centered as complete text
-            title_padding = max(0, (term_width - len(title_text)) // 2)
+            # Title - PERFECTLY centered
             output.append(" " * title_padding + title_text + "\n", style=f"bold {STYLE_CYAN_BRIGHT}")
             
             # Description - centered
-            desc_padding = max(0, (term_width - len(desc_text)) // 2)
             output.append(" " * desc_padding + desc_text + "\n", style=f"italic {STYLE_CYAN}")
             
-            output.append(" " * subtitle_padding + sub_line + "\n", style=STYLE_BLUE_DARK)
+            output.append(" " * cyber_padding + cyber_line + "\n", style=f"bold {STYLE_BLUE_DARK}")
             output.append("\n")
             
-            # === LOADING BAR (Responsive) ===
-            bar_width = min(40, term_width - 10)
-            bar_padding = max(0, (term_width - bar_width) // 2)
+            # === MODERN HACKER LOADING BAR (PERFECTLY CENTERED) ===
+            filled = int(bar_inner_width * progress)
+            empty = bar_inner_width - filled
             
-            filled = int(bar_width * progress)
-            empty = bar_width - filled
-            
+            # Build the bar as a complete string first for perfect centering
             output.append(" " * bar_padding)
-            output.append("║ ", style=STYLE_CYAN)
-            output.append("█" * filled, style=f"bold {STYLE_BLUE}")
+            output.append("┃", style=f"bold {STYLE_CYAN}")
+            output.append("▓" * filled, style=f"bold {STYLE_BLUE}")
             output.append("░" * empty, style=f"dim {STYLE_CYAN}")
-            output.append(" ║\n", style=STYLE_CYAN)
+            output.append("┃\n", style=f"bold {STYLE_CYAN}")
             
-            # Progress percentage
-            pct_text = f"{int(progress * 100)}%"
+            # Progress percentage - PERFECTLY centered
+            pct_text = f"[ {int(progress * 100):3d}% ]"
             pct_padding = max(0, (term_width - len(pct_text)) // 2)
-            output.append(" " * pct_padding)
-            output.append(pct_text, style=f"bold {STYLE_CYAN}")
-            output.append("\n\n")
+            output.append(" " * pct_padding + pct_text + "\n", style=f"bold {STYLE_CYAN}")
             
-            # Status message (various stages)
+            output.append("\n")
+            
+            # Status message (cyberpunk style)
             if progress < 0.2:
-                status_msg = "⚡ Initializing Systems..."
+                status_msg = ">> INITIALIZING SYSTEMS..."
                 status_color = STYLE_BLUE_DARK
             elif progress < 0.4:
-                status_msg = "🔐 Loading Security Modules..."
+                status_msg = ">> LOADING SECURITY MODULES..."
                 status_color = STYLE_BLUE
             elif progress < 0.6:
-                status_msg = "🤖 Activating AI Engine..."
+                status_msg = ">> ACTIVATING AI ENGINE..."
                 status_color = STYLE_CYAN
             elif progress < 0.8:
-                status_msg = "🔧 Configuring Tools..."
+                status_msg = ">> CONFIGURING TOOLS..."
                 status_color = STYLE_BLUE
             else:
-                status_msg = "✨ Finalizing Setup..."
+                status_msg = ">> FINALIZING SETUP..."
                 status_color = STYLE_CYAN
             
             status_padding = max(0, (term_width - len(status_msg)) // 2)
-            output.append(" " * status_padding)
-            output.append(status_msg, style=f"bold {status_color}")
+            output.append(" " * status_padding + status_msg, style=f"bold {status_color}")
             
             live.update(output)
             time.sleep(0.03)
         
-        # Show completion briefly
+        # === COMPLETION SCREEN ===
         output = Text()
         output.append("\n" * top_padding)
         
@@ -431,31 +450,28 @@ def animated_splash(skip_animation: bool = False, duration: float = 5.0) -> None
         
         output.append("\n")
         
-        # Subtitle with proper centering (same as animation)
-        output.append(" " * subtitle_padding + sub_line + "\n", style=STYLE_BLUE_DARK)
-        
-        # Title - properly centered
-        title_padding = max(0, (term_width - len(title_text)) // 2)
+        # Subtitle
+        output.append(" " * cyber_padding + cyber_line + "\n", style=f"bold {STYLE_BLUE_DARK}")
         output.append(" " * title_padding + title_text + "\n", style=f"bold {STYLE_CYAN_BRIGHT}")
-        
-        # Description - centered
-        desc_padding = max(0, (term_width - len(desc_text)) // 2)
         output.append(" " * desc_padding + desc_text + "\n", style=f"italic {STYLE_CYAN}")
-        
-        output.append(" " * subtitle_padding + sub_line + "\n", style=STYLE_BLUE_DARK)
+        output.append(" " * cyber_padding + cyber_line + "\n", style=f"bold {STYLE_BLUE_DARK}")
         output.append("\n")
         
-        # Full bar
+        # Full bar - PERFECTLY centered
         output.append(" " * bar_padding)
-        output.append("║ ", style=STYLE_CYAN)
-        output.append("█" * bar_width, style=f"bold {STYLE_BLUE}")
-        output.append(" ║\n", style=STYLE_CYAN)
+        output.append("┃", style=f"bold {STYLE_CYAN}")
+        output.append("▓" * bar_inner_width, style=f"bold {STYLE_BLUE}")
+        output.append("┃\n", style=f"bold {STYLE_CYAN}")
         
-        output.append(" " * ((term_width - 4) // 2))
-        output.append("100%\n\n", style=f"bold {STYLE_CYAN}")
+        # 100% centered
+        complete_text = "[ 100% ]"
+        complete_padding = max(0, (term_width - len(complete_text)) // 2)
+        output.append(" " * complete_padding + complete_text + "\n\n", style=f"bold {STYLE_CYAN}")
         
-        output.append(" " * ((term_width - 12) // 2))
-        output.append("✅ Ready!\n", style=f"bold {STYLE_CYAN}")
+        # Ready message centered
+        ready_msg = "◢◤ SYSTEM READY ◥◣"
+        ready_padding = max(0, (term_width - len(ready_msg)) // 2)
+        output.append(" " * ready_padding + ready_msg + "\n", style=f"bold {STYLE_CYAN_BRIGHT}")
         
         live.update(output)
         time.sleep(0.5)
