@@ -1282,6 +1282,7 @@ def tools_menu():
         print_menu_option("12", "🔑 Password Cracking", "Hydra, John, Hashcat")
         print_menu_option("13", "🎣 Social Engineering", "Phishing & Engineering Tools")
         print_menu_option("14", "🎭 Fsociety Framework", "Pentesting modular completo")
+        print_menu_option("15", "🌐 Web H4ck3r", "Portal web de KR-CLI DOMINION")
 
         print_menu_option("0", "Volver")
         
@@ -1375,6 +1376,34 @@ def tools_menu():
         elif choice == "14":
             from .tools.fsociety_handler import run_fsociety_menu
             run_fsociety_menu()
+            
+            input("\nPresiona Enter para continuar...")
+        
+        elif choice == "15":
+            # Web H4ck3r - Open KR-CLI Web Portal
+            import webbrowser
+            
+            clear_screen()
+            print_banner(show_skull=False)
+            console.print("\n[bold cyan]═══ WEB H4CK3R PORTAL ═══[/bold cyan]\n")
+            console.print("[dim]Conectando al portal web de KR-CLI DOMINION...[/dim]\n")
+            
+            # Build URL with session token for auto-login
+            web_url = "https://kr-clidn.com"
+            if api_client.access_token:
+                web_url = f"{web_url}/dashboard.html?token={api_client.access_token[:32]}"
+                console.print("[green]✓ Sesión detectada - Auto-login habilitado[/green]")
+            else:
+                console.print("[yellow]⚠ Sin sesión activa - Deberás iniciar sesión en la web[/yellow]")
+            
+            console.print(f"\n[bold]🌐 Abriendo:[/bold] [blue underline]{web_url.split('?')[0]}[/blue underline]\n")
+            
+            try:
+                webbrowser.open(web_url)
+                print_success("Portal web abierto en tu navegador")
+            except Exception as e:
+                print_error(f"No se pudo abrir el navegador: {e}")
+                console.print(f"\n[dim]Visita manualmente: {web_url}[/dim]")
             
             input("\nPresiona Enter para continuar...")
 

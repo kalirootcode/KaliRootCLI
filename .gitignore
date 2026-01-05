@@ -11,3 +11,7 @@ dist/
 build/
 *.egg-info/
 .session.json
+
+# Web projects (separate repos)
+web/
+admin/
