@@ -1,17 +1,75 @@
+# ===== Environment & Secrets =====
 .env
 .env.template
+.env.*
+
+# ===== Python Cache =====
 *.pyc
 __pycache__/
 *.pyo
-.DS_Store
-*.log
+*.pyd
+.Python
+
+# ===== Virtual Environments =====
 venv/
 .venv/
+env/
+ENV/
+
+# ===== Build & Distribution =====
 dist/
 build/
 *.egg-info/
-.session.json
+*.egg
+*.whl
+.eggs/
 
-# Web projects (separate repos)
+# ===== OS Files =====
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ===== Logs =====
+*.log
+logs/
+
+# ===== Session Files =====
+.session.json
+session.json
+
+# ===== SQL Migration Files (keep in project, not on PyPI) =====
+*.sql
+
+# ===== Test Files =====
+test_*.py
+
+# ===== Server Files (for Render, not PyPI) =====
+api_server.py
+webhook_server.py
+start_server.sh
+requirements-server.txt
+
+# ===== Web projects (separate repos) =====
 web/
 admin/
+
+# ===== Documentation (optional on GitHub, not on PyPI) =====
+docs/
+TESTING_GUIDE.md
+PAYMENT_VERIFICATION.md
+
+# ===== IDE =====
+.idea/
+.vscode/
+*.sublime-*
+
+# ===== Chat exports =====
+chat_*.md
+
+# ===== Coverage & Testing =====
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
