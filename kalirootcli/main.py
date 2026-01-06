@@ -275,8 +275,7 @@ def main_menu():
         features = []
         if WEB_SEARCH_AVAILABLE:
             features.append("[green]🔍 Búsqueda Web[/green]")
-        if AGENT_AVAILABLE:
-            features.append("[green]🤖 Agente[/green]")
+        features.append("[green]🌐 Web Portal[/green]")
         if features:
             console.print(f"[bold]📦 Módulos:[/bold] {' │ '.join(features)}")
         
@@ -1183,57 +1182,142 @@ def main_menu():
         from rich.align import Align
         from rich.table import Table
         from rich.panel import Panel
+        from rich.columns import Columns
+        from rich import box
+        from datetime import datetime
         
         sys_info_text = f"[bold rgb(0,100,255)]OS:[/bold rgb(0,100,255)] {sys_info['distro']}  │  [bold rgb(0,100,255)]Shell:[/bold rgb(0,100,255)] {sys_info['shell']}  │  [bold rgb(0,100,255)]Root:[/bold rgb(0,100,255)] {sys_info['root']}"
         console.print(Align.center(Panel(sys_info_text, border_style="dim rgb(0,255,255)", padding=(0, 2), title="[dim]System[/dim]")))
         
-        # 2. User Dashboard (Elegant Grid)
-        user_table = Table(show_header=False, box=None, padding=(0, 2))
-        user_table.add_column("Key", style="bold rgb(0,255,255)", justify="right")
-        user_table.add_column("Value", style="white")
+        # 2. User Dashboard (Professional Two-Column Layout)
+        username = status.get('username') or status.get('email', 'user')
+        email = status.get('email', '-')
+        if len(email) > 22:
+            email = email[:19] + "..."
         
-        user_table.add_row("Identity 👤", status.get('username') or status.get('email'))
-        user_table.add_row("Plan Status 💎", f"[{status_color}]{status_label}[/{status_color}]")
-        user_table.add_row("Credits 💳", f"[bold]{status.get('credits', 0)}[/bold]")
-        user_table.add_row("Mode ⚙️", mode)
+        credits = status.get('credits', 0)
+        days_left = status.get('days_left', 0)
+        queries_today = status.get('queries_today', 0)
+        total_spent = status.get('total_spent', 0)
+        
+        # Credit color based on amount
+        if credits > 100:
+            credit_color = "green"
+        elif credits > 20:
+            credit_color = "yellow"
+        else:
+            credit_color = "red"
+        
+        # Get machine hostname
+        import socket
+        hostname = socket.gethostname()
+        
+        # Left Column - User Info (emoji aligned, label attached)
+        left_table = Table(show_header=False, box=None, padding=(0, 0), expand=False)
+        left_table.add_column("EmojiLabel", style="dim", justify="left", no_wrap=True)
+        left_table.add_column("Value", style="white", no_wrap=True)
+        
+        left_table.add_row("👤 Usuario ", f"[bold cyan]{username}[/bold cyan]")
+        left_table.add_row("📧 Email   ", f"[dim]{email}[/dim]")
+        left_table.add_row("💎 Plan    ", f"[{status_color}]{status_label.strip()}[/{status_color}]")
+        left_table.add_row("⚙️  Modo    ", f"[bold]{mode}[/bold]")
+        
+        # Right Column - Stats (emoji aligned, label attached)
+        right_table = Table(show_header=False, box=None, padding=(0, 0), expand=False)
+        right_table.add_column("EmojiLabel", style="dim", justify="left", no_wrap=True)
+        right_table.add_column("Value", style="white", no_wrap=True)
+        
+        right_table.add_row("💳 Créditos  ", f"[bold {credit_color}]{credits}[/bold {credit_color}]")
+        right_table.add_row("📅 Días      ", f"[bold]{days_left}[/bold]" if is_premium else "[dim]—[/dim]")
+        right_table.add_row("📊 Consultas ", f"[bold]{queries_today}[/bold]")
+        right_table.add_row("💻 Máquina   ", f"[bold cyan]{hostname}[/bold cyan]")
+        
+        # Main table to hold both columns side by side
+        main_table = Table(show_header=False, box=None, expand=True, padding=(0, 2))
+        main_table.add_column("Left", justify="left")
+        main_table.add_column("Sep", width=1, justify="center")
+        main_table.add_column("Right", justify="left")
+        main_table.add_row(left_table, "[dim]│[/dim]", right_table)
+        
+        # Get current time with seconds
+        current_time = datetime.now().strftime('%d/%m/%Y  %H:%M:%S')
         
         dashboard_panel = Panel(
-            user_table,
-            title="[bold rgb(0,255,255)] DOMINION DASHBOARD [/bold rgb(0,255,255)]",
+            main_table,
+            title="[bold rgb(0,255,255)]═══ DOMINION DASHBOARD ═══[/bold rgb(0,255,255)]",
+            subtitle=f"[dim]🕐 {current_time}[/dim]",
             border_style="rgb(0,255,255)",
-            padding=(1, 2)
+            padding=(1, 2),
+            box=box.DOUBLE
         )
         console.print(dashboard_panel)
-        console.print(Align.center("[dim]Modules: 🔍 Web Search  │  🤖 Agent Core[/dim]"))
+        
+        # Features line
+        if is_premium:
+            features_line = "[dim]🔍 Web Search  │  🌐 Web Portal  │  [green]🔧 Premium Tools[/green][/dim]"
+        else:
+            features_line = "[dim]🔍 Web Search  │  🌐 Web Portal[/dim]"
+        console.print(Align.center(features_line))
         
         console.print() # spacer
         
         # Menu Options
         print_menu_option("1", "🧠 CONSOLA AI", "Consultas de seguridad con búsqueda web")
+        print_menu_option("2", "🌐 WEB H4CK3R", "Portal web de KR-CLI DOMINION")
         if is_premium:
-            print_menu_option("2", "🔧 HERRAMIENTAS", "Port Scanner y más (Premium)")
-            print_menu_option("3", "🏪 TIENDA", "Créditos y suscripción")
-            print_menu_option("4", "⚙️  CONFIGURACIÓN", "Cuenta y ajustes")
+            print_menu_option("3", "🔧 HERRAMIENTAS", "Port Scanner y más (Premium)")
+            print_menu_option("4", "🏪 TIENDA", "Créditos y suscripción")
+            print_menu_option("5", "⚙️  CONFIGURACIÓN", "Cuenta y ajustes")
         else:
-            print_menu_option("2", "🏪 TIENDA", "Obtener acceso Premium y Créditos")
-            print_menu_option("3", "⚙️  CONFIGURACIÓN", "Cuenta y ajustes")
+            print_menu_option("3", "🏪 TIENDA", "Obtener acceso Premium y Créditos")
+            print_menu_option("4", "⚙️  CONFIGURACIÓN", "Cuenta y ajustes")
             
         print_menu_option("0", "🚪 SALIR")
         
         console.rule(style="dim rgb(0,255,255)")
         
+        # Update terminal title with live clock
+        import sys
+        sys.stdout.write(f"\033]0;KR-CLI DOMINION │ 🕐 {datetime.now().strftime('%H:%M:%S')}\007")
+        sys.stdout.flush()
+        
         choice = get_input("Selecciona")
         
         if choice == "1":
             ai_console_mode()
-                
+        
         elif choice == "2":
+            # Web H4ck3r - Open KR-CLI Web Portal
+            import webbrowser
+            print_banner(show_skull=False)
+            console.print("\n[bold cyan]═══ WEB H4CK3R PORTAL ═══[/bold cyan]\n")
+            console.print("[dim]Conectando al portal web de KR-CLI DOMINION...[/dim]\n")
+            
+            web_url = "https://kr-clidn.com"
+            if api_client.access_token:
+                web_url = f"{web_url}/dashboard.html?token={api_client.access_token}"
+                console.print("[green]✓ Sesión detectada - Auto-login habilitado[/green]")
+            else:
+                console.print("[yellow]⚠ Sin sesión activa - Deberás iniciar sesión en la web[/yellow]")
+            
+            console.print(f"\n[bold]🌐 Abriendo:[/bold] [blue underline]{web_url.split('?')[0]}[/blue underline]\n")
+            
+            try:
+                webbrowser.open(web_url)
+                print_success("Portal web abierto en tu navegador")
+            except Exception as e:
+                print_error(f"No se pudo abrir el navegador: {e}")
+                console.print(f"\n[dim]Visita manualmente: {web_url}[/dim]")
+            
+            input("\nPresiona Enter para continuar...")
+                
+        elif choice == "3":
             if is_premium:
                 tools_menu()
             else:
                 upgrade_menu()
             
-        elif choice == "3":
+        elif choice == "4":
             if is_premium:
                 upgrade_menu()
             else:
@@ -1241,7 +1325,7 @@ def main_menu():
                 if logged_out:
                     break
         
-        elif choice == "4" and is_premium:
+        elif choice == "5" and is_premium:
             logged_out = config_menu()
             if logged_out:
                 break
@@ -1282,7 +1366,6 @@ def tools_menu():
         print_menu_option("12", "🔑 Password Cracking", "Hydra, John, Hashcat")
         print_menu_option("13", "🎣 Social Engineering", "Phishing & Engineering Tools")
         print_menu_option("14", "🎭 Fsociety Framework", "Pentesting modular completo")
-        print_menu_option("15", "🌐 Web H4ck3r", "Portal web de KR-CLI DOMINION")
 
         print_menu_option("0", "Volver")
         
@@ -1376,34 +1459,6 @@ def tools_menu():
         elif choice == "14":
             from .tools.fsociety_handler import run_fsociety_menu
             run_fsociety_menu()
-            
-            input("\nPresiona Enter para continuar...")
-        
-        elif choice == "15":
-            # Web H4ck3r - Open KR-CLI Web Portal
-            import webbrowser
-            
-            clear_screen()
-            print_banner(show_skull=False)
-            console.print("\n[bold cyan]═══ WEB H4CK3R PORTAL ═══[/bold cyan]\n")
-            console.print("[dim]Conectando al portal web de KR-CLI DOMINION...[/dim]\n")
-            
-            # Build URL with session token for auto-login
-            web_url = "https://kr-clidn.com"
-            if api_client.access_token:
-                web_url = f"{web_url}/dashboard.html?token={api_client.access_token[:32]}"
-                console.print("[green]✓ Sesión detectada - Auto-login habilitado[/green]")
-            else:
-                console.print("[yellow]⚠ Sin sesión activa - Deberás iniciar sesión en la web[/yellow]")
-            
-            console.print(f"\n[bold]🌐 Abriendo:[/bold] [blue underline]{web_url.split('?')[0]}[/blue underline]\n")
-            
-            try:
-                webbrowser.open(web_url)
-                print_success("Portal web abierto en tu navegador")
-            except Exception as e:
-                print_error(f"No se pudo abrir el navegador: {e}")
-                console.print(f"\n[dim]Visita manualmente: {web_url}[/dim]")
             
             input("\nPresiona Enter para continuar...")
 
@@ -1666,6 +1721,234 @@ Responde al último mensaje del usuario de forma natural y coherente con el cont
 
 
 
+def show_usage_guide():
+    """Display professional KR-CLI usage guide."""
+    from rich.panel import Panel
+    from rich.text import Text
+    from rich.markdown import Markdown
+    from rich import box
+    from rich.align import Align
+    
+    while True:
+        clear_screen()
+        print_banner(show_skull=False)
+        
+        guide_content = """
+## ⚡ KR-CLI DOMINION - WRAPPER INTELIGENTE
+
+KR-CLI es un **wrapper de ciberseguridad potenciado por IA** que ejecuta comandos nativos 
+de Linux/Kali y analiza automáticamente sus resultados con inteligencia artificial.
+
+---
+
+### 🎯 MODOS DE USO
+
+**1. Interfaz Interactiva (Dashboard)**
+```bash
+kr-clidn
+```
+Abre el dashboard completo con menú, estadísticas y acceso a todas las funciones.
+
+**2. Wrapper de Comandos con Análisis AI**
+```bash
+kr-cli <comando> [argumentos]
+```
+Ejecuta cualquier comando y ofrece análisis inteligente del resultado.
+
+---
+
+### 🔍 EJEMPLOS DEL WRAPPER
+
+**Escaneo de puertos con análisis:**
+```bash
+kr-cli nmap -sV 192.168.1.1
+```
+→ Ejecuta nmap y la IA analiza los puertos/servicios encontrados.
+
+**Escaneo de vulnerabilidades web:**
+```bash
+kr-cli nikto -h http://target.com
+```
+→ Ejecuta nikto y la IA resume hallazgos críticos.
+
+**Reconocimiento DNS:**
+```bash
+kr-cli dig example.com ANY
+```
+→ Ejecuta dig y la IA explica los registros DNS encontrados.
+
+**Fuzzing de directorios:**
+```bash
+kr-cli gobuster dir -u http://target.com -w wordlist.txt
+```
+→ Ejecuta gobuster y la IA destaca rutas interesantes.
+
+---
+
+### 🧠 FLUJO DE ANÁLISIS
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  1. Ejecutas:  kr-cli nmap -sV 10.10.10.5               │
+├─────────────────────────────────────────────────────────┤
+│  2. Se ejecuta el comando nmap normalmente              │
+├─────────────────────────────────────────────────────────┤
+│  3. Al terminar, KR-CLI pregunta:                       │
+│     "✨ Análisis de IA disponible (1 crédito)"          │
+│     "¿Analizar resultados? [Y/n]"                       │
+├─────────────────────────────────────────────────────────┤
+│  4. La IA analiza el output y devuelve:                 │
+│     • Interpretación de resultados                      │
+│     • Hallazgos clave (puertos, vulns, errores)         │
+│     • Próximos pasos recomendados                       │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 📋 COMANDOS ESPECIALES
+
+| Comando | Función |
+|---------|---------|
+| `kr-cli <cmd>` | Ejecuta comando + análisis AI |
+| `kr-cli report` | Genera reporte PDF de la sesión |
+| `kr-cli auto <target>` | Modo autónomo de reconocimiento |
+| `kr-cli listen` | Ejecución por voz (experimental) |
+
+---
+
+### 🔧 HERRAMIENTAS SOPORTADAS
+
+El wrapper funciona con **cualquier comando de terminal**, pero está optimizado para:
+
+- **Reconocimiento:** nmap, masscan, dig, whois, theHarvester
+- **Web:** nikto, gobuster, ffuf, sqlmap, curl, httpx
+- **Redes:** netcat, tcpdump, arp-scan, traceroute
+- **Passwords:** hydra, john, hashcat
+- **Wireless:** aircrack-ng, airodump-ng
+
+---
+
+### 🤖 MODO AUTÓNOMO (kr-cli auto)
+
+**Uso:**
+```bash
+kr-cli auto <target>
+```
+
+**Ejemplo:**
+```bash
+kr-cli auto 192.168.1.100
+kr-cli auto example.com
+```
+
+**¿Cómo funciona?**
+El modo autónomo implementa el ciclo **OODA** (Observe, Orient, Decide, Act):
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  OODA Step 1/10                                         │
+├─────────────────────────────────────────────────────────┤
+│  🤖 La IA analiza el objetivo y sugiere:                │
+│     "nmap -sV -sC 192.168.1.100"                        │
+├─────────────────────────────────────────────────────────┤
+│  ¿Ejecutar? (s/n/q/edit):                               │
+│    s = Sí, ejecutar                                     │
+│    n = No, saltar                                       │
+│    q = Salir del modo autónomo                          │
+│    edit = Modificar el comando                          │
+├─────────────────────────────────────────────────────────┤
+│  Repite hasta 10 pasos o 'DONE'                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+- La IA decide los comandos basándose en los resultados anteriores
+- Tú apruebas o modificas cada comando antes de ejecutarlo
+- Ideal para auditorías semi-automatizadas
+
+---
+
+### 📄 GENERADOR DE REPORTES (kr-cli report)
+
+**Uso:**
+```bash
+kr-cli report
+```
+
+**¿Qué genera?**
+Un **PDF ejecutivo profesional** con:
+
+- ✅ Logo y branding KR-CLI DOMINION
+- ✅ Resumen ejecutivo de la sesión
+- ✅ Tabla de hallazgos críticos (Severidad, Vulnerabilidad, Ubicación)
+- ✅ Recomendaciones estratégicas
+- ✅ Apéndice con evidencia técnica (logs raw)
+
+**Ubicación del reporte:**
+```bash
+~/reports/KR_Report_YYYYMMDD_HHMMSS.pdf
+```
+
+**Requisito:** Debes estar logueado y tener historial de comandos en la sesión.
+
+---
+
+### 🎙️ MODO VOZ (kr-cli listen)
+
+**Uso:**
+```bash
+kr-cli listen
+```
+
+**¿Cómo funciona?**
+1. Graba 5 segundos de audio desde tu micrófono
+2. Transcribe la voz usando Whisper AI de Groq
+3. Ejecuta el comando transcrito con análisis AI
+
+**Ejemplo de flujo:**
+```
+$ kr-cli listen
+🎙️ Escuchando... (5s)
+🧠 Transcribiendo voz...
+🗣️ Dijiste: "nmap menos ese uve 192.168.1.1"
+⚡ Ejecutando comando de voz: nmap -sV 192.168.1.1
+```
+
+**Requisitos:**
+- Driver de audio (PortAudio/sounddevice)
+- Micrófono funcional
+- `pip install kr-cli-dominion[audio]`
+
+**Nota:** Función experimental, optimizada para PC/Linux. No disponible en Termux.
+
+---
+
+### 💡 TIPS PROFESIONALES
+
+1. **Sé específico** → `kr-cli nmap -sC -sV -p- target` es mejor que `kr-cli nmap target`
+2. **Guarda output largo** → `kr-cli nmap target | tee scan.txt` para tener copia local
+3. **Combina herramientas** → La IA sugiere el siguiente comando a ejecutar
+4. **Genera reportes** → `kr-cli report` crea PDF profesional de la sesión
+5. **Modo auto** → Úsalo para auditorías guiadas por IA con tu aprobación
+
+"""
+        
+        console.print(Panel(
+            Markdown(guide_content),
+            title="[bold rgb(0,255,255)]📖 GUÍA DE USO KR-CLI DOMINION[/bold rgb(0,255,255)]",
+            border_style="rgb(0,50,150)",
+            box=box.DOUBLE,
+            padding=(1, 2)
+        ))
+        
+        console.print()
+        print_menu_option("0", "⬅️  Volver")
+        
+        choice = get_input("Opción")
+        if choice == "0" or choice == "":
+            break
+
+
 def config_menu():
     """Configuration menu with professional system info. Returns True if user logged out."""
     from rich.panel import Panel
@@ -1776,9 +2059,8 @@ def config_menu():
         panel_content.append("  🔍 Web Search: ", style="dim")
         panel_content.append("ACTIVO\n" if WEB_SEARCH_AVAILABLE else "NO DISPONIBLE\n", 
                            style="bold green" if WEB_SEARCH_AVAILABLE else "bold red")
-        panel_content.append("  🤖 Agente: ", style="dim")
-        panel_content.append("ACTIVO\n" if AGENT_AVAILABLE else "NO DISPONIBLE\n",
-                           style="bold green" if AGENT_AVAILABLE else "bold red")
+        panel_content.append("  🌐 Web Portal: ", style="dim")
+        panel_content.append("ACTIVO\n", style="bold green")
         
         # Print the panel
         console.print(Panel(
@@ -1790,12 +2072,15 @@ def config_menu():
         ))
         
         console.print()
-        print_menu_option("1", "🚪 Cerrar Sesión")
+        print_menu_option("1", "📖 Guía de Uso KR-CLI")
+        print_menu_option("2", "🚪 Cerrar Sesión")
         print_menu_option("0", "⬅️  Volver")
         
         choice = get_input("Opción")
         
         if choice == "1":
+            show_usage_guide()
+        elif choice == "2":
             if confirm("¿Cerrar sesión?"):
                 api_client.logout()
                 console.print("\n[bold cyan]👋 ¡Hasta pronto! Sesión cerrada correctamente.[/bold cyan]")
@@ -1821,11 +2106,7 @@ def settings_menu() -> bool:
     # Module status
     console.print(f"\n[bold]Estado de módulos:[/bold]")
     console.print(f"  🔍 Búsqueda Web: {'[green]Disponible[/green]' if WEB_SEARCH_AVAILABLE else '[red]No disponible[/red]'}")
-    console.print(f"  🤖 Agente: {'[green]Disponible[/green]' if AGENT_AVAILABLE else '[red]No disponible[/red]'}")
-    
-    if AGENT_AVAILABLE:
-        console.print(f"\n[bold]Directorio de proyectos:[/bold]")
-        console.print(f"  [dim]{file_agent.base_dir}[/dim]")
+    console.print(f"  🌐 Web Portal: [green]Disponible[/green]")
     
     print_divider()
     print_menu_option("1", "🚪 Cerrar Sesión")
