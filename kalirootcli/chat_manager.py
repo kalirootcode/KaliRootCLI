@@ -161,13 +161,13 @@ class ChatManager:
                 return False
         return False
     
-    def get_chat_context(self, session: ChatSession, max_messages: int = 10) -> str:
+    def get_chat_context(self, session: ChatSession, max_messages: int = None) -> str:
         """
         Get recent chat context for AI prompt.
         
         Args:
             session: ChatSession to extract context from
-            max_messages: Maximum number of recent messages to include
+            max_messages: Maximum number of recent messages to include (None = all messages)
             
         Returns:
             Formatted context string
@@ -175,7 +175,12 @@ class ChatManager:
         if not session.messages:
             return ""
         
-        recent = session.messages[-max_messages:]
+        # If max_messages is None, use all messages
+        if max_messages is None:
+            recent = session.messages
+        else:
+            recent = session.messages[-max_messages:]
+        
         context_lines = []
         
         for msg in recent:

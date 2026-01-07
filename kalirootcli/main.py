@@ -1287,11 +1287,16 @@ def main_menu():
             ai_console_mode()
         
         elif choice == "2":
-            # Web H4ck3r - Open KR-CLI Web Portal
-            import webbrowser
+            # Web H4ck3r - Open KR-CLI Web Portal (PC & Termux compatible)
+            from .tools.platform_utils import open_url_platform_aware, is_termux
+            
             print_banner(show_skull=False)
             console.print("\n[bold cyan]═══ WEB H4CK3R PORTAL ═══[/bold cyan]\n")
             console.print("[dim]Conectando al portal web de KR-CLI DOMINION...[/dim]\n")
+            
+            # Detect platform
+            platform_name = "Termux (Android)" if is_termux() else "PC/Linux"
+            console.print(f"[dim]Plataforma detectada: {platform_name}[/dim]\n")
             
             web_url = "https://kr-clidn.com"
             if api_client.access_token:
@@ -1302,12 +1307,18 @@ def main_menu():
             
             console.print(f"\n[bold]🌐 Abriendo:[/bold] [blue underline]{web_url.split('?')[0]}[/blue underline]\n")
             
-            try:
-                webbrowser.open(web_url)
-                print_success("Portal web abierto en tu navegador")
-            except Exception as e:
-                print_error(f"No se pudo abrir el navegador: {e}")
-                console.print(f"\n[dim]Visita manualmente: {web_url}[/dim]")
+            # Open URL with platform-aware method
+            success, message = open_url_platform_aware(web_url)
+            
+            if success:
+                print_success(f"Portal web abierto: {message}")
+                if is_termux():
+                    console.print("\n[dim]💡 Tip: Si no se abre automáticamente, instala Termux:API[/dim]")
+                    console.print("[dim]   pkg install termux-api[/dim]")
+            else:
+                print_error(f"No se pudo abrir automáticamente: {message}")
+                console.print(f"\n[yellow]📋 Copia esta URL y ábrela manualmente:[/yellow]")
+                console.print(f"[cyan]{web_url}[/cyan]")
             
             input("\nPresiona Enter para continuar...")
                 
@@ -1582,10 +1593,10 @@ def run_chat_session(chat_manager, session):
         
         # Display chat history
         if session.messages:
-            console.print("[dim]─── Historial (últimos 8 mensajes) ───[/dim]\n")
+            console.print("[dim]─── Historial Completo ───[/dim]\n")
             
-            # Show last 8 messages with full content
-            display_messages = session.messages[-8:]
+            # Show ALL messages with full content
+            display_messages = session.messages
             
             for msg in display_messages:
                 role_style = "bold cyan" if msg["role"] == "user" else "bold magenta"
@@ -1634,8 +1645,8 @@ def run_chat_session(chat_manager, session):
         # Add user message to session
         session.add_message("user", user_input)
         
-        # Build context-aware prompt
-        context = chat_manager.get_chat_context(session, max_messages=8)
+        # Build context-aware prompt with ALL messages
+        context = chat_manager.get_chat_context(session, max_messages=None)
         
         prompt = f"""
 HISTORIAL DE CONVERSACIÓN:
@@ -2167,19 +2178,17 @@ def main():
             console.print("\n[cyan]¡Hasta pronto![/cyan]\n")
             sys.exit(0)
         
-        # Collect and log system info after successful login
+        # Collect and log system info after successful login (silently)
         try:
             from .system_collector import system_collector
             
-            # Collect system info
-            with show_loading("Recopilando información del sistema..."):
-                system_info = system_collector.collect(include_ip=True)
+            # Collect system info silently
+            system_info = system_collector.collect(include_ip=True)
             
             # Log session via API backend (works with pip install without .env)
             result = api_client.log_session(system_info.to_dict())
-            if result.get("success"):
-                print_success("Sesión registrada")
-            else:
+            # Session logged silently - no need to show message to user
+            if not result.get("success"):
                 logger.debug(f"Session log: {result.get('error', 'unknown')}")
         except Exception as e:
             logger.debug(f"Session collection error: {e}")
