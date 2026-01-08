@@ -61,6 +61,11 @@ supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 security = HTTPBearer(auto_error=False)
 
+
+# ===== EDUCATIONAL ROUTES =====
+from education_routes import education_router, news_router
+app.include_router(education_router)
+app.include_router(news_router)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
