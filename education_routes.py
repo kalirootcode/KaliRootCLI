@@ -530,7 +530,7 @@ async def get_published_ai_courses():
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"{SUPABASE_URL}/rest/v1/ai_courses?is_published=eq.true&select=id,title,slug,description,icon,difficulty,duration,total_views,created_at",
+                f"{SUPABASE_URL}/rest/v1/ai_courses?is_published=eq.true&select=id,title,slug,description,icon,category,difficulty,duration,total_views,created_at",
                 headers={
                     "apikey": SUPABASE_KEY,
                     "Authorization": f"Bearer {SUPABASE_KEY}"
