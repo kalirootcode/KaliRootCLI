@@ -67,10 +67,9 @@ KR-CLI presenta una interfaz profesional diseñada para la eficiencia y el contr
 ```
 
 ---
+ 🎯 Características Principales
 
-## 🎯 Características Principales
-
-### 🧠 **AI Security Core**
+ 🧠 **AI Security Core**
 *   **Análisis de Comandos:** Pega un comando complejo de Nmap o Metasploit y recibe un desglose detallado de qué hace y sus riesgos.
 *   **Búsqueda Web en Tiempo Real:** La IA tiene acceso a internet para buscar las últimas CVEs, exploits públicos y noticias de seguridad sin salir de tu terminal.
 *   **Generación de Scripts:** "Crea un script en Python para escanear la subred local buscando puertos 80 abiertos y guarda los resultados en JSON". Hecho.
