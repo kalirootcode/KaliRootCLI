@@ -54,6 +54,7 @@ requirements-server.txt
 # ===== Web projects (separate repos) =====
 web/
 admin/
+ContentForgeAI/
 
 # ===== Documentation (optional on GitHub, not on PyPI) =====
 docs/

@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
@@ -53,6 +54,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Servir config.js dinámicamente con las claves de entorno
+from fastapi import Response
+@app.get('/js/config.js')
+async def get_config_js():
+    js_content = f"""
+const CONFIG = {{
+    SUPABASE_URL: "{os.getenv('SUPABASE_URL', '')}",
+    SUPABASE_ANON_KEY: "{os.getenv('SUPABASE_ANON_KEY', '')}"
+}};
+window.CONFIG = CONFIG;
+"""
+    return Response(content=js_content, media_type='application/javascript')
+
 
 # Service role client (for admin operations)
 supabase_admin = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
@@ -872,6 +886,12 @@ async def nowpayments_webhook(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 # ===== MAIN =====
+
+# Mount static files (Web Dashboard)
+# Must be after API routes to avoid conflicts
+if os.path.isdir("web"):
+    app.mount("/", StaticFiles(directory="web", html=True), name="static")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))

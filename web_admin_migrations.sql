@@ -161,3 +161,61 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Grant execute
 GRANT EXECUTE ON FUNCTION get_admin_analytics() TO service_role;
+
+-- ========================================
+-- Table: admin_news_links (Manual News Links)
+-- ========================================
+CREATE TABLE IF NOT EXISTS admin_news_links (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    url TEXT NOT NULL,
+    category TEXT DEFAULT 'general',
+    description TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_by UUID REFERENCES admin_users(id),
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_news_category ON admin_news_links(category);
+CREATE INDEX IF NOT EXISTS idx_news_active ON admin_news_links(is_active);
+
+-- RLS for news
+ALTER TABLE admin_news_links ENABLE ROW LEVEL SECURITY;
+GRANT ALL ON admin_news_links TO service_role;
+
+-- ========================================
+-- Add last_activity to cli_sessions if missing
+-- ========================================
+ALTER TABLE cli_sessions ADD COLUMN IF NOT EXISTS last_activity TIMESTAMPTZ DEFAULT now();
+
+-- ========================================
+-- Enhanced Analytics Function
+-- ========================================
+CREATE OR REPLACE FUNCTION get_admin_dashboard_stats()
+RETURNS TABLE(
+    total_users BIGINT,
+    active_users BIGINT,
+    premium_users BIGINT,
+    free_users BIGINT,
+    total_credits BIGINT,
+    open_tickets BIGINT,
+    total_revenue DECIMAL,
+    active_sessions BIGINT,
+    avg_latency INTEGER
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        (SELECT COUNT(*) FROM cli_users) as total_users,
+        (SELECT COUNT(*) FROM cli_users WHERE updated_at > now() - INTERVAL '30 days') as active_users,
+        (SELECT COUNT(*) FROM cli_users WHERE subscription_status = 'premium' AND subscription_expiry_date > now()) as premium_users,
+        (SELECT COUNT(*) FROM cli_users WHERE subscription_status = 'free') as free_users,
+        (SELECT COALESCE(SUM(credit_balance), 0) FROM cli_users) as total_credits,
+        (SELECT COUNT(*) FROM support_tickets WHERE status = 'open') as open_tickets,
+        (SELECT COALESCE(SUM(total_spent), 0) FROM cli_users) as total_revenue,
+        (SELECT COUNT(*) FROM cli_sessions WHERE last_activity > now() - INTERVAL '15 minutes') as active_sessions,
+        (SELECT COALESCE(AVG(latency_ms)::INTEGER, 0) FROM cli_usage_log WHERE created_at > now() - INTERVAL '24 hours') as avg_latency;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION get_admin_dashboard_stats() TO service_role;
