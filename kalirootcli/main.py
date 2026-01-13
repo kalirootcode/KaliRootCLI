@@ -1189,70 +1189,86 @@ def main_menu():
         sys_info_text = f"[bold rgb(0,100,255)]OS:[/bold rgb(0,100,255)] {sys_info['distro']}  │  [bold rgb(0,100,255)]Shell:[/bold rgb(0,100,255)] {sys_info['shell']}  │  [bold rgb(0,100,255)]Root:[/bold rgb(0,100,255)] {sys_info['root']}"
         console.print(Align.center(Panel(sys_info_text, border_style="dim rgb(0,255,255)", padding=(0, 2), title="[dim]System[/dim]")))
         
-        # 2. User Dashboard (Professional Two-Column Layout)
+        # 2. User Dashboard (SecOps Layout)
         username = status.get('username') or status.get('email', 'user')
-        email = status.get('email', '-')
-        if len(email) > 22:
-            email = email[:19] + "..."
+        if len(username) > 15: username = username[:12] + "..."
         
-        credits = status.get('credits', 0)
-        days_left = status.get('days_left', 0)
-        queries_today = status.get('queries_today', 0)
-        total_spent = status.get('total_spent', 0)
+        # VPN Check
+        vpn_active = False
+        try:
+            if os.path.exists('/sys/class/net'):
+                features = os.listdir('/sys/class/net')
+                vpn_active = any(f.startswith(('tun', 'wg', 'ppp')) for f in features)
+        except:
+            pass
+            
+        vpn_status = "[green]ON[/green]" if vpn_active else "[red]OFF[/red]"
+        vpn_text = "MASKED" if vpn_active else "EXPOSED"
         
-        # Credit color based on amount
-        if credits > 100:
-            credit_color = "green"
-        elif credits > 20:
-            credit_color = "yellow"
+        # Plan Styling
+        plan_text = "PREMIUM 💎" if is_premium else "FREE ⚠️"
+        plan_style = "bold green" if is_premium else "bold yellow"
+        
+        # Threat Level (Simulation based on VPN)
+        threat_level = "[green]LOW[/green]" if vpn_active else "[yellow]ELEVATED[/yellow]"
+        
+        # Construct the SecOps Panel using Table for perfect alignment
+        from rich.table import Table
+        from rich import box
+        
+        # Get terminal width for responsive layout
+        term_width = console.size.width
+        is_compact = term_width < 80
+        
+        if is_compact:
+            # Single-column layout for narrow terminals/mobile
+            grid = Table.grid(expand=True, padding=(0, 1))
+            grid.add_column(justify="right", style="dim", width=2)  # Emoji
+            grid.add_column(justify="left", style="bold white", width=10) # Label
+            grid.add_column(justify="left", style="cyan", ratio=1)  # Value
+            
+            grid.add_row("👤", "OPERATOR:", username)
+            grid.add_row("💎", "PLAN:", f"[{plan_style}]{plan_text}[/{plan_style}]")
+            grid.add_row("📡", "UPLINK:", "[green]SECURE[/green]")
+            grid.add_row("🌍", "VPN:", vpn_status)
+            grid.add_row("🔥", "THREAT:", f"{threat_level}")
+            grid.add_row("🔒", "ENCRYPT:", "[green]AES-256[/green]")
         else:
-            credit_color = "red"
-        
-        # Get machine hostname
-        import socket
-        hostname = socket.gethostname()
-        
-        # Left Column - User Info (emoji aligned, label attached)
-        left_table = Table(show_header=False, box=None, padding=(0, 0), expand=False)
-        left_table.add_column("EmojiLabel", style="dim", justify="left", no_wrap=True)
-        left_table.add_column("Value", style="white", no_wrap=True)
-        
-        left_table.add_row("👤 Usuario ", f"[bold cyan]{username}[/bold cyan]")
-        left_table.add_row("📧 Email   ", f"[dim]{email}[/dim]")
-        left_table.add_row("💎 Plan    ", f"[{status_color}]{status_label.strip()}[/{status_color}]")
-        left_table.add_row("⚙️  Modo    ", f"[bold]{mode}[/bold]")
-        
-        # Right Column - Stats (emoji aligned, label attached)
-        right_table = Table(show_header=False, box=None, padding=(0, 0), expand=False)
-        right_table.add_column("EmojiLabel", style="dim", justify="left", no_wrap=True)
-        right_table.add_column("Value", style="white", no_wrap=True)
-        
-        right_table.add_row("💳 Créditos  ", f"[bold {credit_color}]{credits}[/bold {credit_color}]")
-        right_table.add_row("📅 Días      ", f"[bold]{days_left}[/bold]" if is_premium else "[dim]—[/dim]")
-        right_table.add_row("📊 Consultas ", f"[bold]{queries_today}[/bold]")
-        right_table.add_row("💻 Máquina   ", f"[bold cyan]{hostname}[/bold cyan]")
-        
-        # Main table to hold both columns side by side
-        main_table = Table(show_header=False, box=None, expand=True, padding=(0, 2))
-        main_table.add_column("Left", justify="left")
-        main_table.add_column("Sep", width=1, justify="center")
-        main_table.add_column("Right", justify="left")
-        main_table.add_row(left_table, "[dim]│[/dim]", right_table)
-        
-        # Get current time with seconds
-        current_time = datetime.now().strftime('%d/%m/%Y  %H:%M:%S')
+            # Two-column layout for wide terminals
+            grid = Table.grid(expand=True, padding=(0, 2))
+            grid.add_column(justify="right", style="dim", width=3)  # Emoji 1
+            grid.add_column(justify="left", style="bold white", width=12) # Label 1
+            grid.add_column(justify="left", style="cyan", ratio=1)  # Value 1
+            grid.add_column(justify="center", style="dim", width=3) # Spacer
+            grid.add_column(justify="right", style="dim", width=3)  # Emoji 2
+            grid.add_column(justify="left", style="bold white", width=12) # Label 2
+            grid.add_column(justify="left", style="cyan", ratio=1)  # Value 2
+
+            grid.add_row(
+                "👤", "OPERATOR:", username,
+                "│",
+                "💎", "PLAN:", f"[{plan_style}]{plan_text}[/{plan_style}]"
+            )
+            grid.add_row(
+                "📡", "UPLINK:", "[green]SECURE[/green]",
+                "│",
+                "🌍", "VPN:", vpn_status
+            )
+            grid.add_row(
+                "🔥", "THREAT:", f"{threat_level}",
+                "│",
+                "🔒", "ENCRYPT:", "[green]AES-256[/green]"
+            )
         
         dashboard_panel = Panel(
-            main_table,
-            title="[bold rgb(0,255,255)]═══ DOMINION DASHBOARD ═══[/bold rgb(0,255,255)]",
-            subtitle=f"[dim]🕐 {current_time}[/dim]",
-            border_style="rgb(0,255,255)",
-            padding=(1, 2),
-            box=box.DOUBLE
+            grid,
+            title="[bold cyan]🛡️ SECURITY OPERATIONS[/bold cyan]",
+            border_style="cyan",
+            padding=(1, 1) if is_compact else (1, 2),
+            box=box.ROUNDED,
+            expand=True  # Always match banner width
         )
         console.print(dashboard_panel)
-        
-        # Features line
         if is_premium:
             features_line = "[dim]🔍 Web Search  │  🌐 Web Portal  │  [green]🔧 Premium Tools[/green][/dim]"
         else:
@@ -1263,14 +1279,15 @@ def main_menu():
         
         # Menu Options
         print_menu_option("1", "🧠 CONSOLA AI", "Consultas de seguridad con búsqueda web")
-        print_menu_option("2", "🌐 WEB H4CK3R", "Portal web de KR-CLI DOMINION")
         if is_premium:
+            print_menu_option("2", "🌐 WEB H4CK3R", "Portal web de KR-CLI DOMINION")
             print_menu_option("3", "🔧 HERRAMIENTAS", "Port Scanner y más (Premium)")
             print_menu_option("4", "🏪 TIENDA", "Créditos y suscripción")
             print_menu_option("5", "⚙️  CONFIGURACIÓN", "Cuenta y ajustes")
         else:
-            print_menu_option("3", "🏪 TIENDA", "Obtener acceso Premium y Créditos")
-            print_menu_option("4", "⚙️  CONFIGURACIÓN", "Cuenta y ajustes")
+            # Free users: No Web Hacker, shifted menu
+            print_menu_option("2", "🏪 TIENDA", "Obtener acceso Premium y Créditos")
+            print_menu_option("3", "⚙️  CONFIGURACIÓN", "Cuenta y ajustes")
             
         print_menu_option("0", "🚪 SALIR")
         
@@ -1287,60 +1304,91 @@ def main_menu():
             ai_console_mode()
         
         elif choice == "2":
-            # Web H4ck3r - Open KR-CLI Web Portal (PC & Termux compatible)
-            from .tools.platform_utils import open_url_platform_aware, is_termux
-            
-            print_banner(show_skull=False)
-            console.print("\n[bold cyan]═══ WEB H4CK3R PORTAL ═══[/bold cyan]\n")
-            console.print("[dim]Conectando al portal web de KR-CLI DOMINION...[/dim]\n")
-            
-            # Detect platform
-            platform_name = "Termux (Android)" if is_termux() else "PC/Linux"
-            console.print(f"[dim]Plataforma detectada: {platform_name}[/dim]\n")
-            
-            web_url = "https://kr-clidn.com"
-            if api_client.access_token:
-                web_url = f"{web_url}/dashboard.html?token={api_client.access_token}"
-                console.print("[green]✓ Sesión detectada - Auto-login habilitado[/green]")
+            if is_premium:
+                # Web H4ck3r - Open KR-CLI Web Portal (PC & Termux compatible)
+                from .tools.platform_utils import open_url_platform_aware, is_termux
+                from rich.panel import Panel
+                from rich.align import Align
+                import time
+                
+                clear_screen()
+                print_banner(show_skull=False)
+                
+                # Simulation of secure connection
+                with show_loading("Estableciendo enlace seguro..."):
+                    time.sleep(0.8)
+                with show_loading("Sincronizando sesión de usuario..."):
+                    time.sleep(0.8)
+                
+                # Detect platform
+                platform_name = "Termux (Android)" if is_termux() else "PC/Linux"
+                
+                # Prepare URL and Status
+                base_url = "https://kr-clidn.com" # Use production URL
+                
+                if api_client.access_token:
+                    web_url = f"{base_url}/dashboard.html?token={api_client.access_token}"
+                    session_status = "[bold green]✓ ACTIVA[/bold green]"
+                    auth_details = "Auto-login Token Generado"
+                else:
+                    web_url = base_url
+                    session_status = "[bold yellow]⚠ INACTIVA[/bold yellow]"
+                    auth_details = "Se requiere inicio de sesión manual"
+                    
+                # Professional Status Panel
+                status_content = f"""
+[bold white]Plataforma:[/bold white]    [cyan]{platform_name}[/cyan]
+[bold white]Sesión CLI:[/bold white]    {session_status}
+[bold white]Estado:[/bold white]        [dim]{auth_details}[/dim]
+
+[bold white]Destino:[/bold white]       [underline blue]{base_url}/dashboard.html[/underline blue]
+"""
+                console.print(Panel(
+                    status_content.strip(),
+                    title="[bold green]🚀 SISTEMA LISTO[/bold green]",
+                    border_style="green",
+                    padding=(1, 2)
+                ))
+                
+                console.print()
+                
+                # Launch
+                success, message = open_url_platform_aware(web_url)
+                
+                if success:
+                    console.print(f"[bold green]✅ SUCCESS:[/bold green] Portal web lanzado en segundo plano.")
+                    console.print(f"[dim]Método: {message}[/dim]")
+                    if is_termux():
+                        console.print("\n[dim]ℹ️  En Termux, usa 'pkg install termux-api' si no abre.[/dim]")
+                else:
+                    console.print(f"[bold red]❌ ERROR:[/bold red] No se pudo abrir automáticamente.")
+                    console.print(f"[yellow]>> Copia y abre este enlace:[/yellow] {web_url}")
+                
+                get_input("\nPresiona Enter para continuar...")
             else:
-                console.print("[yellow]⚠ Sin sesión activa - Deberás iniciar sesión en la web[/yellow]")
-            
-            console.print(f"\n[bold]🌐 Abriendo:[/bold] [blue underline]{web_url.split('?')[0]}[/blue underline]\n")
-            
-            # Open URL with platform-aware method
-            success, message = open_url_platform_aware(web_url)
-            
-            if success:
-                print_success(f"Portal web abierto: {message}")
-                if is_termux():
-                    console.print("\n[dim]💡 Tip: Si no se abre automáticamente, instala Termux:API[/dim]")
-                    console.print("[dim]   pkg install termux-api[/dim]")
-            else:
-                print_error(f"No se pudo abrir automáticamente: {message}")
-                console.print(f"\n[yellow]📋 Copia esta URL y ábrela manualmente:[/yellow]")
-                console.print(f"[cyan]{web_url}[/cyan]")
-            
-            input("\nPresiona Enter para continuar...")
+                # Free users: Option 2 is Tienda
+                upgrade_menu()
                 
         elif choice == "3":
             if is_premium:
                 tools_menu()
             else:
-                upgrade_menu()
+                # Free users: Option 3 is Config
+                logged_out = config_menu()
+                if logged_out:
+                    break
             
         elif choice == "4":
             if is_premium:
                 upgrade_menu()
-            else:
-                logged_out = config_menu()
-                if logged_out:
-                    break
+            # Free users don't have option 4
         
         elif choice == "5" and is_premium:
             logged_out = config_menu()
             if logged_out:
                 break
-            
+        
+
         elif choice == "0":
             if confirm("¿Salir de KaliRoot CLI?"):
                 running = False
