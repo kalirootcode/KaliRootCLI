@@ -81,7 +81,7 @@ Entendemos que "gratis" suena bien. Pero si te tomas en serio la ciberseguridad,
 
 | Característica | 🆓 FREE | 👑 PREMIUM |
 |:---|:---:|:---:|
-| **Acceso a DOMINION 3.0** | ✅ Limitado (créditos) | ✅ **Ilimitado** |
+| **Acceso a DOMINION 3.0** | ✅ 500 (créditos) | ✅ **500** |
 | **Modo Operativo** (generación de código) | ❌ | ✅ |
 | **🌐 Portal Web Exclusivo** | ❌ | ✅ [kr-clidn.com](https://kr-clidn.com) |
 | **Suite de 14 Herramientas** | ❌ | ✅ |
@@ -145,7 +145,7 @@ Aceptamos **USDT (TRC-20)** para máxima privacidad y rapidez. Sin bancos, sin i
 
  1 › 🧠 CONSOLA AI         2 › 🌐 WEB H4CK3R (Premium)
  3 › 🔧 HERRAMIENTAS       4 › 🏪 TIENDA
- 5 › ⚙️ CONFIGURACIÓN       0 › 🚪 SALIR
+ 5 › ⚙️ CONFIGURACIÓN      0 › 🚪 SALIR
 ```
 
 ---
@@ -163,8 +163,6 @@ Aceptamos **USDT (TRC-20)** para máxima privacidad y rapidez. Sin bancos, sin i
 ## 🌐 Recursos
 
 - **Portal Web Premium:** [https://kr-clidn.com](https://kr-clidn.com)
-- **Documentación:** [GitHub Wiki](https://github.com/kalirootcode/KaliRootCLI/wiki)
-- **Reportar Bug:** [Issues](https://github.com/kalirootcode/KaliRootCLI/issues)
 - **Comunidad:** [Facebook Group](https://web.facebook.com/share/g/1DNscrsKYp/)
 - **Contacto:** kalirootcode@proton.me
 
