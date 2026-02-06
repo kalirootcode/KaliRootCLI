@@ -1,0 +1,41 @@
+# Deploy web to GitHub Pages with secrets injection
+name: Deploy Web
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'web/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate config.js from secrets
+        run: |
+          cat > web/js/config.js << 'EOF'
+          /**
+           * KR-CLI DOMINION - Configuration
+           * Generated automatically by GitHub Actions
+           */
+          const CONFIG = {
+              SUPABASE_URL: "${{ secrets.SUPABASE_URL }}",
+              SUPABASE_ANON_KEY: "${{ secrets.SUPABASE_ANON_KEY }}",
+              NOWPAYMENTS_API_KEY: "${{ secrets.NOWPAYMENTS_API_KEY || 'NOT_CONFIGURED' }}",
+              NOWPAYMENTS_IPN_SECRET: "${{ secrets.NOWPAYMENTS_IPN_SECRET || 'NOT_CONFIGURED' }}",
+              NOWPAYMENTS_API_URL: "https://api.nowpayments.io/v1"
+          };
+          window.CONFIG = CONFIG;
+          EOF
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./web
+          publish_branch: gh-pages
