@@ -17,7 +17,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from supabase import create_client
-from groq import Groq
+import google.generativeai as genai
 from dotenv import load_dotenv
 import requests as http_requests
 
@@ -27,9 +27,8 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GROQ_MODEL_FREE = os.getenv("GROQ_MODEL_FREE", "llama-3.1-8b-instant")
-GROQ_MODEL_PREMIUM = os.getenv("GROQ_MODEL_PREMIUM", "llama-3.3-70b-versatile")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL   = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 IPN_SECRET_KEY = os.getenv("IPN_SECRET_KEY", "")
 NOWPAYMENTS_API_KEY = os.getenv("NOWPAYMENTS_API_KEY", "")
 
@@ -72,7 +71,12 @@ window.CONFIG = CONFIG;
 supabase_admin = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 # Anon client for auth operations
 supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
-groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+# Init Gemini
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    gemini_model = genai.GenerativeModel(GEMINI_MODEL)
+else:
+    gemini_model = None
 security = HTTPBearer(auto_error=False)
 
 
@@ -543,47 +547,45 @@ REGLAS DE RESPUESTA:
 6. No des explicaciones prácticas de implementación del propio DOMINION, solo descripciones teóricas de alto nivel
 """
 
+    if not gemini_model:
+        raise HTTPException(status_code=503, detail="Servicio de IA no configurado. Contacta al administrador.")
+
     try:
-        # Select model based on subscription
-        if is_premium:
-            selected_model = GROQ_MODEL_PREMIUM  # Premium: Most powerful
-            max_tokens = 4096
-        else:
-            selected_model = GROQ_MODEL_FREE  # Free: Fast and reliable
-            max_tokens = 1024
-        
-        logger.info(f"AI Query - User: {user_id}, Model: {selected_model}, Premium: {is_premium}")
-        
-        response = groq_client.chat.completions.create(
-            model=selected_model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": req.query}
-            ],
-            max_tokens=max_tokens,
-            temperature=0.7
+        logger.info(f"AI Query - User: {user_id}, Model: {GEMINI_MODEL}, Credits: {credits}")
+
+        full_prompt = f"{system_prompt}\n\n[PETICIÓN]\n{req.query}"
+
+        generation_config = genai.types.GenerationConfig(
+            temperature=0.7,
+            max_output_tokens=3000,
+            top_p=0.95,
         )
-        
-        ai_response = response.choices[0].message.content
-        
-        # Deduct credit for ALL users
+
+        response = gemini_model.generate_content(
+            full_prompt,
+            generation_config=generation_config,
+        )
+
+        ai_response = response.text if response and response.text else "Error: sin respuesta del servicio de IA."
+
+        # Deduct 1 KR credit
         new_credits = credits - 1
         supabase_admin.table("cli_users").update({
             "credit_balance": new_credits
         }).eq("id", user_id).execute()
-        
+
         # Log to chat history
         supabase_admin.table("cli_chat_history").insert([
-            {"user_id": user_id, "role": "user", "content": req.query},
+            {"user_id": user_id, "role": "user",      "content": req.query},
             {"user_id": user_id, "role": "assistant", "content": ai_response}
         ]).execute()
-        
+
         return {
             "response": ai_response,
-            "mode": mode,
+            "mode": "DOMINION",
             "credits_remaining": new_credits
         }
-        
+
     except Exception as e:
         error_str = str(e)
         logger.error(f"AI query error for user {user_id}: {error_str}")
