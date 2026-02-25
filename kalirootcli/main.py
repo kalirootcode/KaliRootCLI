@@ -383,47 +383,33 @@ def ai_console(status: Dict[str, Any]):
                     console.print("[dim]📡 Datos web obtenidos[/dim]")
                     enriched_query = f"{query}\n\n{web_context}"
         
-        # Send to API
-        with show_loading("🧠 Procesando..."):
-            result = api_client.ai_query(enriched_query, environment)
-        
-        if result["success"]:
-            data = result["data"]
-            print_ai_response(data["response"], data["mode"])
-            
-            if data.get("credits_remaining") is not None:
-                console.print(f"[dim]💳 Créditos restantes: {data['credits_remaining']}[/dim]\n")
-        else:
-            error_msg = result.get("error", "Error desconocido")
-            if "credits" in error_msg.lower() or "créditos" in error_msg.lower():
-                # Persuasive out-of-credits message
-                clear_screen()
-                console.print("\n[bold red]😔 ¡Ups! Te quedaste sin créditos...[/bold red]\n")
-                console.print("[bold white]Pero estábamos en algo importante.[/bold white]")
-                console.print(f"[cyan]Tu consulta era valiosa y DOMINION estaba listo para darte[/cyan]")
-                console.print(f"[cyan]información que pocos conocen sobre este tema.[/cyan]\n")
-                
-                console.print("[bold yellow]🔥 No te quedes a medias:[/bold yellow]")
-                console.print("  • La respuesta completa está lista esperando por ti")
-                console.print("  • DOMINION tiene el conocimiento que necesitas")
-                console.print("  • Un solo paso te separa de continuar aprendiendo\n")
-                
-                console.print("[bold green]💎 PAQUETES DISPONIBLES:[/bold green]")
-                console.print("  💳 [bold]Créditos[/bold]: 200 créditos - $10")
-                console.print("  👑 [bold]Premium[/bold]: 500 créditos + herramientas - $20/mes\n")
-                
-                console.rule(style="yellow")
-                print_menu_option("1", "💎 Ver Tienda", "Comprar créditos o Premium")
-                print_menu_option("0", "Volver al menú")
-                console.rule(style="yellow")
-                
-                sub_choice = get_input("¿Qué deseas hacer?")
-                if sub_choice == "1":
-                    upgrade_menu()
-                clear_and_show_banner()
-                return  # Exit chat session
-            else:
-                print_error(error_msg)
+        # Call Gemini directly via local AIHandler (no backend round-trip for AI)
+        with show_loading("🧠 Procesando con DOMINION AI..."):
+            try:
+                from .ai_handler import AIHandler
+                from .config import KR_COST_CHAT, DOMINION_STORE_URL
+                from .economy import show_zero_balance_panel, show_kr_spend_panel
+
+                # KR balance check
+                balance = api_client.get_kr_balance()
+                if balance < KR_COST_CHAT:
+                    show_zero_balance_panel()
+                    return
+
+                show_kr_spend_panel(KR_COST_CHAT, "Consultoría IA")
+
+                ai = AIHandler(api_client.user_id or "local")
+                response_text = ai.get_response(enriched_query)
+
+                print_ai_response(response_text, "DOMINION")
+
+                new_balance = api_client.get_kr_balance()
+                console.print(f"[dim]⚡ KR restantes: {new_balance}[/dim]\n")
+
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"AI direct error: {e}", exc_info=True)
+                print_error(f"Error en IA: {e}")
 
 
 def handle_special_command(command: str, web_search_enabled: bool) -> str:

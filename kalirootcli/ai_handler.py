@@ -11,7 +11,8 @@ import time
 from enum import Enum
 from typing import Optional, Tuple
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types as genai_types
 
 from .config import GEMINI_API_KEY, GEMINI_MODEL, FALLBACK_AI_TEXT, KR_COST_CHAT
 from .database_manager import (
@@ -24,10 +25,10 @@ logger = logging.getLogger(__name__)
 
 # ─── Initialize Gemini client ──────────────────────────────────────────────────
 if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    _gemini_model = genai.GenerativeModel(GEMINI_MODEL)
+    _genai_client = genai.Client(api_key=GEMINI_API_KEY)
 else:
-    _gemini_model = None
+    _genai_client = None
+_gemini_model = _genai_client  # alias used in can_query check
 
 
 class AIMode(Enum):
@@ -141,15 +142,16 @@ class AIHandler:
             # 4. Gemini call — combine system + user into a single prompt
             full_prompt = f"{system_prompt}\n\n{user_prompt}"
 
-            generation_config = genai.types.GenerationConfig(
+            generation_config = genai_types.GenerateContentConfig(
                 temperature=0.2 if mode == AIMode.AGENT else (0.3 if mode == AIMode.OPERATIONAL else 0.5),
                 max_output_tokens=3000 if mode != AIMode.AGENT else 1500,
                 top_p=0.95,
             )
 
-            response = _gemini_model.generate_content(
-                full_prompt,
-                generation_config=generation_config,
+            response = _genai_client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=full_prompt,
+                config=generation_config,
             )
 
             if response and response.text:
@@ -216,15 +218,16 @@ NO respondas preguntas generales. SOLO analiza el output técnico."""
 
             full_prompt = f"{system_prompt}\n\n{analysis_prompt}"
 
-            generation_config = genai.types.GenerationConfig(
+            generation_config = genai_types.GenerateContentConfig(
                 temperature=0.2,
                 max_output_tokens=2000,
                 top_p=0.90,
             )
 
-            response = _gemini_model.generate_content(
-                full_prompt,
-                generation_config=generation_config,
+            response = _genai_client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=full_prompt,
+                config=generation_config,
             )
 
             if response and response.text:
@@ -443,14 +446,15 @@ Output format (JSON ONLY):
         try:
             full_prompt = f"{system_prompt}\n\nAnalyze this session history:\n{history}"
 
-            generation_config = genai.types.GenerationConfig(
+            generation_config = genai_types.GenerateContentConfig(
                 temperature=0.2,
                 max_output_tokens=2000,
             )
 
-            response = _gemini_model.generate_content(
-                full_prompt,
-                generation_config=generation_config,
+            response = _genai_client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=full_prompt,
+                config=generation_config,
             )
 
             if response and response.text:

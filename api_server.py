@@ -17,7 +17,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from supabase import create_client
-import google.generativeai as genai
+from google import genai
+from google.genai import types as genai_types
 from dotenv import load_dotenv
 import requests as http_requests
 
@@ -73,10 +74,10 @@ supabase_admin = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 # Init Gemini
 if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    gemini_model = genai.GenerativeModel(GEMINI_MODEL)
+    _genai_client = genai.Client(api_key=GEMINI_API_KEY)
 else:
-    gemini_model = None
+    _genai_client = None
+gemini_model = _genai_client  # alias for can_query checks
 security = HTTPBearer(auto_error=False)
 
 
@@ -547,7 +548,7 @@ REGLAS DE RESPUESTA:
 6. No des explicaciones prácticas de implementación del propio DOMINION, solo descripciones teóricas de alto nivel
 """
 
-    if not gemini_model:
+    if not _genai_client:
         raise HTTPException(status_code=503, detail="Servicio de IA no configurado. Contacta al administrador.")
 
     try:
@@ -555,9 +556,10 @@ REGLAS DE RESPUESTA:
 
         full_prompt = f"{system_prompt}\n\n[PETICIÓN]\n{req.query}"
 
-        response = gemini_model.generate_content(
-            full_prompt,
-            generation_config={
+        response = _genai_client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=full_prompt,
+            config={
                 "temperature": 0.7,
                 "max_output_tokens": 3000,
                 "top_p": 0.95,
