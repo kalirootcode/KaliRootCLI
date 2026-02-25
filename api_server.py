@@ -555,15 +555,13 @@ REGLAS DE RESPUESTA:
 
         full_prompt = f"{system_prompt}\n\n[PETICIÓN]\n{req.query}"
 
-        generation_config = genai.types.GenerationConfig(
-            temperature=0.7,
-            max_output_tokens=3000,
-            top_p=0.95,
-        )
-
         response = gemini_model.generate_content(
             full_prompt,
-            generation_config=generation_config,
+            generation_config={
+                "temperature": 0.7,
+                "max_output_tokens": 3000,
+                "top_p": 0.95,
+            },
         )
 
         ai_response = response.text if response and response.text else "Error: sin respuesta del servicio de IA."
@@ -588,8 +586,8 @@ REGLAS DE RESPUESTA:
 
     except Exception as e:
         error_str = str(e)
-        logger.error(f"AI query error for user {user_id}: {error_str}")
-        raise HTTPException(status_code=500, detail="Error del servicio de IA")
+        logger.error(f"AI query error for user {user_id}: {error_str}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error del servicio de IA: {error_str[:200]}")
 
 # ===== PAYMENT ENDPOINTS =====
 
