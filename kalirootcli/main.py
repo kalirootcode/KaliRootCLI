@@ -94,8 +94,8 @@ def authenticate() -> bool:
         
         if result["success"]:
             data = result["data"]
-            status_text = "[green]PREMIUM[/green]" if data.get("is_premium") else "[yellow]FREE[/yellow]"
-            print_success(f"¡Bienvenido de nuevo! [{status_text}]")
+            kr_balance = data.get("credits", 0)
+            print_success(f"¡Bienvenido de nuevo! [bold cyan]⚡ DOMINION | KR: {kr_balance}[/bold cyan]")
             return True
         else:
             print_info("Sesión expirada. Por favor inicia sesión nuevamente.")
@@ -127,15 +127,12 @@ def authenticate() -> bool:
                 result = api_client.login(email, password)
             
             if result["success"]:
-                # Get status to show subscription info
+                # Get status to show KR balance
                 status_result = api_client.get_status()
                 if status_result["success"]:
                     data = status_result["data"]
-                    if data.get("is_premium"):
-                        console.print(f"\n[bold green]✨ MODO PREMIUM ACTIVO[/bold green]")
-                        console.print(f"[dim]Días restantes: {data.get('days_left', 0)}[/dim]")
-                    else:
-                        console.print(f"\n[yellow]📊 Modo FREE - Créditos: {data.get('credits', 0)}[/yellow]")
+                    kr_balance = data.get('credits', 0)
+                    console.print(f"\n[bold cyan]⚡ DOMINION ACTIVO | Billetera KR: {kr_balance} KR[/bold cyan]")
                 print_success("¡Login exitoso!")
                 success_pulse()  # Haptic feedback on mobile
                 return True
@@ -220,54 +217,40 @@ def main_menu():
         
         clear_screen()
         
-        mode = "OPERATIVO" if status.get("is_premium") else "CONSULTA"
-        is_premium = status.get("is_premium", False)
-        sub_status = (status.get("subscription_status") or "free").lower()
-        
-        # Logic to handle status display
-        if is_premium:
-            status_label = " PREMIUM "
-            status_color = "bold white on green"
-        else:
-            if sub_status == "premium":
-                # Paid but maybe expired or issue
-                status_label = " PENDING / EXPIRED "
-                status_color = "bold white on yellow"
-            else:
-                status_label = " FREE "
-                status_color = "bold white on red"
-        
+        mode = "DOMINION"
+        credits_count = status.get('credits', 0)
+
         # Header
-        print_header("KR-CLI DOMINION v3.0")
-        
+        print_header("KR-CLI DOMINION v6.1.0")
+
         # Imports for dashboard
         from rich.align import Align
         from rich.table import Table
         from rich.panel import Panel
         from rich import box
-        
-        # 1. System Info Panel (Hacker Style with VPN, IP, Premium days)
+
+        # System Info Panel
         try:
             from .system_collector import system_collector
             system_info = system_collector.get_display_summary()
         except Exception:
             system_info = None
-        
-        # Get subscription details for panel
-        days_remaining = status.get('days_left', 0)
-        credits_count = status.get('credits', 0)
-        
+
         # Print the enhanced system panel
         print_system_status_panel(
             system_info=system_info,
-            is_premium=is_premium,
-            days_remaining=days_remaining,
+            is_premium=True,       # All DOMINION users treated as premium in display
+            days_remaining=0,
             credits=credits_count
         )
-        
+
         # 2. User Dashboard (Compact Row)
         user_info = status.get('username') or status.get('email')
-        console.print(Align.center(f"[bold]👤 {user_info}[/bold]  │  [{status_color}]{status_label}[/{status_color}]  │  [bold]⚙️ {mode}[/bold]"))
+        console.print(Align.center(
+            f"[bold]👤 {user_info}[/bold]  │  "
+            f"[bold cyan]⚡ DOMINION[/bold cyan]  │  "
+            f"[bold cyan]Billetera KR: {credits_count} KR[/bold cyan]"
+        ))
         
         console.print() # spacer
         
@@ -315,22 +298,19 @@ def main_menu():
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def ai_console(status: Dict[str, Any]):
-    """Enhanced AI interaction interface with web search."""
-    mode = "OPERATIVO" if status["is_premium"] else "CONSULTA"
+    """Enhanced AI interaction interface with web search — DOMINION tier."""
+    credits_count = status.get('credits', 0)
     sys_info = detector.get_system_info()
-    
+
     # Settings for this session
     web_search_enabled = WEB_SEARCH_AVAILABLE
-    
-    print_header(f"🧠 CONSOLA AI [{mode}]")
-    
-    # Status display
-    if not status["is_premium"]:
-        console.print(f"[yellow]💳 Créditos disponibles: {status['credits']}[/yellow]")
-        console.print("[dim]Actualiza a Premium para consultas ilimitadas.[/dim]\n")
-    else:
-        console.print("[green]⭐ Modo Premium - Consultas ilimitadas[/green]\n")
-    
+
+    print_header("🧠 CONSULTORÍA AI — DOMINION")
+
+    # KR balance display
+    console.print(f"[bold cyan]⚡ DOMINION AI ACTIVO | Billetera KR: {credits_count} KR[/bold cyan]")
+    console.print("[dim]Acceso completo habilitado. Cada consulta cuesta -1 KR.[/dim]\n")
+
     # Web search status
     if WEB_SEARCH_AVAILABLE:
         status_text = "[green]ACTIVA[/green]" if web_search_enabled else "[yellow]DESACTIVADA[/yellow]"
@@ -999,7 +979,7 @@ def show_payment_help():
 
 def upgrade_menu():
     """Handle premium upgrade and credit purchases."""
-    from .config import CREDIT_PACKAGES, SUBSCRIPTION_PRICE_USD, SUBSCRIPTION_BONUS_CREDITS
+    from .config import KR_PACKAGES as CREDIT_PACKAGES, DOMINION_STORE_URL
     from rich.panel import Panel
     
     while True:
@@ -1056,7 +1036,9 @@ def upgrade_menu():
                 border_style="gold1",
                 padding=(1, 2)
             ))
-            console.print(f"[bold green]Precio Especial: ${SUBSCRIPTION_PRICE_USD:.0f} USD/mes (USDT)[/bold green]\n")
+            console.print(
+                f"[bold cyan]Recarga KR en: [link={DOMINION_STORE_URL}]{DOMINION_STORE_URL}[/link][/bold cyan]\n"
+            )
         
         console.rule(style="cyan")
         
@@ -1067,7 +1049,7 @@ def upgrade_menu():
             menu_idx += 1
         
         if not is_premium:
-            print_menu_option(str(menu_idx), "👑 Comprar PREMIUM", f"{SUBSCRIPTION_BONUS_CREDITS} créditos/mes + herramientas - ${SUBSCRIPTION_PRICE_USD:.0f}/mes")
+            print_menu_option(str(menu_idx), "⚡ Recarga KR", f"Visita {DOMINION_STORE_URL}")
             premium_option = str(menu_idx)
             menu_idx += 1
         else:
@@ -1115,7 +1097,9 @@ def upgrade_menu():
             
             elif premium_option and choice == premium_option:
                 # Buy Premium
-                console.print(f"\n[bold magenta]Generando factura PREMIUM (${SUBSCRIPTION_PRICE_USD:.0f})...[/bold magenta]")
+                console.print(f"\n[bold cyan]Abriendo tienda DOMINION...[/bold cyan]")
+                detector.open_url(DOMINION_STORE_URL)
+                console.print(f"[dim]{DOMINION_STORE_URL}[/dim]")
                 with show_loading("Creando factura..."):
                     result = api_client.create_subscription_invoice()
                 

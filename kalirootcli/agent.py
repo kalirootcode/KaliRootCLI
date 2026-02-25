@@ -778,18 +778,32 @@ class AgentFileManager:
     def run_task(self, instruction: str) -> dict:
         """
         Execute a development task (Create or Edit) using AI.
-        
+        KR gated: costs KR_COST_AGENT credits per call.
+
         Args:
             instruction: User instruction
-            
+
         Returns:
             Dict with success, message and type (created/edited)
         """
+        # ── KR Balance check ────────────────────────────────────────────────
+        try:
+            from .api_client import api_client
+            from .config import KR_COST_AGENT, DOMINION_STORE_URL
+            from .economy import show_zero_balance_panel, show_kr_spend_panel
+            balance = api_client.get_kr_balance()
+            if balance < KR_COST_AGENT:
+                show_zero_balance_panel()
+                return {"success": False, "error": f"Saldo KR insuficiente ({balance} KR). Recarga en: {DOMINION_STORE_URL}"}
+            show_kr_spend_panel(KR_COST_AGENT, "Agente de Automatización")
+        except Exception:
+            pass  # Non-blocking: proceed if economy check fails
+        # ─────────────────────────────────────────────────────
         from .api_client import api_client
         from .distro_detector import detector
         import json
         import re
-        
+
         try:
             # 1. Get current code context if project exists
             current_code = self.read_project_context()
@@ -937,17 +951,24 @@ class AgentFileManager:
     ) -> FileCreationResult:
         """
         Create a file from a predefined template.
-        
-        Args:
-            template_name: Name of the template to use
-            name: Name for the generated file/project
-            description: Description to include
-            directory: Target directory
-            **extra_vars: Additional template variables
-            
-        Returns:
-            FileCreationResult
+        KR gated: costs KR_COST_AGENT credits per call.
         """
+        # ── KR Balance check ────────────────────────────────────────────────
+        try:
+            from .api_client import api_client
+            from .config import KR_COST_AGENT, DOMINION_STORE_URL
+            from .economy import show_zero_balance_panel, show_kr_spend_panel
+            balance = api_client.get_kr_balance()
+            if balance < KR_COST_AGENT:
+                show_zero_balance_panel()
+                return FileCreationResult(
+                    success=False,
+                    error=f"Saldo KR insuficiente ({balance} KR). Recarga en: {DOMINION_STORE_URL}"
+                )
+            show_kr_spend_panel(KR_COST_AGENT, "Crear desde Plantilla")
+        except Exception:
+            pass
+        # ─────────────────────────────────────────────────────
         if template_name not in TEMPLATES:
             available = ", ".join(TEMPLATES.keys())
             return FileCreationResult(
@@ -1005,15 +1026,21 @@ class AgentFileManager:
     ) -> Dict:
         """
         Create a complete project directory structure.
-        
-        Args:
-            project_name: Name of the project
-            project_type: Type of project structure
-            description: Project description
-            
-        Returns:
-            Dict with success status and project info
+        KR gated: costs KR_COST_AGENT credits per call.
         """
+        # ── KR Balance check ────────────────────────────────────────────────
+        try:
+            from .api_client import api_client
+            from .config import KR_COST_AGENT, DOMINION_STORE_URL
+            from .economy import show_zero_balance_panel, show_kr_spend_panel
+            balance = api_client.get_kr_balance()
+            if balance < KR_COST_AGENT:
+                show_zero_balance_panel()
+                return {"success": False, "error": f"Saldo KR insuficiente ({balance} KR). Recarga en: {DOMINION_STORE_URL}"}
+            show_kr_spend_panel(KR_COST_AGENT, "Crear Estructura de Proyecto")
+        except Exception:
+            pass
+        # ─────────────────────────────────────────────────────
         safe_name = project_name.lower().replace(" ", "_")
         project_dir = os.path.join(self.base_dir, safe_name)
         

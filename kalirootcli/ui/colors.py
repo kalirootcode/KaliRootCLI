@@ -1,6 +1,6 @@
 """
-Terminal colors and styling for KaliRoot CLI
-Professional Blue/Cyan Hacker Theme (Matrix Style)
+Terminal colors and styling for KaliRoot CLI — DOMINION Edition
+Exclusive CYAN / MATRIX_GREEN gradient theme.
 """
 
 
@@ -114,37 +114,41 @@ GRADIENT_BLUE_CYAN = [
     "rgb(0,255,255)",      # Cyan
 ]
 
-# Theme dictionary (Blue/Cyan hacker aesthetic)
+# ─── DOMINION Brand Colors ──────────────────────────────────────────────────
+STYLE_DOMINION_CYAN   = "rgb(0,255,200)"   # Signature DOMINION teal-cyan
+STYLE_DOMINION_MATRIX = "rgb(0,255,65)"    # Matrix green — success/accent
+
+# Theme dictionary (DOMINION — CYAN/MATRIX_GREEN aesthetic)
 THEME = {
     # Backgrounds
     "bg": STYLE_BG_DEEP,
-    
+
     # Text
     "text": STYLE_TEXT,
     "text_dim": STYLE_TEXT_DIM,
-    
-    # Primary accents
-    "primary": STYLE_BLUE,
-    "primary_light": STYLE_BLUE_BRIGHT,
-    "header": STYLE_BLUE_DARK,
-    
+
+    # Primary accents — DOMINION signature
+    "primary": STYLE_DOMINION_CYAN,
+    "primary_light": STYLE_CYAN_BRIGHT,
+    "header": STYLE_CYAN_DARK,
+
     # Secondary accents
     "secondary": STYLE_CYAN,
-    "border": STYLE_CYAN,
+    "border": STYLE_DOMINION_CYAN,
     "accent": STYLE_CYAN_BRIGHT,
-    
+
     # Status
-    "success": STYLE_SUCCESS,
+    "success": STYLE_DOMINION_MATRIX,
     "error": STYLE_ERROR,
     "warning": STYLE_WARNING,
-    "info": STYLE_CYAN,
-    
+    "info": STYLE_DOMINION_CYAN,
+
     # UI elements
-    "menu_number": STYLE_BLUE,
+    "menu_number": STYLE_DOMINION_CYAN,
     "menu_item": STYLE_TEXT,
     "menu_desc": STYLE_TEXT_DIM,
-    "divider": STYLE_CYAN_DARK,
-    
+    "divider": STYLE_DOMINION_MATRIX,
+
     # Legacy compatibility
     "muted": STYLE_TEXT_DIM,
 }

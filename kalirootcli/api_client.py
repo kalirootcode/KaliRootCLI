@@ -1,7 +1,8 @@
 """
-API Client for KR-CLI v2.0
+API Client for KR-CLI — DOMINION Edition
 Handles all communication with the backend server.
-Now uses email-based authentication with Supabase Auth.
+Email-based authentication with Supabase Auth.
+KR Credits economy: get_kr_balance() for live saldo sync.
 """
 
 import os
@@ -230,7 +231,8 @@ class APIClient:
             if resp.status_code == 200:
                 return {"success": True, "data": resp.json()}
             elif resp.status_code == 402:
-                return {"success": False, "error": "Sin créditos disponibles. Actualiza a Premium."}
+                from .config import DOMINION_STORE_URL
+                return {"success": False, "error": f"Saldo KR insuficiente. Recarga en: {DOMINION_STORE_URL}"}
             elif resp.status_code == 401:
                 if self.refresh_access_token():
                     return self.ai_query(query, environment)
@@ -338,6 +340,20 @@ class APIClient:
                 return {"success": False, "error": resp.json().get("detail", "Session logging failed")}
         except Exception as e:
             return {"success": False, "error": str(e)}
+
+
+    def get_kr_balance(self) -> int:
+        """
+        Fetch the user's current KR credit balance from the backend.
+        Returns the integer balance, or 0 on failure.
+        """
+        try:
+            result = self.get_status()
+            if result.get("success"):
+                return int(result["data"].get("credits", 0))
+        except Exception as e:
+            logger.error(f"Error fetching KR balance: {e}")
+        return 0
 
 
 # Global instance

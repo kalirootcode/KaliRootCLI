@@ -1,6 +1,6 @@
 """
-Audio Module for KaliRoot CLI
-Handles Speech-to-Text using Groq Whisper API.
+Audio Module for KaliRoot CLI — DOMINION Edition
+Handles Speech-to-Text. Groq Whisper removed; future Gemini Speech integration pending.
 """
 
 import os
@@ -24,8 +24,7 @@ except (OSError, ImportError):
     sd = None
     AUDIO_AVAILABLE = False
     
-from .config import GROQ_API_KEY
-from .ui.display import console, show_loading, print_error, print_success
+from .ui.display import console, show_loading, print_error, print_success, print_info
 
 logger = logging.getLogger(__name__)
 
@@ -82,29 +81,12 @@ class AudioHandler:
 
     def transcribe(self, filepath: str) -> str:
         """
-        Transcribe audio using Groq Whisper.
+        Transcribe audio file to text.
+        NOTE: Groq Whisper removed in DOMINION refactoring.
+        Future integration: Gemini Speech-to-Text API.
         """
-        if not GROQ_API_KEY:
-            return "Error: API Key no configurada."
-            
-        from groq import Groq
-        client = Groq(api_key=GROQ_API_KEY)
-        
-        try:
-            with open(filepath, "rb") as file:
-                transcription = client.audio.transcriptions.create(
-                    file=(filepath, file.read()),
-                    model="whisper-large-v3",
-                    response_format="json",
-                    language="es",  # Force Spanish context
-                    temperature=0.0,
-                    prompt="Comandos de seguridad: nmap, gobuster, sqlmap, nikto, hydra, metasploit, escanear puertos, análisis web, reporte, automático"
-                )
-                return transcription.text
-                
-        except Exception as e:
-            logger.error(f"Transcription error: {e}")
-            return f"Error transcribiendo: {e}"
+        print_info("[dim]STT: Transcripción por voz en desarrollo para DOMINION. Por ahora ingresa tu comando manualmente.[/dim]")
+        return None
             
 def listen_and_execute():
     """Main voice functionality."""

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kr-cli-dominion"
-version = "6.0.1"
-description = "Advanced AI-Powered Security CLI - DOMINION Model with Educational Platform"
+version = "6.1.0"
+description = "Advanced AI Security CLI — DOMINION Edition. Powered by Google Gemini. KR credit economy."
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
@@ -26,6 +26,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Security",
     "Topic :: System :: Systems Administration",
 ]
@@ -35,7 +36,7 @@ dependencies = [
     "rich>=13.0.0",
     "python-dotenv>=1.0.0",
     "tiktoken>=0.5.0",
-    "groq>=0.4.0",
+    "google-generativeai>=0.7.0",
     "supabase>=2.0.0",
     "reportlab>=4.0.0",
     "beautifulsoup4>=4.12.0",
