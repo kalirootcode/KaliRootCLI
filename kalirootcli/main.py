@@ -1701,12 +1701,20 @@ Responde al último mensaje del usuario de forma natural y coherente con el cont
             session.add_message("assistant", ai_response)
             chat_manager.save_chat(session)
 
-            # Strip any Rich markup that Gemini may have included literally
+            # Strip any literal Rich markup Gemini may have included
             import re as _re
-            clean_response = _re.sub(r'\[/?(?:bold|dim|cyan|green|red|yellow|white|italic)[^\]]*\]', '', ai_response)
-            clean_response = _re.sub(r'\[/?[^\]]{1,30}\]', lambda m: m.group(0) if '/' in m.group(0) else m.group(0), clean_response)
+            from rich.markdown import Markdown
+            from rich.panel import Panel
 
-            print_ai_response(clean_response, "DOMINION")
+            clean = _re.sub(r'\[/?(?:bold|dim|cyan|green|red|yellow|white|italic|[a-z]+\s+[^\]]*)\]', '', ai_response)
+
+            console.print()
+            console.print(Panel(
+                Markdown(clean),
+                title="[bold cyan]⚡ DOMINION AI[/bold cyan]",
+                border_style="cyan",
+                padding=(1, 2),
+            ))
 
             new_balance = api_client.get_kr_balance()
             console.print(f"[dim]⚡ KR restantes: {new_balance}[/dim]\n")
