@@ -383,35 +383,32 @@ def ai_console(status: Dict[str, Any]):
                     console.print("[dim]📡 Datos web obtenidos[/dim]")
                     enriched_query = f"{query}\n\n{web_context}"
         
-        # Call Gemini directly via local AIHandler (no backend round-trip for AI)
-        with show_loading("🧠 Procesando con DOMINION AI..."):
-            try:
-                from .ai_handler import AIHandler
-                from .config import KR_COST_CHAT, DOMINION_STORE_URL
-                from .economy import show_zero_balance_panel, show_kr_spend_panel
+        # Streaming AI response — tokens appear live, then final formatted render
+        try:
+            from .ai_handler import AIHandler
+            from .config import KR_COST_CHAT, DOMINION_STORE_URL
+            from .economy import show_zero_balance_panel, show_kr_spend_panel
+            from .ui.display import stream_ai_response
 
-                # KR balance check
-                balance = api_client.get_kr_balance()
-                if balance < KR_COST_CHAT:
-                    show_zero_balance_panel()
-                    return
-
-                show_kr_spend_panel(KR_COST_CHAT, "Consultoría IA")
-
-                ai = AIHandler(api_client.user_id or "local")
-                response_text = ai.get_response(enriched_query)
-
-            except Exception as e:
-                import logging
-                logging.getLogger(__name__).error(f"AI direct error: {e}", exc_info=True)
-                print_error(f"Error en IA: {e}")
+            # KR balance check
+            balance = api_client.get_kr_balance()
+            if balance < KR_COST_CHAT:
+                show_zero_balance_panel()
                 return
 
-        # Render with professional formatter (strip + code highlight)
-        if response_text:
-            print_ai_response(response_text, "DOMINION")
+            show_kr_spend_panel(KR_COST_CHAT, "Consultoría IA")
+
+            ai = AIHandler(api_client.user_id or "local")
+            response_text = stream_ai_response(ai.get_response_stream(enriched_query))
+
             new_balance = api_client.get_kr_balance()
             console.print(f"[dim]⚡ KR restantes: {new_balance}[/dim]\n")
+
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"AI direct error: {e}", exc_info=True)
+            print_error(f"Error en IA: {e}")
+
 
 
 
@@ -1677,37 +1674,35 @@ Responde al último mensaje del usuario de forma natural y coherente con el cont
         """
         
         # Query AI directly via local Gemini (no backend round-trip)
-        with show_loading("⚡ DOMINION procesando..."):
-            try:
-                from .ai_handler import AIHandler
-                from .config import KR_COST_CHAT
-                from .economy import show_zero_balance_panel, show_kr_spend_panel
+        # Streaming AI response — tokens appear live, then formatted render
+        try:
+            from .ai_handler import AIHandler
+            from .config import KR_COST_CHAT
+            from .economy import show_zero_balance_panel, show_kr_spend_panel
+            from .ui.display import stream_ai_response
 
-                # KR balance check
-                balance = api_client.get_kr_balance()
-                if balance < KR_COST_CHAT:
-                    show_zero_balance_panel()
-                    session.messages.pop()
-                    continue
-
-                env = detector.get_system_info()
-                ai = AIHandler(api_client.user_id or "local")
-                ai_response = ai.get_response(prompt)
-
-            except Exception as _e:
+            # KR balance check
+            balance = api_client.get_kr_balance()
+            if balance < KR_COST_CHAT:
+                show_zero_balance_panel()
                 session.messages.pop()
-                print_error(f"Error en IA: {_e}")
                 continue
 
+            ai = AIHandler(api_client.user_id or "local")
+            ai_response = stream_ai_response(ai.get_response_stream(prompt))
+
+        except Exception as _e:
+            session.messages.pop()
+            print_error(f"Error en IA: {_e}")
+            continue
+
         if ai_response:
-            # Add AI response to session
             session.add_message("assistant", ai_response)
             chat_manager.save_chat(session)
 
-            print_ai_response(ai_response, "DOMINION")
-
             new_balance = api_client.get_kr_balance()
             console.print(f"[dim]⚡ KR restantes: {new_balance}[/dim]\n")
+
 
 
 

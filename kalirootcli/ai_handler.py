@@ -187,6 +187,78 @@ class AIHandler:
             logger.error(f"AI Critical Error: {e}")
             return "❌ Error crítico en el servicio de IA. Por favor intenta más tarde."
 
+    def get_response_stream(self, query: str,
+                            mode_override: Optional[AIMode] = None):
+        """
+        Stream AI response from Gemini — yields text chunks as they arrive.
+        Returns a generator of str chunks.
+        """
+        if not _gemini_model:
+            yield FALLBACK_AI_TEXT
+            return
+
+        mode = mode_override or self.get_mode()
+        start_time = time.time()
+
+        try:
+            rag_context = ""
+            if mode != AIMode.AGENT:
+                rag_context = rag.get_context(query)
+
+            history = []
+            if mode != AIMode.AGENT:
+                history = get_chat_history(self.user_id, limit=3)
+
+            if mode == AIMode.AGENT:
+                system_prompt = "Code generator. Respond only with valid JSON."
+                user_prompt = query
+            else:
+                system_prompt = self._build_system_prompt(mode)
+                user_prompt = self._build_user_context(query, history, rag_context)
+
+            full_prompt = f"{system_prompt}\n\n{user_prompt}"
+
+            generation_config = genai_types.GenerateContentConfig(
+                temperature=0.2 if mode == AIMode.AGENT else (0.3 if mode == AIMode.OPERATIONAL else 0.5),
+                max_output_tokens=8192 if mode != AIMode.AGENT else 2000,
+                top_p=0.95,
+            )
+
+            # Stream response
+            full_text = ""
+            for chunk in _genai_client.models.generate_content_stream(
+                model=GEMINI_MODEL,
+                contents=full_prompt,
+                config=generation_config,
+            ):
+                if chunk.text:
+                    full_text += chunk.text
+                    yield chunk.text
+
+            # After stream completes — log and save
+            if full_text:
+                latency_ms = int((time.time() - start_time) * 1000)
+                try:
+                    from .database_manager import log_usage
+                    from .security import is_interactive_session, get_session_fingerprint
+                    log_usage(
+                        user_id=self.user_id,
+                        action_type="ai_query",
+                        input_tokens=0,
+                        output_tokens=0,
+                        latency_ms=latency_ms,
+                        is_tty=is_interactive_session(),
+                        client_hash=get_session_fingerprint(),
+                    )
+                except Exception:
+                    pass
+                save_chat_interaction(self.user_id, query, full_text)
+
+        except Exception as e:
+            logger.error(f"AI Stream Error: {e}")
+            yield "❌ Error en el servicio de IA. Intenta de nuevo."
+
+
     def analyze_command_output(self, command: str, output: str) -> str:
         """
         Analyze command output via Gemini without chat history contamination.

@@ -144,39 +144,64 @@ def print_panel(content: str, title: str = "", style: str = None) -> None:
     ))
 
 
+def stream_ai_response(stream_generator, mode: str = "DOMINION") -> str:
+    """
+    Stream AI response live — shows tokens as they arrive, then renders
+    the final formatted result in a single pass (no style flash).
+    Returns the full response text.
+    """
+    import sys
+    import re
+    from rich.live import Live
+    from rich.text import Text as RichText
+
+    mode_color = STYLE_CYAN
+    icon = "⚡"
+
+    # ── Header ──────────────────────────────────────────────────────────
+    console.print()
+    header = RichText()
+    header.append(f" {icon} ", style="bold white")
+    header.append("DOMINION AI", style=f"bold {mode_color}")
+    header.append("  ─── streaming", style=f"dim {STYLE_BLUE}")
+    console.print(header)
+    console.print(f"[{STYLE_BLUE_DARK}]{'─' * 60}[/{STYLE_BLUE_DARK}]")
+
+    # ── Stream tokens live ──────────────────────────────────────────────
+    full_text = ""
+    streaming_text = RichText()
+
+    with Live(streaming_text, console=console, refresh_per_second=15, transient=True) as live:
+        for chunk in stream_generator:
+            full_text += chunk
+            streaming_text = RichText(full_text, style=f"{STYLE_CYAN}")
+            live.update(streaming_text)
+
+    # ── Final render (single pass — no flash) ───────────────────────────
+    if full_text:
+        print_ai_response(full_text, mode)
+
+    return full_text
+
+
 def print_ai_response(response: str, mode: str = "CONSULTATION", command: str = None) -> None:
     """
     Professional AI response renderer — DOMINION Edition.
     Strips any Rich/bracket markup, then renders clean markdown-style output
     with syntax-highlighted code blocks (editor/cat style).
+    Uses logo colors: Deep Blue → Electric Blue → Cyan.
     """
     import re
     from rich.syntax import Syntax
     from rich.panel import Panel
     from rich.text import Text
 
-    # ── Mode header ─────────────────────────────────────────────────────
-    is_dominion = mode.upper() in ["DOMINION", "OPERATIONAL", "OPERATIVO"]
-    mode_color = STYLE_CYAN if is_dominion else STYLE_BLUE
-    icon = "⚡" if is_dominion else "🤖"
-    display_mode = "DOMINION" if is_dominion else "CONSULTA"
-
-    console.print()
-    header = Text()
-    header.append(f" {icon} ", style="bold white")
-    header.append("DOMINION AI", style=f"bold {mode_color}")
-    header.append(f"  [{display_mode}]", style=f"dim {mode_color}")
-    console.print(header)
-    console.print(f"[{STYLE_CYAN}]{'━' * 60}[/{STYLE_CYAN}]")
-
-    if not isinstance(response, str):
+    if not isinstance(response, str) or not response.strip():
         console.print(f"[{STYLE_TEXT}]{str(response)}[/{STYLE_TEXT}]")
         return
 
-    # ── 1. Aggressive Rich/bracket tag strip ────────────────────────────
-    # Remove ALL [tag], [/tag], [tag attr] patterns (Rich markup)
+    # ── 1. Strip ALL Rich/bracket markup ────────────────────────────────
     clean = re.sub(r'\[/?[a-zA-Z][a-zA-Z0-9 _#(),.]*\]', '', response)
-    # Remove dim code-fence wrappers
     clean = re.sub(r'\[dim\].*?\[/dim\]', '', clean, flags=re.DOTALL)
 
     # ── 2. Parse and render ─────────────────────────────────────────────
@@ -202,9 +227,9 @@ def print_ai_response(response: str, mode: str = "CONSULTATION", command: str = 
                 console.print(Panel(
                     Syntax(code_text, lang, theme="monokai", line_numbers=True,
                            word_wrap=True, padding=(0, 1)),
-                    title=f"[bold white] 📄 {lang.upper()} [/bold white]",
-                    subtitle="[dim]DOMINION[/dim]",
-                    border_style="bright_cyan",
+                    title=f"[bold {STYLE_CYAN}] 📄 {lang.upper()} [/bold {STYLE_CYAN}]",
+                    subtitle=f"[dim {STYLE_BLUE_DARK}]DOMINION[/dim {STYLE_BLUE_DARK}]",
+                    border_style=STYLE_BLUE,
                     padding=(0, 0),
                 ))
                 console.print()
@@ -219,7 +244,7 @@ def print_ai_response(response: str, mode: str = "CONSULTATION", command: str = 
 
         if stripped.startswith('##'):
             title = stripped.lstrip('#').strip()
-            console.print(f"\n[bold {STYLE_CYAN}]━━ {title} ━━[/bold {STYLE_CYAN}]")
+            console.print(f"\n[bold {STYLE_BLUE}]━━ {title} ━━[/bold {STYLE_BLUE}]")
             i += 1
             continue
 
@@ -250,12 +275,11 @@ def print_ai_response(response: str, mode: str = "CONSULTATION", command: str = 
             indent = len(line) - len(line.lstrip())
             content = _render_inline(stripped[2:])
             prefix = "  " * (indent // 2)
-            bullet_color = STYLE_CYAN
-            console.print(f"{prefix} [{bullet_color}]•[/{bullet_color}] [{STYLE_TEXT}]{content}[/{STYLE_TEXT}]")
+            console.print(f"{prefix} [{STYLE_BLUE}]•[/{STYLE_BLUE}] [{STYLE_TEXT}]{content}[/{STYLE_TEXT}]")
             i += 1
             continue
 
-        # ── Sub-bullets with + ──────────────────────────────────────────
+        # ── Sub-bullets ─────────────────────────────────────────────────
         if stripped.startswith('+ '):
             content = _render_inline(stripped[2:])
             console.print(f"    [{STYLE_TEXT_DIM}]›[/{STYLE_TEXT_DIM}] [{STYLE_TEXT}]{content}[/{STYLE_TEXT}]")
@@ -264,7 +288,7 @@ def print_ai_response(response: str, mode: str = "CONSULTATION", command: str = 
 
         # ── Horizontal rule ─────────────────────────────────────────────
         if stripped in ('---', '***', '___'):
-            console.print(f"[{STYLE_CYAN_DARK}]{'─' * 50}[/{STYLE_CYAN_DARK}]")
+            console.print(f"[{STYLE_BLUE_DARK}]{'─' * 50}[/{STYLE_BLUE_DARK}]")
             i += 1
             continue
 
@@ -276,21 +300,21 @@ def print_ai_response(response: str, mode: str = "CONSULTATION", command: str = 
 
         i += 1
 
-    console.print(f"[{STYLE_CYAN}]{'━' * 60}[/{STYLE_CYAN}]")
+    console.print(f"[{STYLE_BLUE_DARK}]{'─' * 60}[/{STYLE_BLUE_DARK}]")
     console.print()
 
 
 def _render_inline(text: str) -> str:
-    """Render inline markdown: **bold**, `code`, and technical keywords."""
+    """Render inline markdown: **bold**, `code`."""
     import re
 
-    # 1. Inline code `command` → styled
-    text = re.sub(r'`([^`]+)`', rf'[bold {STYLE_BLUE_BRIGHT}]\1[/bold {STYLE_BLUE_BRIGHT}]', text)
+    # 1. Inline code `command` → bright blue
+    text = re.sub(r'`([^`]+)`', rf'[bold {STYLE_CYAN}]\1[/bold {STYLE_CYAN}]', text)
 
     # 2. Bold **text** → bold white
     text = re.sub(r'\*\*([^*]+)\*\*', rf'[bold white]\1[/bold white]', text)
 
-    # 3. Italic *text* → italic
+    # 3. Italic *text*
     text = re.sub(r'(?<!\*)\*([^*]+)\*(?!\*)', rf'[italic {STYLE_TEXT_DIM}]\1[/italic {STYLE_TEXT_DIM}]', text)
 
     return text
