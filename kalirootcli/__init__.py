@@ -3,7 +3,7 @@ KaliRoot CLI - Advanced Cybersecurity Assistant
 Terminal-based AI assistant for Termux & Kali Linux.
 """
 
-__version__ = "6.0.1"
+__version__ = "6.2.0"
 __author__ = "KaliRootCode"
 __license__ = "MIT"
 
