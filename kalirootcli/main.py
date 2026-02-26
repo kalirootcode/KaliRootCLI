@@ -401,15 +401,28 @@ def ai_console(status: Dict[str, Any]):
                 ai = AIHandler(api_client.user_id or "local")
                 response_text = ai.get_response(enriched_query)
 
-                print_ai_response(response_text, "DOMINION")
-
-                new_balance = api_client.get_kr_balance()
-                console.print(f"[dim]⚡ KR restantes: {new_balance}[/dim]\n")
-
             except Exception as e:
                 import logging
                 logging.getLogger(__name__).error(f"AI direct error: {e}", exc_info=True)
                 print_error(f"Error en IA: {e}")
+                return
+
+        # Render response: strip any Rich markup tags, then render as Markdown
+        if response_text:
+            import re as _re
+            from rich.markdown import Markdown
+            from rich.panel import Panel
+            clean = _re.sub(r'\[/?[a-zA-Z][a-zA-Z0-9 _#]*\]', '', response_text)
+            clean = _re.sub(r'\[dim\].*?\[/dim\]', '', clean)
+            console.print()
+            console.print(Panel(
+                Markdown(clean),
+                title="[bold cyan]⚡ DOMINION AI[/bold cyan]",
+                border_style="cyan",
+                padding=(1, 2),
+            ))
+            new_balance = api_client.get_kr_balance()
+            console.print(f"[dim]⚡ KR restantes: {new_balance}[/dim]\n")
 
 
 def handle_special_command(command: str, web_search_enabled: bool) -> str:
