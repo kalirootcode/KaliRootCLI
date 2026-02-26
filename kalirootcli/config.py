@@ -29,7 +29,8 @@ SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "").strip() or None
 
 # ===== AI (GEMINI — Google Generative AI) =====
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip() or None
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
 
 # ===== PAYMENTS =====
 NOWPAYMENTS_API_KEY = os.getenv("NOWPAYMENTS_API_KEY", "").strip() or None
