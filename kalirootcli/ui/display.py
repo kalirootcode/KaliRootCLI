@@ -146,91 +146,155 @@ def print_panel(content: str, title: str = "", style: str = None) -> None:
 
 def print_ai_response(response: str, mode: str = "CONSULTATION", command: str = None) -> None:
     """
-    Print AI response with colored formatting.
-    
-    Args:
-        response: The AI response text
-        mode: CONSULTATION or OPERATIONAL/OPERATIVO
-        command: Optional command that was analyzed
+    Professional AI response renderer — DOMINION Edition.
+    Strips any Rich/bracket markup, then renders clean markdown-style output
+    with syntax-highlighted code blocks (editor/cat style).
     """
     import re
-    
-    # Handle both English and Spanish mode names
-    is_premium = mode.upper() in ["OPERATIONAL", "OPERATIVO"]
-    mode_color = STYLE_BLUE if is_premium else STYLE_CYAN
-    icon = "💀" if is_premium else "🤖"
-    display_mode = "OPERATIVO" if is_premium else "CONSULTA"
-    
+    from rich.syntax import Syntax
+    from rich.panel import Panel
+    from rich.text import Text
+
+    # ── Mode header ─────────────────────────────────────────────────────
+    is_dominion = mode.upper() in ["DOMINION", "OPERATIONAL", "OPERATIVO"]
+    mode_color = STYLE_CYAN if is_dominion else STYLE_BLUE
+    icon = "⚡" if is_dominion else "🤖"
+    display_mode = "DOMINION" if is_dominion else "CONSULTA"
+
     console.print()
-    
-    # Header
-    if command:
-        console.print(f"{icon} [bold {STYLE_BLUE}]{command}[/bold {STYLE_BLUE}] [{mode_color}][{display_mode}][/{mode_color}]")
-    else:
-        console.print(f"{icon} [bold {mode_color}]KALIROOT AI[/bold {mode_color}] [{mode_color}][{display_mode}][/{mode_color}]")
-    
-    console.print()
-    
-    # Process and colorize the response
+    header = Text()
+    header.append(f" {icon} ", style="bold white")
+    header.append("DOMINION AI", style=f"bold {mode_color}")
+    header.append(f"  [{display_mode}]", style=f"dim {mode_color}")
+    console.print(header)
+    console.print(f"[{STYLE_CYAN}]{'━' * 60}[/{STYLE_CYAN}]")
+
     if not isinstance(response, str):
         console.print(f"[{STYLE_TEXT}]{str(response)}[/{STYLE_TEXT}]")
         return
 
-    lines = response.split('\n')
-    
-    # Keyword highlighter function
-    def highlight_keywords(text):
-        # 1. Backticks content (commands) → Magenta
-        text = re.sub(r'`([^`]+)`', rf'[bold {STYLE_BLUE}]\1[/bold {STYLE_BLUE}]', text)
-        
-        # 2. Bold markers **text** → Bold White
-        text = re.sub(r'\*\*([^*]+)\*\*', rf'[bold {STYLE_TEXT}]\1[/bold {STYLE_TEXT}]', text)
-        
-        # 3. Technical keywords → Cyan
-        keywords = ["apache", "nginx", "openssh", "nmap", "curl", "ubuntu", "linux", "kali", "tcp", "udp", "http", "https", "ssl", "tls"]
-        for kw in keywords:
-            pattern = re.compile(r'\b(' + re.escape(kw) + r')\b', re.IGNORECASE)
-            text = pattern.sub(rf"[{STYLE_CYAN}]\1[/{STYLE_CYAN}]", text)
-            
-        return text
+    # ── 1. Aggressive Rich/bracket tag strip ────────────────────────────
+    # Remove ALL [tag], [/tag], [tag attr] patterns (Rich markup)
+    clean = re.sub(r'\[/?[a-zA-Z][a-zA-Z0-9 _#(),.]*\]', '', response)
+    # Remove dim code-fence wrappers
+    clean = re.sub(r'\[dim\].*?\[/dim\]', '', clean, flags=re.DOTALL)
 
-    for line in lines:
-        processed_line = highlight_keywords(line)
-        
-        # Section headers (numbered)
-        if re.match(r'^\d+\.', line):
-            clean_line = line.replace('**', '')
-            match = re.match(r'^(\d+\.)\s*(.*)', clean_line)
-            if match:
-                number = match.group(1)
-                text = match.group(2)
-                styled_text = highlight_keywords(text)
-                console.print(f"[bold {STYLE_BLUE_DARK}]{number}[/bold {STYLE_BLUE_DARK}] [{STYLE_TEXT}]{styled_text}[/{STYLE_TEXT}]")
-            else:
-                console.print(f"[bold {STYLE_BLUE_DARK}]{clean_line}[/bold {STYLE_BLUE_DARK}]")
-            
-        # Bold Headers
-        elif line.strip().startswith('###') or (line.strip().startswith('**') and line.strip().endswith('**')):
-            clean = line.replace('**', '').replace('###', '').strip()
-            console.print(f"[bold {STYLE_TEXT}]{clean}[/bold {STYLE_TEXT}]")
-            
-        # List items
-        elif line.strip().startswith('* ') or line.strip().startswith('- '):
-            content = processed_line.lstrip('*- ').strip()
-            console.print(f"[{STYLE_CYAN}]•[/{STYLE_CYAN}] [{STYLE_TEXT}]{content}[/{STYLE_TEXT}]")
-            
-        elif line.strip().startswith('+'):
-            content = processed_line.lstrip('+ ').strip()
-            console.print(f"  [{STYLE_TEXT_DIM}]›[/{STYLE_TEXT_DIM}] [{STYLE_TEXT}]{content}[/{STYLE_TEXT}]")
-            
-        else:
-            # Regular text
-            if line.strip():
-                console.print(f"[{STYLE_TEXT}]{processed_line}[/{STYLE_TEXT}]")
-            else:
+    # ── 2. Parse and render ─────────────────────────────────────────────
+    lines = clean.split('\n')
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+
+        # ── Code block: ```lang ... ``` ─────────────────────────────────
+        if stripped.startswith('```'):
+            lang = stripped[3:].strip() or "text"
+            code_lines = []
+            i += 1
+            while i < len(lines) and not lines[i].strip().startswith('```'):
+                code_lines.append(lines[i])
+                i += 1
+            i += 1  # skip closing ```
+
+            code_text = '\n'.join(code_lines)
+            if code_text.strip():
                 console.print()
-    
+                console.print(Panel(
+                    Syntax(code_text, lang, theme="monokai", line_numbers=True,
+                           word_wrap=True, padding=(0, 1)),
+                    title=f"[bold white] 📄 {lang.upper()} [/bold white]",
+                    subtitle="[dim]DOMINION[/dim]",
+                    border_style="bright_cyan",
+                    padding=(0, 0),
+                ))
+                console.print()
+            continue
+
+        # ── H1/H2/H3 headers ───────────────────────────────────────────
+        if stripped.startswith('###'):
+            title = stripped.lstrip('#').strip()
+            console.print(f"\n  [bold {STYLE_CYAN}]▸ {title}[/bold {STYLE_CYAN}]")
+            i += 1
+            continue
+
+        if stripped.startswith('##'):
+            title = stripped.lstrip('#').strip()
+            console.print(f"\n[bold {STYLE_CYAN}]━━ {title} ━━[/bold {STYLE_CYAN}]")
+            i += 1
+            continue
+
+        if stripped.startswith('#'):
+            title = stripped.lstrip('#').strip()
+            console.print(f"\n[bold white on {STYLE_BLUE_DARK}] ◆ {title.upper()} [/bold white on {STYLE_BLUE_DARK}]")
+            i += 1
+            continue
+
+        # ── Bold-only line: **title** ───────────────────────────────────
+        if stripped.startswith('**') and stripped.endswith('**') and len(stripped) > 4:
+            title = stripped[2:-2]
+            console.print(f"\n  [bold white]{title}[/bold white]")
+            i += 1
+            continue
+
+        # ── Numbered sections: 1. Title ─────────────────────────────────
+        num_match = re.match(r'^(\d+)\.\s+(.*)', stripped)
+        if num_match:
+            num = num_match.group(1)
+            text = _render_inline(num_match.group(2))
+            console.print(f"\n [bold {STYLE_CYAN}]{num}.[/bold {STYLE_CYAN}] [bold white]{text}[/bold white]")
+            i += 1
+            continue
+
+        # ── Bullet lists: - or * ────────────────────────────────────────
+        if stripped.startswith('- ') or stripped.startswith('* '):
+            indent = len(line) - len(line.lstrip())
+            content = _render_inline(stripped[2:])
+            prefix = "  " * (indent // 2)
+            bullet_color = STYLE_CYAN
+            console.print(f"{prefix} [{bullet_color}]•[/{bullet_color}] [{STYLE_TEXT}]{content}[/{STYLE_TEXT}]")
+            i += 1
+            continue
+
+        # ── Sub-bullets with + ──────────────────────────────────────────
+        if stripped.startswith('+ '):
+            content = _render_inline(stripped[2:])
+            console.print(f"    [{STYLE_TEXT_DIM}]›[/{STYLE_TEXT_DIM}] [{STYLE_TEXT}]{content}[/{STYLE_TEXT}]")
+            i += 1
+            continue
+
+        # ── Horizontal rule ─────────────────────────────────────────────
+        if stripped in ('---', '***', '___'):
+            console.print(f"[{STYLE_CYAN_DARK}]{'─' * 50}[/{STYLE_CYAN_DARK}]")
+            i += 1
+            continue
+
+        # ── Regular text ────────────────────────────────────────────────
+        if stripped:
+            console.print(f"  [{STYLE_TEXT}]{_render_inline(stripped)}[/{STYLE_TEXT}]")
+        else:
+            console.print()
+
+        i += 1
+
+    console.print(f"[{STYLE_CYAN}]{'━' * 60}[/{STYLE_CYAN}]")
     console.print()
+
+
+def _render_inline(text: str) -> str:
+    """Render inline markdown: **bold**, `code`, and technical keywords."""
+    import re
+
+    # 1. Inline code `command` → styled
+    text = re.sub(r'`([^`]+)`', rf'[bold {STYLE_BLUE_BRIGHT}]\1[/bold {STYLE_BLUE_BRIGHT}]', text)
+
+    # 2. Bold **text** → bold white
+    text = re.sub(r'\*\*([^*]+)\*\*', rf'[bold white]\1[/bold white]', text)
+
+    # 3. Italic *text* → italic
+    text = re.sub(r'(?<!\*)\*([^*]+)\*(?!\*)', rf'[italic {STYLE_TEXT_DIM}]\1[/italic {STYLE_TEXT_DIM}]', text)
+
+    return text
+
 
 
 def clear_screen() -> None:

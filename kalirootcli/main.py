@@ -407,22 +407,12 @@ def ai_console(status: Dict[str, Any]):
                 print_error(f"Error en IA: {e}")
                 return
 
-        # Render response: strip any Rich markup tags, then render as Markdown
+        # Render with professional formatter (strip + code highlight)
         if response_text:
-            import re as _re
-            from rich.markdown import Markdown
-            from rich.panel import Panel
-            clean = _re.sub(r'\[/?[a-zA-Z][a-zA-Z0-9 _#]*\]', '', response_text)
-            clean = _re.sub(r'\[dim\].*?\[/dim\]', '', clean)
-            console.print()
-            console.print(Panel(
-                Markdown(clean),
-                title="[bold cyan]⚡ DOMINION AI[/bold cyan]",
-                border_style="cyan",
-                padding=(1, 2),
-            ))
+            print_ai_response(response_text, "DOMINION")
             new_balance = api_client.get_kr_balance()
             console.print(f"[dim]⚡ KR restantes: {new_balance}[/dim]\n")
+
 
 
 def handle_special_command(command: str, web_search_enabled: bool) -> str:
@@ -1714,26 +1704,11 @@ Responde al último mensaje del usuario de forma natural y coherente con el cont
             session.add_message("assistant", ai_response)
             chat_manager.save_chat(session)
 
-            import re as _re
-            from rich.markdown import Markdown
-            from rich.panel import Panel
-
-            # Strip ALL Rich markup tags that Gemini may output literally
-            # Pattern: [tag], [tag attr], [/tag], [/tag attr]
-            clean = _re.sub(r'\[/?[a-zA-Z][a-zA-Z0-9 _#]*\]', '', ai_response)
-            # Also strip the dim code-fence pattern Gemini sometimes adds
-            clean = _re.sub(r'\[dim\].*?\[/dim\]', '', clean)
-
-            console.print()
-            console.print(Panel(
-                Markdown(clean),
-                title="[bold cyan]⚡ DOMINION AI[/bold cyan]",
-                border_style="cyan",
-                padding=(1, 2),
-            ))
+            print_ai_response(ai_response, "DOMINION")
 
             new_balance = api_client.get_kr_balance()
             console.print(f"[dim]⚡ KR restantes: {new_balance}[/dim]\n")
+
 
 
 
