@@ -1673,80 +1673,53 @@ HISTORIAL DE CONVERSACIÓN:
 Responde al último mensaje del usuario de forma natural y coherente con el contexto.
         """
         
-        # Query AI
-        with show_loading("KR-AI está pensando..."):
-            env = detector.get_system_info()
-            result = api_client.ai_query(prompt, env)
-        
-        if result["success"]:
-            data = result["data"]
-            ai_response = data.get("response", "")
-            
+        # Query AI directly via local Gemini (no backend round-trip)
+        with show_loading("⚡ DOMINION procesando..."):
+            try:
+                from .ai_handler import AIHandler
+                from .config import KR_COST_CHAT
+                from .economy import show_zero_balance_panel, show_kr_spend_panel
+
+                # KR balance check
+                balance = api_client.get_kr_balance()
+                if balance < KR_COST_CHAT:
+                    show_zero_balance_panel()
+                    session.messages.pop()
+                    continue
+
+                env = detector.get_system_info()
+                ai = AIHandler(api_client.user_id or "local")
+                ai_response = ai.get_response(prompt)
+
+            except Exception as _e:
+                session.messages.pop()
+                print_error(f"Error en IA: {_e}")
+                continue
+
+        if ai_response:
             # Add AI response to session
             session.add_message("assistant", ai_response)
-            
-            # Save session
             chat_manager.save_chat(session)
-            
-            # Display response immediately with full content
+
             from rich.panel import Panel
             from rich.markdown import Markdown
-            
+
             try:
                 response_content = Markdown(ai_response)
-            except:
+            except Exception:
                 response_content = ai_response
-            
+
             console.print()
             console.print(Panel(
                 response_content,
-                title="[bold magenta]KR-AI[/bold magenta]",
+                title="[bold cyan]⚡ DOMINION AI[/bold cyan]",
                 border_style="rgb(0,255,255)",
                 padding=(1, 2)
             ))
             console.print()
-            
-            if "credits_remaining" in data and data["credits_remaining"] is not None:
-                console.print(f"[dim]💳 Créditos: {data['credits_remaining']}[/dim]\n")
-        else:
-            error_msg = result.get('error', 'Error desconocido')
-            session.messages.pop()  # Remove user message if AI failed
-            
-            if "credits" in error_msg.lower() or "créditos" in error_msg.lower():
-                # Get user status to check if premium
-                status_res = api_client.get_status()
-                is_user_premium = status_res.get("data", {}).get("is_premium", False) if status_res.get("success") else False
-                
-                clear_screen()
-                console.print("\n[bold red]😔 ¡Se agotaron tus créditos![/bold red]\n")
-                console.print("[bold white]Estábamos en algo importante...[/bold white]")
-                console.print("[cyan]Tu última consulta era valiosa y DOMINION estaba[/cyan]")
-                console.print("[cyan]listo para darte información exclusiva sobre el tema.[/cyan]\n")
-                
-                console.print("[bold yellow]🔥 No te quedes sin saber:[/bold yellow]")
-                console.print("  • La respuesta completa está lista para ti")
-                console.print("  • DOMINION tiene el conocimiento que buscas")
-                console.print("  • Un solo paso te separa de continuar\n")
-                
-                console.rule(style="yellow")
-                if is_user_premium:
-                    console.print("[bold green]💎 Eres usuario PREMIUM[/bold green]")
-                    print_menu_option("1", "💳 Comprar Créditos", "200 créditos - $10")
-                else:
-                    console.print("[bold green]💎 PAQUETES DISPONIBLES:[/bold green]")
-                    console.print("  💳 [bold]Créditos[/bold]: 200 créditos - $10")
-                    console.print("  👑 [bold]Premium[/bold]: 500 créditos + herramientas - $20/mes\n")
-                    print_menu_option("1", "💎 Ver Tienda", "Comprar créditos o Premium")
-                print_menu_option("0", "Volver al menú")
-                console.rule(style="yellow")
-                
-                sub_choice = get_input("¿Qué deseas hacer?")
-                if sub_choice == "1":
-                    upgrade_menu()
-                return  # Exit chat session
-            else:
-                print_error(error_msg)
-                input("\nPresiona Enter para continuar...")
+
+            new_balance = api_client.get_kr_balance()
+            console.print(f"[dim]⚡ KR restantes: {new_balance}[/dim]\n")
 
 
 
