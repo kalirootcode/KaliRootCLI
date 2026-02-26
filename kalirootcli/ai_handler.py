@@ -144,7 +144,7 @@ class AIHandler:
 
             generation_config = genai_types.GenerateContentConfig(
                 temperature=0.2 if mode == AIMode.AGENT else (0.3 if mode == AIMode.OPERATIONAL else 0.5),
-                max_output_tokens=3000 if mode != AIMode.AGENT else 1500,
+                max_output_tokens=8192 if mode != AIMode.AGENT else 2000,
                 top_p=0.95,
             )
 
@@ -220,7 +220,7 @@ NO respondas preguntas generales. SOLO analiza el output técnico."""
 
             generation_config = genai_types.GenerateContentConfig(
                 temperature=0.2,
-                max_output_tokens=2000,
+                max_output_tokens=4096,
                 top_p=0.90,
             )
 
