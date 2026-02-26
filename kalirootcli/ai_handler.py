@@ -366,8 +366,9 @@ Cuando aplique, incluye consideraciones de:
 [FORMATO DE RESPUESTA]
 - Idioma: ESPAÑOL TÉCNICO
 - Estilo: Directo, profesional, sin saludos innecesarios
-- Código: Markdown con bloques de código y sintaxis apropiada
-- NUNCA uses HTML tags
+- Código: USA EXCLUSIVAMENTE bloques Markdown (```bash, ```python, etc.) para comandos y código
+- NUNCA uses HTML tags ni etiquetas Rich como [cyan], [bold], [dim], [green], [red], [white], [italic] u otras
+- USA SOLO Markdown estándar: **negrita**, `código inline`, ### encabezados, - listas
 - Responde con la profundidad de un consultor senior
 
 [ESTRUCTURA DE HALLAZGOS]

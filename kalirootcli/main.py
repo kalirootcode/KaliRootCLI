@@ -1701,12 +1701,15 @@ Responde al último mensaje del usuario de forma natural y coherente con el cont
             session.add_message("assistant", ai_response)
             chat_manager.save_chat(session)
 
-            # Strip any literal Rich markup Gemini may have included
             import re as _re
             from rich.markdown import Markdown
             from rich.panel import Panel
 
-            clean = _re.sub(r'\[/?(?:bold|dim|cyan|green|red|yellow|white|italic|[a-z]+\s+[^\]]*)\]', '', ai_response)
+            # Strip ALL Rich markup tags that Gemini may output literally
+            # Pattern: [tag], [tag attr], [/tag], [/tag attr]
+            clean = _re.sub(r'\[/?[a-zA-Z][a-zA-Z0-9 _#]*\]', '', ai_response)
+            # Also strip the dim code-fence pattern Gemini sometimes adds
+            clean = _re.sub(r'\[dim\].*?\[/dim\]', '', clean)
 
             console.print()
             console.print(Panel(
