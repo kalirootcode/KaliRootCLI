@@ -178,7 +178,8 @@ class AIHandler:
 
                 if raw:
                     return raw_text
-                return self.format_for_terminal(raw_text)
+                # Return raw markdown — print_ai_response() handles all rendering
+                return raw_text
 
             return FALLBACK_AI_TEXT
 
@@ -231,7 +232,7 @@ NO respondas preguntas generales. SOLO analiza el output técnico."""
             )
 
             if response and response.text:
-                return self.format_for_terminal(response.text)
+                return response.text
 
             return FALLBACK_AI_TEXT
 
