@@ -38,6 +38,9 @@ from .ui.display import (
     print_system_status_panel,
     print_compact_system_status
 )
+from .ui.colors import (
+    STYLE_BLUE, STYLE_BLUE_DARK, STYLE_CYAN, STYLE_CYAN_DARK
+)
 
 # Import new modules
 try:
@@ -1601,52 +1604,53 @@ def run_chat_session(chat_manager, session):
         chat_manager: ChatManager instance
         session: ChatSession to interact with
     """
+    skip_redraw = False
     while True:
-        clear_screen()
-        # Elegant Chat Title
-        from rich.align import Align
-        from rich.panel import Panel
-        console.print(Panel(
-            Align.center(f"[bold white]💬 {session.title}[/bold white]"),
-            border_style="rgb(0,255,255)",
-            padding=(0, 2),
-            expand=True
-        ))
-        
-        # Display chat history
-        if session.messages:
-            console.print("[dim]─── Historial Completo ───[/dim]\n")
+        if not skip_redraw:
+            clear_screen()
+            # Elegant Chat Title
+            from rich.align import Align
+            from rich.panel import Panel
+            console.print(Panel(
+                Align.center(f"[bold white]💬 {session.title}[/bold white]"),
+                border_style=STYLE_BLUE,
+                padding=(0, 2),
+                expand=True
+            ))
             
-            # Show ALL messages with full content
-            display_messages = session.messages
+            # Display chat history
+            if session.messages:
+                console.print(f"[dim]─── Historial ───[/dim]\n")
+                
+                for msg in session.messages:
+                    role_label = "Tú" if msg["role"] == "user" else "DOMINION AI"
+                    
+                    from rich.markdown import Markdown
+                    try:
+                        content = Markdown(msg['content'])
+                    except Exception:
+                        content = msg['content']
+                    
+                    if msg["role"] == "user":
+                        console.print(Panel(
+                            content,
+                            title=f"[bold {STYLE_CYAN}]{role_label}[/bold {STYLE_CYAN}]",
+                            border_style=STYLE_CYAN_DARK,
+                            padding=(0, 1),
+                            expand=False
+                        ))
+                    else:
+                        console.print(Panel(
+                            content,
+                            title=f"[bold {STYLE_CYAN}]⚡ {role_label}[/bold {STYLE_CYAN}]",
+                            border_style=STYLE_BLUE,
+                            padding=(1, 2),
+                        ))
             
-            for msg in display_messages:
-                role_style = "bold cyan" if msg["role"] == "user" else "bold magenta"
-                role_label = "Tú" if msg["role"] == "user" else "KR-AI"
-                
-                # Display complete message with proper formatting
-                from rich.panel import Panel
-                from rich.markdown import Markdown
-                
-                # Try to render as markdown for better formatting
-                try:
-                    content = Markdown(msg['content'])
-                except:
-                    content = msg['content']
-                
-                # Use consistent border colors: User=Cyan, AI=Cyan
-                border_color = "bright_cyan" if msg["role"] == "user" else "rgb(0,255,255)"
-                
-                console.print(Panel(
-                    content,
-                    title=f"[{role_style}]{role_label}[/{role_style}]",
-                    border_style=border_color,
-                    padding=(0, 1),
-                    expand=False
-                ))
+            console.rule(style=STYLE_BLUE_DARK)
         
-        console.rule(style="rgb(0,255,255)")
-        console.print("[dim]Escribe '/exit' para volver | '/clear' para limpiar historial[/dim]\n")
+        skip_redraw = False
+        console.print(f"[dim]Escribe '/exit' para volver | '/clear' para limpiar historial[/dim]\n")
         
         # Get user input
         user_input = get_input("Tú").strip()
@@ -1707,6 +1711,9 @@ Responde al último mensaje del usuario de forma natural y coherente con el cont
 
             new_balance = api_client.get_kr_balance()
             console.print(f"[dim]⚡ KR restantes: {new_balance}[/dim]\n")
+
+            # Don't clear screen — let user see the response
+            skip_redraw = True
 
 
 
