@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kr-cli-dominion"
-version = "6.2.0"
+version = "6.2.1"
 description = "Advanced AI Security CLI — DOMINION Edition. Powered by Google Gemini. KR credit economy."
 readme = "README.md"
 license = {text = "MIT"}

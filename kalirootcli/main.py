@@ -386,28 +386,24 @@ def ai_console(status: Dict[str, Any]):
                     console.print("[dim]📡 Datos web obtenidos[/dim]")
                     enriched_query = f"{query}\n\n{web_context}"
         
-        # Call Gemini via local AIHandler — loading spinner until complete
+        # Call Gemini via API Server — loading spinner until complete
         with show_loading("🧠 Procesando con DOMINION AI..."):
             try:
-                from .ai_handler import AIHandler
-                from .config import KR_COST_CHAT, DOMINION_STORE_URL
-                from .economy import show_zero_balance_panel, show_kr_spend_panel
+                from .distro_detector import detector
 
-                # KR balance check
-                balance = api_client.get_kr_balance()
-                if balance < KR_COST_CHAT:
-                    show_zero_balance_panel()
+                env_info = detector.get_system_info()
+                api_result = api_client.ai_query(enriched_query, environment=env_info)
+
+                if api_result.get("success"):
+                    response_text = api_result.get("data", {}).get("response", "")
+                else:
+                    print_error(f"Error en IA: {api_result.get('error', 'Unknown')}")
                     return
-
-                show_kr_spend_panel(KR_COST_CHAT, "Consultoría IA")
-
-                ai = AIHandler(api_client.user_id or "local")
-                response_text = ai.get_response(enriched_query)
 
             except Exception as e:
                 import logging
-                logging.getLogger(__name__).error(f"AI direct error: {e}", exc_info=True)
-                print_error(f"Error en IA: {e}")
+                logging.getLogger(__name__).error(f"AI api error: {e}", exc_info=True)
+                print_error(f"Error de conexión con la IA: {e}")
                 return
 
         if response_text:
@@ -1681,26 +1677,24 @@ HISTORIAL DE CONVERSACIÓN:
 Responde al último mensaje del usuario de forma natural y coherente con el contexto.
         """
         
-        # Call Gemini via local AIHandler — loading spinner until complete
+        # Call Gemini via API Server — loading spinner until complete
         with show_loading("⚡ DOMINION procesando..."):
             try:
-                from .ai_handler import AIHandler
-                from .config import KR_COST_CHAT
-                from .economy import show_zero_balance_panel, show_kr_spend_panel
+                from .distro_detector import detector
+                
+                env_info = detector.get_system_info()
+                api_result = api_client.ai_query(prompt, environment=env_info)
 
-                # KR balance check
-                balance = api_client.get_kr_balance()
-                if balance < KR_COST_CHAT:
-                    show_zero_balance_panel()
+                if api_result.get("success"):
+                    ai_response = api_result.get("data", {}).get("response", "")
+                else:
                     session.messages.pop()
+                    print_error(f"Error en IA: {api_result.get('error', 'Unknown')}")
                     continue
-
-                ai = AIHandler(api_client.user_id or "local")
-                ai_response = ai.get_response(prompt)
 
             except Exception as _e:
                 session.messages.pop()
-                print_error(f"Error en IA: {_e}")
+                print_error(f"Error de red/IA: {_e}")
                 continue
 
         if ai_response:
