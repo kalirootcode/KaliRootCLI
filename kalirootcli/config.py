@@ -48,9 +48,57 @@ KR_COST_REPORT = 10    # Per executive report generation
 
 # ===== DOMINION TIER PACKAGES =====
 KR_PACKAGES = [
-    {"id": "starter",  "name": "⚡ Dominion Starter",  "credits": 250,  "price": 10.0, "tier": "starter"},
-    {"id": "hacker",   "name": "🚀 Hacker Promo",      "credits": 1500, "price": 25.0, "tier": "hacker"},
-    {"id": "god_mode", "name": "💀 Dominion God Mode",  "credits": 4000, "price": 50.0, "tier": "god_mode"},
+    {
+        "id": "starter",
+        "name": "⚡ Dominion Starter",
+        "credits": 250,
+        "price": 10.0,
+        "tier": "starter",
+        "emoji": "⚡",
+        "tagline": "Tu primer paso hacia el poder ofensivo",
+        "features": [
+            "250 KR para consultas de IA ilimitadas",
+            "Acceso Núcleo Dominion Flash",
+            "Terminal inteligente con autocompletado",
+            "Historial de sesiones encriptado",
+            "Soporte de red TOR integrado",
+        ],
+    },
+    {
+        "id": "hacker",
+        "name": "🚀 Hacker Promo",
+        "credits": 1500,
+        "price": 25.0,
+        "tier": "hacker",
+        "emoji": "🚀",
+        "tagline": "El arsenal que todo pentester necesita — 6X más KR por tu dinero",
+        "features": [
+            "1,500 KR — 🔥 DOBLE KR vs Starter",
+            "Agente de Proyectos autónomo (crea estructuras con 1 comando)",
+            "Scanner de Puertos + CVE Lookup automático",
+            "Modelo IA con 8K tokens de contexto",
+            "Análisis profundo de vulnerabilidades",
+            "Generación de reportes ejecutivos",
+        ],
+    },
+    {
+        "id": "god_mode",
+        "name": "💀 Dominion God Mode",
+        "credits": 4000,
+        "price": 50.0,
+        "tier": "god_mode",
+        "emoji": "💀",
+        "tagline": "Poder absoluto. Sin restricciones. Sin piedad.",
+        "features": [
+            "4,000 KR — ☠️ 16X más que Starter",
+            "Arsenal Prohibido: exploits + payloads avanzados",
+            "Modelo IA de alta precisión (16K tokens / temp 0.2)",
+            "Modo Agente Autónomo ilimitado",
+            "Acceso a herramientas clasificadas",
+            "Banner visual God Mode en tu terminal",
+            "Soporte prioritario del equipo Dominion",
+        ],
+    },
 ]
 
 # Legacy alias

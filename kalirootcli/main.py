@@ -985,49 +985,56 @@ def upgrade_menu():
         if is_premium:
             console.print("[bold green]✅ Ya eres usuario PREMIUM[/bold green]\n")
         
-        console.print("[bold cyan]═══ PAQUETES DISPONIBLES ═══[/bold cyan]\n")
+        console.print("[bold cyan]═══ ELIGE TU PLAN DOMINION ═══[/bold cyan]\n")
         
-        # Display all credit packages
-        print_descriptions = [
-            "  • [italic]Ideal para iniciarse. Tu primer paso en ciberseguridad.[/italic]",
-            "  • [italic]Para estudiantes serios. Profundiza sin límites.[/italic]",
-            "  • [italic]Potencia máxima. Para operaciones intensivas.[/italic]"
-        ]
+        # ── Tier color schemes ──
+        tier_styles = {
+            "starter":  {"border": "cyan",     "price_color": "bold cyan",   "tag": ""},
+            "hacker":   {"border": "magenta",  "price_color": "bold magenta","tag": " [bold yellow]🔥 MÁS POPULAR[/bold yellow]"},
+            "god_mode": {"border": "red",      "price_color": "bold red",    "tag": " [bold red]💀 CUPOS LIMITADOS[/bold red]"},
+        }
         
+        # Display each package as a Rich Panel with features
         for i, pkg in enumerate(CREDIT_PACKAGES, 1):
-            emoji = "💳" if i == 1 else "⚡" if i == 2 else "💎"
-            desc = print_descriptions[i-1] if i-1 < len(print_descriptions) else ""
+            tid = pkg.get("id", "")
+            style = tier_styles.get(tid, {"border": "white", "price_color": "bold white", "tag": ""})
+            emoji = pkg.get("emoji", "⚡")
+            tagline = pkg.get("tagline", "")
+            features = pkg.get("features", [])
             
-            console.print(f"[bold yellow]{emoji} PAQUETE {pkg['name'].upper()}[/bold yellow]")
-            console.print(f"  • [bold]{pkg['credits']} créditos[/bold] para consultas AI")
-            console.print(f"  • Válidos por 30 días")
-            console.print(desc)
-            console.print(f"  • [bold green]${pkg['price']:.0f} USD (USDT)[/bold green]\n")
-        
-        # Premium Package
-        if not is_premium:
+            # Build feature list
+            feat_lines = "\n".join(f"  [bold]✓[/bold] {f}" for f in features)
+            
+            panel_content = f"""[{style['price_color']}]{emoji} {pkg['name'].upper()}[/{style['price_color']}]{style['tag']}
+[italic dim]{tagline}[/italic dim]
+
+{feat_lines}
+
+[bold green]💰 ${pkg['price']:.0f} USD (USDT)[/bold green]  ·  [bold]{pkg['credits']:,} KR[/bold]"""
+            
             console.print(Panel(
-                f"""
-[bold gold1]👑 DOMINION ELITE ARCHITECTURE (PREMIUM)[/bold gold1]
-
-[bold white]Desbloquea el verdadero poder de la Inteligencia Artificial Ofensiva.[/bold white]
-
-[bold cyan]⚡ VENTAJAS TÁCTICAS:[/bold cyan]
- • [bold]1200 CRÉDITOS MENSUALES[/bold] (Recarga automática)
- • [bold]MODELO 70B NEURAL[/bold]: Razonamiento superior y generación de scripts complejos.
- • [bold]SUITE DE HERRAMIENTAS[/bold]: Port Scanner, CVE Lookup & Auto-Exploit Planning.
- • [bold]MODO AGENTE AUTÓNOMO[/bold]: Crea proyectos y estructuras completas con un comando.
- • [bold]MEMORIA INFINITA[/bold]: Historial de chats ilimitado y persistente.
-
-[dim]Tu arsenal de ciberseguridad, actualizado al máximo nivel.[/dim]
-                """,
-                title="[bold green]💎 RECOMENDADO[/bold green]",
-                border_style="gold1",
-                padding=(1, 2)
+                panel_content,
+                border_style=style["border"],
+                padding=(1, 3),
             ))
-            console.print(
-                f"[bold cyan]Recarga KR en: [link={DOMINION_STORE_URL}]{DOMINION_STORE_URL}[/link][/bold cyan]\n"
-            )
+            console.print()
+        
+        # God Mode upsell banner
+        console.print(Panel(
+            """[bold red]☠️  ¿POR QUÉ GOD MODE?[/bold red]
+
+[white]Mientras otros analizan, tú ya ejecutaste.[/white]
+[white]4,000 KR + Arsenal Prohibido + Modelo ultra-preciso.[/white]
+[white]Los que entran a God Mode no vuelven atrás.[/white]
+
+[bold yellow]⚠️  Solo quedan pocos cupos este mes.[/bold yellow]""",
+            border_style="bold red",
+            title="[bold red]💀 ACCESO RESTRINGIDO[/bold red]",
+            padding=(1, 3),
+        ))
+        console.print(
+            f"\n[bold cyan]🌐 Recarga KR en: [link={DOMINION_STORE_URL}]{DOMINION_STORE_URL}[/link][/bold cyan]\n"
+        )
         
         console.rule(style="cyan")
         

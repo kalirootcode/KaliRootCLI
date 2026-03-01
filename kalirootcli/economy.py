@@ -141,7 +141,7 @@ class EconomyManager:
 def get_kr_packages_display():
     """Get a formatted Rich table of KR recharge packages."""
     table = Table(
-        title="[bold cyan]⚡ Paquetes de Recarga KR — DOMINION[/bold cyan]",
+        title="[bold cyan]⚡ Planes Dominion — Elige tu Poder[/bold cyan]",
         box=box.ROUNDED,
         show_header=True,
         header_style="bold cyan",
@@ -149,19 +149,22 @@ def get_kr_packages_display():
     )
 
     table.add_column("#",       style="white",       justify="center", width=3)
-    table.add_column("Paquete", style="bold white")
+    table.add_column("Plan",    style="bold white")
     table.add_column("KR",      style="bold cyan",   justify="center")
     table.add_column("Precio",  style="bold yellow",  justify="center")
-    table.add_column("Valor",   style="green",        justify="center")
+    table.add_column("$/KR",    style="green",        justify="center")
+    table.add_column("Tier",    style="bold",         justify="center")
 
     badges = ["⚡ Starter", "🔥 Hacker Promo", "💀 GOD MODE"]
 
     for i, pkg in enumerate(KR_PACKAGES):
+        price_per_kr = pkg["price"] / pkg["credits"] if pkg["credits"] > 0 else 0
         table.add_row(
             str(i + 1),
             pkg["name"],
-            str(pkg["credits"]),
+            f"{pkg['credits']:,}",
             f"${pkg['price']:.2f}",
+            f"${price_per_kr:.3f}",
             badges[i] if i < len(badges) else "",
         )
 
