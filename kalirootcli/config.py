@@ -46,14 +46,14 @@ KR_COST_CHAT = 1       # Per AI consultation / chat message
 KR_COST_AGENT = 5      # Per agent action (file creation, project scaffolding)
 KR_COST_REPORT = 10    # Per executive report generation
 
-# ===== KR RECHARGE PACKAGES =====
+# ===== DOMINION TIER PACKAGES =====
 KR_PACKAGES = [
-    {"name": "KR-100  · Starter",    "credits": 100,  "price": 5.0},
-    {"name": "KR-500  · Operative",  "credits": 500,  "price": 20.0},
-    {"name": "KR-1000 · DOMINION",   "credits": 1000, "price": 35.0},
+    {"id": "starter",  "name": "⚡ Dominion Starter",  "credits": 250,  "price": 10.0, "tier": "starter"},
+    {"id": "hacker",   "name": "🚀 Hacker Promo",      "credits": 1500, "price": 25.0, "tier": "hacker"},
+    {"id": "god_mode", "name": "💀 Dominion God Mode",  "credits": 4000, "price": 50.0, "tier": "god_mode"},
 ]
 
-# Legacy alias — kept for any code that still references CREDIT_PACKAGES
+# Legacy alias
 CREDIT_PACKAGES = KR_PACKAGES
 
 # ===== STORE LINKS =====

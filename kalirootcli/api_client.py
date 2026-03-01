@@ -273,13 +273,17 @@ class APIClient:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def create_credits_invoice(self, amount: float, credits: int) -> Dict[str, Any]:
-        """Create credit pack payment invoice (USDT)."""
+    def create_credits_invoice(self, plan_id: str) -> Dict[str, Any]:
+        """Create a Dominion Tier purchase invoice (USDT).
+        
+        Args:
+            plan_id: One of 'starter', 'hacker', 'god_mode'
+        """
         try:
             resp = requests.post(
                 f"{self.base_url}/api/payments/create-credits",
                 headers=self._headers(),
-                json={"amount": float(amount), "credits": int(credits)},
+                json={"plan_id": plan_id},
                 timeout=30
             )
             
@@ -295,11 +299,13 @@ class APIClient:
                     "invoice_id": data.get("invoice_id"),
                     "amount": data.get("amount"),
                     "credits": data.get("credits"),
+                    "plan_id": data.get("plan_id"),
+                    "tier_label": data.get("tier_label"),
                     "currency": data.get("currency", "USDT")
                 }
             elif resp.status_code == 401:
                 if self.refresh_access_token():
-                    return self.create_credits_invoice(amount, credits)
+                    return self.create_credits_invoice(plan_id)
                 self.logout()
                 return {"success": False, "error": "Sesión expirada"}
             else:
@@ -307,6 +313,7 @@ class APIClient:
                 
         except Exception as e:
             return {"success": False, "error": str(e)}
+
     def check_payment_status(self, invoice_id: str) -> Dict[str, Any]:
         """Check payment status for an invoice."""
         try:
@@ -354,6 +361,23 @@ class APIClient:
         except Exception as e:
             logger.error(f"Error fetching KR balance: {e}")
         return 0
+
+    def get_user_tier(self) -> str:
+        """
+        Fetch the user's current Dominion tier from the backend.
+        Returns: 'free', 'starter', 'hacker', or 'god_mode'
+        """
+        try:
+            resp = requests.get(
+                f"{self.base_url}/api/user/tier",
+                headers=self._headers(),
+                timeout=15
+            )
+            if resp.status_code == 200:
+                return resp.json().get("tier", "free")
+        except Exception:
+            pass
+        return "free"
 
 
 # Global instance

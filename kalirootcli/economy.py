@@ -107,8 +107,7 @@ class EconomyManager:
         try:
             with show_loading("Generando factura segura..."):
                 invoice = api_client.create_credits_invoice(
-                    pkg["price"],
-                    pkg["credits"]
+                    pkg["id"]
                 )
 
             if not invoice or not invoice.get("success"):
@@ -155,7 +154,7 @@ def get_kr_packages_display():
     table.add_column("Precio",  style="bold yellow",  justify="center")
     table.add_column("Valor",   style="green",        justify="center")
 
-    badges = ["Starter", "🔥 Popular", "👑 DOMINION"]
+    badges = ["⚡ Starter", "🔥 Hacker Promo", "💀 GOD MODE"]
 
     for i, pkg in enumerate(KR_PACKAGES):
         table.add_row(

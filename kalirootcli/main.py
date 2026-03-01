@@ -1066,7 +1066,7 @@ def upgrade_menu():
                 pkg = CREDIT_PACKAGES[choice_num - 1]
                 console.print(f"\n[bold cyan]Generando factura para {pkg['credits']} créditos (${pkg['price']:.0f})...[/bold cyan]")
                 with show_loading("Creando factura..."):
-                    result = api_client.create_credits_invoice(amount=pkg['price'], credits=pkg['credits'])
+                    result = api_client.create_credits_invoice(plan_id=pkg['id'])
                 
                 if result.get("success"):
                     url = result.get("invoice_url") or result.get("data", {}).get("invoice_url")

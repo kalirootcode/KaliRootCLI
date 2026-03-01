@@ -36,10 +36,15 @@ NOWPAYMENTS_API_KEY = os.getenv("NOWPAYMENTS_API_KEY", "")
 
 # Pricing
 SUBSCRIPTION_PRICE_USD = 20.0  # Premium subscription
-CREDITS_PRICE_USD = 10.0       # Credit pack
-CREDITS_AMOUNT = 500           # Credits per pack (updated to 500)
 SUBSCRIPTION_DAYS = 30
 PREMIUM_BONUS_CREDITS = 500    # Premium bonus credits
+
+# ===== DOMINION TIER PACKS =====
+DOMINION_TIERS = {
+    "starter":  {"price": 10, "credits": 250,  "tier": "starter",  "label": "Dominion Starter"},
+    "hacker":   {"price": 25, "credits": 1500, "tier": "hacker",   "label": "Hacker Promo"},
+    "god_mode": {"price": 50, "credits": 4000, "tier": "god_mode", "label": "Dominion God Mode"},
+}
 
 # ===== INIT =====
 app = FastAPI(
@@ -105,6 +110,9 @@ class AIQueryRequest(BaseModel):
     query: str
     environment: dict = {}
 
+class TierPurchaseRequest(BaseModel):
+    plan_id: str  # 'starter', 'hacker', 'god_mode'
+
 class AuthResponse(BaseModel):
     success: bool
     message: str
@@ -121,6 +129,7 @@ class UserStatusResponse(BaseModel):
     is_premium: bool
     days_left: int
     subscription_status: str
+    user_tier: str = "free"
 
 class SessionLogRequest(BaseModel):
     """Request model for logging CLI sessions with system info."""
@@ -425,8 +434,23 @@ async def get_user_status(user: dict = Depends(get_current_user)):
         credits=profile.get("credit_balance", 0),
         is_premium=is_premium,
         days_left=days_left,
-        subscription_status=profile.get("subscription_status", "free")
+        subscription_status=profile.get("subscription_status", "free"),
+        user_tier=profile.get("user_tier", "free")
     )
+
+@app.get("/api/user/tier")
+async def get_user_tier(user: dict = Depends(get_current_user)):
+    """Get current user tier for feature gating."""
+    user_id = user["id"]
+    result = supabase_admin.table("cli_users").select("user_tier, credit_balance").eq("id", user_id).execute()
+    if not result.data:
+        return {"tier": "free", "credits": 0}
+    profile = result.data[0]
+    return {
+        "tier": profile.get("user_tier", "free"),
+        "credits": profile.get("credit_balance", 0)
+    }
+
 
 # ===== SESSION TRACKING =====
 
@@ -511,8 +535,13 @@ async def ai_query(req: AIQueryRequest, user: dict = Depends(get_current_user)):
             detail="Sin créditos disponibles. Actualiza a Premium o compra créditos en la Tienda."
         )
     
+    # Check user tier for model gating
+    user_tier = profile.get("user_tier", "free")
+    is_god_mode = user_tier == "god_mode"
+    is_hacker = user_tier == "hacker"
+    
     # Build prompt
-    mode = "OPERATIVO" if is_premium else "CONSULTA"
+    mode = "GOD MODE" if is_god_mode else ("OPERATIVO" if (is_premium or is_hacker) else "CONSULTA")
     env = req.environment
     
     system_prompt = f"""Eres DOMINION, un modelo de inteligencia artificial EXCLUSIVO y de última generación.
@@ -557,12 +586,16 @@ REGLAS DE RESPUESTA:
 
         full_prompt = f"{system_prompt}\n\n[PETICIÓN]\n{req.query}"
 
+        # Tier-based model parameters
+        tier_tokens = 16384 if is_god_mode else (8192 if is_hacker else 3000)
+        tier_temp = 0.2 if is_god_mode else (0.5 if is_hacker else 0.7)
+
         response = _genai_client.models.generate_content(
             model=GEMINI_MODEL,
             contents=full_prompt,
             config={
-                "temperature": 0.7,
-                "max_output_tokens": 3000,
+                "temperature": tier_temp,
+                "max_output_tokens": tier_tokens,
                 "top_p": 0.95,
             },
         )
@@ -669,54 +702,36 @@ async def create_subscription_invoice(user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail="Payment service error")
 
 
-class CreditsRequest(BaseModel):
-    amount: int = 10
-    credits: int = 200
-
-
 @app.post("/api/payments/create-credits")
-async def create_credits_invoice(req: CreditsRequest, user: dict = Depends(get_current_user)):
-    """Create NowPayments invoice for credit pack purchase."""
+async def create_credits_invoice(req: TierPurchaseRequest, user: dict = Depends(get_current_user)):
+    """Create NowPayments invoice for a Dominion Tier purchase."""
     user_id = user["id"]
     
     if not NOWPAYMENTS_API_KEY:
-        # Avoid 500, return 503 Service Unavailable if config missing
         raise HTTPException(status_code=503, detail="Payment service not configured on server")
     
-    # Updated Pricing Map
-    valid_packs = {
-        10: 500,   # Starter
-        20: 1200,  # Hacker Pro
-        35: 2500   # Elite
-    }
+    # Validate plan_id against DOMINION_TIERS
+    tier = DOMINION_TIERS.get(req.plan_id)
+    if not tier:
+        raise HTTPException(status_code=400, detail=f"Invalid plan: {req.plan_id}. Valid: {list(DOMINION_TIERS.keys())}")
     
-    # Determine credits amount
-    # Prioritize server-side config for known prices
-    if int(req.amount) in valid_packs:
-        credits_amount = valid_packs[int(req.amount)]
-    else:
-        # Fallback to requested amount or error?
-        # User asked to "hazlo por 500 creditos" for $10.
-        # Allowing flexible amounts for custom handling:
-        if req.credits > 0:
-            credits_amount = req.credits
-        else:
-             raise HTTPException(status_code=400, detail="Invalid credits amount")
+    credits_amount = tier["credits"]
+    price_amount = tier["price"]
     
     is_sandbox = NOWPAYMENTS_API_KEY.startswith("sandbox")
     api_url = "https://api-sandbox.nowpayments.io/v1" if is_sandbox else "https://api.nowpayments.io/v1"
     
     import time
-    order_id = f"credits_{user_id}_{int(time.time())}"
+    order_id = f"tier_{req.plan_id}_{user_id}_{int(time.time())}"
     
     invoice_payload = {
-        "price_amount": req.amount,
+        "price_amount": price_amount,
         "price_currency": "usd",
         "pay_currency": "usdttrc20",
         "order_id": order_id,
-        "order_description": f"KR-CLI {credits_amount} Credits Pack",
-        "success_url": "https://kr-cli.dev/payment/success",
-        "cancel_url": "https://kr-cli.dev/payment/cancel"
+        "order_description": f"DOMINION {tier['label']} — {credits_amount} KR",
+        "success_url": "https://kalirootcode.github.io/KaliRootCLI/success.html",
+        "cancel_url": "https://kalirootcode.github.io/KaliRootCLI/tienda.html"
     }
     
     try:
@@ -739,12 +754,12 @@ async def create_credits_invoice(req: CreditsRequest, user: dict = Depends(get_c
         invoice_id = str(data.get("id"))
         invoice_url = data.get("invoice_url")
         
-        # Save payment record
+        # Save payment record with tier info
         supabase_admin.table("cli_payments").insert({
             "user_id": user_id,
             "invoice_id": invoice_id,
-            "amount": req.amount,
-            "payment_type": "credits",
+            "amount": price_amount,
+            "payment_type": f"tier_{req.plan_id}",
             "credits_amount": credits_amount,
             "status": "pending",
             "nowpayments_data": data
@@ -754,8 +769,10 @@ async def create_credits_invoice(req: CreditsRequest, user: dict = Depends(get_c
             "success": True,
             "invoice_url": invoice_url,
             "invoice_id": invoice_id,
-            "amount": req.amount,
+            "amount": price_amount,
             "credits": credits_amount,
+            "plan_id": req.plan_id,
+            "tier_label": tier["label"],
             "currency": "USDT"
         }
         
@@ -855,19 +872,40 @@ async def nowpayments_webhook(request: Request):
             
             logger.info(f"Subscription activated for user {user_id} with {PREMIUM_BONUS_CREDITS} bonus credits")
         
-        elif payment_type == "credits":
-            # Add purchased credits
+        elif payment_type.startswith("tier_"):
+            # Dominion Tier purchase — use atomic RPC
+            plan_id = payment_type.replace("tier_", "")
             credits_to_add = payment.get("credits_amount", 0)
             
-            # Get current credits
+            try:
+                supabase_admin.rpc("process_tier_purchase", {
+                    "p_user_id": user_id,
+                    "p_plan": plan_id,
+                    "p_credits": credits_to_add,
+                    "p_invoice_id": invoice_id,
+                    "p_payment_id": payment_id
+                }).execute()
+                logger.info(f"Tier '{plan_id}' activated for user {user_id} (+{credits_to_add} KR)")
+            except Exception as rpc_err:
+                logger.error(f"RPC process_tier_purchase failed: {rpc_err}")
+                # Fallback: manual update
+                user_result = supabase_admin.table("cli_users").select("credit_balance").eq("id", user_id).execute()
+                current_credits = user_result.data[0]["credit_balance"] if user_result.data else 0
+                supabase_admin.table("cli_users").update({
+                    "credit_balance": current_credits + credits_to_add,
+                    "user_tier": plan_id
+                }).eq("id", user_id).execute()
+                logger.info(f"Fallback: Added {credits_to_add} credits + tier '{plan_id}' to user {user_id}")
+
+        elif payment_type == "credits":
+            # Legacy credit packs (backwards compat)
+            credits_to_add = payment.get("credits_amount", 0)
             user_result = supabase_admin.table("cli_users").select("credit_balance").eq("id", user_id).execute()
             current_credits = user_result.data[0]["credit_balance"] if user_result.data else 0
-            
             supabase_admin.table("cli_users").update({
                 "credit_balance": current_credits + credits_to_add
             }).eq("id", user_id).execute()
-            
-            logger.info(f"Added {credits_to_add} credits to user {user_id}. New balance: {current_credits + credits_to_add}")
+            logger.info(f"Legacy credits: Added {credits_to_add} to user {user_id}")
 
         
         # Log audit event
