@@ -760,7 +760,6 @@ async def create_credits_invoice(req: TierPurchaseRequest, user: dict = Depends(
             "invoice_id": invoice_id,
             "amount": price_amount,
             "payment_type": f"tier_{req.plan_id}",
-            "credits_amount": credits_amount,
             "status": "pending",
             "nowpayments_data": data
         }).execute()
@@ -875,7 +874,9 @@ async def nowpayments_webhook(request: Request):
         elif payment_type.startswith("tier_"):
             # Dominion Tier purchase — use atomic RPC
             plan_id = payment_type.replace("tier_", "")
-            credits_to_add = payment.get("credits_amount", 0)
+            
+            tier_info = DOMINION_TIERS.get(plan_id)
+            credits_to_add = tier_info["credits"] if tier_info else 0
             
             try:
                 supabase_admin.rpc("process_tier_purchase", {
