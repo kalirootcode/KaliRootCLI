@@ -157,8 +157,13 @@ def print_ai_response(response: str, mode: str = "DOMINION", command: str = None
         console.print(f"[{STYLE_TEXT}]{str(response)}[/{STYLE_TEXT}]")
         return
 
-    # Strip ALL Rich/bracket markup tags that Gemini may generate
-    clean = re.sub(r'\[/?[a-zA-Z][a-zA-Z0-9 _#(),.]*\]', '', response)
+    # Transform Markdown images into readable terminal links
+    # Because terminal doesn't render pixels, we show the alt text and the clickable URL explicitly
+    clean = re.sub(r'!\[([^\]]*)\]\(([^)]+)\)', r'**🖼️  \1**\n🔗 *\2*\n', response)
+
+    # Strip ALL Rich/bracket markup tags that Gemini may generate (e.g. [bold cyan])
+    # The (?!\() ensures we don't accidentally strip the [] part of Markdown links [text](url).
+    clean = re.sub(r'\[/?[a-zA-Z][a-zA-Z0-9 _#(),.-]*\](?!\()', '', clean)
     clean = re.sub(r'\[dim\].*?\[/dim\]', '', clean, flags=re.DOTALL)
     clean = clean.strip()
 
