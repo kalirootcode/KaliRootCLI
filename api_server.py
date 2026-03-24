@@ -37,7 +37,7 @@ NOWPAYMENTS_API_KEY = os.getenv("NOWPAYMENTS_API_KEY", "")
 # PayPal Configuration
 PAYPAL_CLIENT_ID = os.getenv("PAYPAL_CLIENT_ID", "")
 PAYPAL_CLIENT_SECRET = os.getenv("PAYPAL_CLIENT_SECRET", "")
-PAYPAL_API_BASE = "https://api-m.sandbox.paypal.com"  # Cambiar a "https://api-m.paypal.com" para producción
+PAYPAL_API_BASE = "https://api-m.paypal.com"  # FORZADO A PRODUCCION
 
 # Pricing
 SUBSCRIPTION_PRICE_USD = 20.0  # Premium subscription
@@ -67,6 +67,12 @@ app = FastAPI(
     description="Backend API for KR-CLI - Professional Cybersecurity Assistant",
     version="2.0.0",
 )
+
+# Imprimir variables de entorno al iniciar para debug
+print("--- VARIABLES DE ENTORNO CARGADAS ---")
+print(f"PAYPAL_CLIENT_ID_LOADED: {bool(os.getenv('PAYPAL_CLIENT_ID'))}")
+print(f"PAYPAL_CLIENT_SECRET_LOADED: {bool(os.getenv('PAYPAL_CLIENT_SECRET'))}")
+print("------------------------------------")
 
 app.add_middleware(
     CORSMiddleware,
@@ -1104,6 +1110,7 @@ def get_paypal_access_token():
 @app.post("/api/paypal/create-order")
 async def create_paypal_order(request: Request):
     """Create a PayPal order for the store."""
+    print("Received request for /api/paypal/create-order")
     try:
         data = await request.json()
         user_id = data.get("user_id")
