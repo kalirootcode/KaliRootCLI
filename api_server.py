@@ -24,6 +24,9 @@ import requests as http_requests
 
 load_dotenv()
 
+import boto3
+from botocore.exceptions import NoCredentialsError
+
 # ===== CONFIG =====
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
@@ -33,6 +36,19 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 IPN_SECRET_KEY = os.getenv("IPN_SECRET_KEY", "")
 NOWPAYMENTS_API_KEY = os.getenv("NOWPAYMENTS_API_KEY", "")
+
+# AWS S3 Configuration
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_REGION = os.getenv("AWS_REGION")
+S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
+
+s3_client = boto3.client(
+    "s3",
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+    region_name=AWS_REGION,
+)
 
 # PayPal Configuration
 PAYPAL_CLIENT_ID = os.getenv("PAYPAL_CLIENT_ID", "")
@@ -192,6 +208,10 @@ class SessionLogRequest(BaseModel):
     python_version: Optional[str] = None
     screen_resolution: Optional[str] = None
     machine_fingerprint: Optional[str] = None
+
+
+class SecureVideoUrlResponse(BaseModel):
+    url: str
 
 
 # ===== AUTH HELPERS =====
@@ -1047,6 +1067,29 @@ async def nowpayments_webhook(request: Request):
                     f"Fallback: Added {credits_to_add} credits + tier '{plan_id}' to user {user_id}"
                 )
 
+        elif payment_type == "nowpayments_order":
+            # Infoproduct purchase via NOWPayments
+            cart_items = payment.get("nowpayments_data", {}).get("cart_items", [])
+            if user_id and cart_items:
+                try:
+                    for item in cart_items:
+                        download_entry = {
+                            "user_id": user_id,
+                            "product_id": item.get("id"),
+                            "order_id": invoice_id,  # Use invoice_id as the order identifier
+                            "expires_at": (
+                                datetime.utcnow() + timedelta(days=365)
+                            ).isoformat(),
+                        }
+                        supabase_admin.table("user_downloads").upsert(
+                            download_entry
+                        ).execute()
+                    logger.info(f"Downloads created for user {user_id} via NOWPayments")
+                except Exception as dl_err:
+                    logger.error(
+                        f"Error creating downloads for NOWPayments order: {dl_err}"
+                    )
+
         elif payment_type == "credits":
             # Legacy credit packs (backwards compat)
             credits_to_add = payment.get("credits_amount", 0)
@@ -1088,6 +1131,87 @@ async def nowpayments_webhook(request: Request):
 # ===== PAYPAL ENDPOINTS =====
 
 
+# ===== SECURE CONTENT ENDPOINTS =====
+@app.get(
+    "/api/products/get-video-url/{product_id}", response_model=SecureVideoUrlResponse
+)
+async def get_secure_video_url(product_id: str, user: dict = Depends(get_current_user)):
+    """
+    Check if a user has purchased a product and return a secure, temporary
+    S3 URL for the video if they have.
+    """
+    user_id = user["id"]
+
+    try:
+        # 1. Check for a valid download record in user_downloads
+        download_result = (
+            supabase_admin.table("user_downloads")
+            .select("id, expires_at")
+            .eq("user_id", user_id)
+            .eq("product_id", product_id)
+            .execute()
+        )
+
+        if not download_result.data:
+            raise HTTPException(
+                status_code=403, detail="No tienes acceso a este producto."
+            )
+
+        # Optional: Check if the download link has expired
+        download_record = download_result.data[0]
+        if download_record.get("expires_at"):
+            expiry = datetime.fromisoformat(
+                download_record["expires_at"].replace("Z", "+00:00")
+            )
+            if expiry <= datetime.now(expiry.tzinfo):
+                raise HTTPException(
+                    status_code=403, detail="El acceso a este producto ha expirado."
+                )
+
+        # 2. Get the product's video_url from the products table
+        product_result = (
+            supabase_admin.table("products")
+            .select("video_url")
+            .eq("id", product_id)
+            .single()
+            .execute()
+        )
+
+        if not product_result.data or not product_result.data.get("video_url"):
+            raise HTTPException(
+                status_code=404, detail="Video no encontrado para este producto."
+            )
+
+        video_s3_url = product_result.data["video_url"]
+
+        # 3. Parse the S3 URL to get the object key
+        # Example URL: https://krclidn-videos.s3.us-east-2.amazonaws.com/videos/user_id/file.mp4
+        # The key is the part after the bucket name and region host
+        from urllib.parse import urlparse
+
+        parsed_url = urlparse(video_s3_url)
+        object_key = parsed_url.path.lstrip("/")
+
+        # 4. Generate a pre-signed GET URL from S3
+        presigned_url = s3_client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": S3_BUCKET_NAME, "Key": object_key},
+            ExpiresIn=300,  # URL is valid for 5 minutes
+        )
+
+        return SecureVideoUrlResponse(url=presigned_url)
+
+    except HTTPException as http_exc:
+        raise http_exc  # Re-throw HTTPException
+    except Exception as e:
+        logger.error(
+            f"Error generating secure video URL for user {user_id}, product {product_id}: {e}"
+        )
+        raise HTTPException(
+            status_code=500, detail="No se pudo obtener la URL del video."
+        )
+
+
 def get_paypal_access_token():
     """Get access token from PayPal."""
     if not PAYPAL_CLIENT_ID or not PAYPAL_CLIENT_SECRET:
@@ -1109,21 +1233,35 @@ def get_paypal_access_token():
 
 @app.post("/api/paypal/create-order")
 async def create_paypal_order(request: Request):
-    """Create a PayPal order for the store."""
+    """Create a PayPal order for the store, applying coupon if provided."""
     print("Received request for /api/paypal/create-order")
     try:
         data = await request.json()
         user_id = data.get("user_id")
         cart_items = data.get("cart_items", [])
-
-        logger.info(
-            f"PayPal create-order - Client ID: {bool(PAYPAL_CLIENT_ID)}, Secret: {bool(PAYPAL_CLIENT_SECRET)}"
-        )
+        coupon_code = data.get("coupon_code")  # New
 
         if not cart_items:
             raise HTTPException(status_code=400, detail="Carrito vacio")
 
+        # Calculate original total
         total = sum(item.get("price", 0) for item in cart_items)
+
+        # Validate coupon and apply discount
+        if coupon_code:
+            validation = await validate_coupon(coupon_code)
+            if validation.valid:
+                discount = total * (validation.discount_percentage / 100)
+                total -= discount
+                logger.info(
+                    f"Applied {validation.discount_percentage}% discount. New total: {total}"
+                )
+            else:
+                # Optional: handle invalid coupon, maybe return an error
+                logger.warning(
+                    f"Invalid coupon '{coupon_code}' attempted: {validation.message}"
+                )
+
         description = ", ".join([item.get("name", "Producto") for item in cart_items])
         product = {"name": description[:127], "price": f"{total:.2f}"}
 
@@ -1165,7 +1303,11 @@ async def create_paypal_order(request: Request):
                         "amount": float(product["price"]),
                         "payment_type": "paypal_order",
                         "status": "pending",
-                        "nowpayments_data": {"paypal": True, "cart_items": cart_items},
+                        "nowpayments_data": {
+                            "paypal": True,
+                            "cart_items": cart_items,
+                            "coupon_used": coupon_code,
+                        },
                     }
                 ).execute()
             except Exception as db_err:
@@ -1239,6 +1381,197 @@ async def capture_paypal_order(request: Request):
     except Exception as e:
         logger.error(f"PayPal capture error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class NowPaymentsOrderRequest(BaseModel):
+    cart_items: list
+    coupon_code: Optional[str] = None
+
+
+@app.post("/api/nowpayments/create-order")
+async def create_nowpayments_order(
+    req: NowPaymentsOrderRequest, user: dict = Depends(get_current_user)
+):
+    """Create a NOWPayments invoice for infoproducts, applying a coupon if provided."""
+    user_id = user["id"]
+
+    if not NOWPAYMENTS_API_KEY:
+        raise HTTPException(
+            status_code=503, detail="Servicio de cripto pagos no configurado."
+        )
+
+    if not req.cart_items:
+        raise HTTPException(status_code=400, detail="El carrito está vacío.")
+
+    # Calculate total and apply discount
+    total = sum(item.get("price", 0) for item in req.cart_items)
+    if req.coupon_code:
+        validation = await validate_coupon(req.coupon_code)
+        if validation.valid:
+            discount = total * (validation.discount_percentage / 100)
+            total -= discount
+
+    if total <= 0:
+        raise HTTPException(status_code=400, detail="El total debe ser mayor a cero.")
+
+    # NOWPayments API details
+    is_sandbox = NOWPAYMENTS_API_KEY.startswith("sandbox")
+    api_url = (
+        "https://api-sandbox.nowpayments.io/v1"
+        if is_sandbox
+        else "https://api.nowpayments.io/v1"
+    )
+    import time
+
+    order_id = f"infoproduct_{user_id}_{int(time.time())}"
+    description = ", ".join([item.get("name", "Item") for item in req.cart_items])
+
+    invoice_payload = {
+        "price_amount": total,
+        "price_currency": "usd",
+        "order_id": order_id,
+        "order_description": description[:255],
+        "success_url": "https://kalirootcode.github.io/KaliRootCLI/payment_success.html",
+        "cancel_url": "https://kalirootcode.github.io/KaliRootCLI/checkout.html",
+    }
+
+    try:
+        resp = http_requests.post(
+            f"{api_url}/invoice",
+            headers={
+                "x-api-key": NOWPAYMENTS_API_KEY,
+                "Content-Type": "application/json",
+            },
+            json=invoice_payload,
+            timeout=30,
+        )
+        resp.raise_for_status()
+
+        data = resp.json()
+        invoice_id = str(data.get("id"))
+
+        # Save payment record
+        supabase_admin.table("cli_payments").insert(
+            {
+                "user_id": user_id,
+                "invoice_id": invoice_id,
+                "amount": total,
+                "payment_type": "nowpayments_order",
+                "status": "pending",
+                "nowpayments_data": {
+                    "nowpayments": True,
+                    "cart_items": req.cart_items,
+                    "coupon_used": req.coupon_code,
+                },
+            }
+        ).execute()
+
+        return {
+            "success": True,
+            "invoice_url": data.get("invoice_url"),
+            "invoice_id": invoice_id,
+        }
+
+    except http_requests.RequestException as e:
+        logger.error(f"NOWPayments request error: {e}")
+        raise HTTPException(
+            status_code=503, detail="El servicio de pagos no está disponible."
+        )
+    except Exception as e:
+        logger.error(f"NOWPayments generic error: {e}")
+        raise HTTPException(status_code=500, detail="Error al crear la orden de pago.")
+
+
+# ===== S3 ENDPOINTS =====
+
+
+class CouponValidationResponse(BaseModel):
+    valid: bool
+    code: str
+    discount_percentage: Optional[int] = None
+    message: Optional[str] = None
+
+
+@app.get("/api/coupons/validate/{coupon_code}", response_model=CouponValidationResponse)
+async def validate_coupon(coupon_code: str):
+    """Check if a coupon is valid, active, and not expired."""
+    try:
+        result = (
+            supabase_admin.table("coupons")
+            .select("*")
+            .eq("code", coupon_code)
+            .single()
+            .execute()
+        )
+
+        if not result.data:
+            return CouponValidationResponse(
+                valid=False, code=coupon_code, message="El cupón no existe."
+            )
+
+        coupon = result.data
+        now = datetime.utcnow().replace(tzinfo=None)  # Naive datetime for comparison
+        expires_at = datetime.fromisoformat(coupon["expires_at"]).replace(tzinfo=None)
+
+        if not coupon["is_active"]:
+            return CouponValidationResponse(
+                valid=False, code=coupon_code, message="El cupón ya no está activo."
+            )
+
+        if now > expires_at:
+            return CouponValidationResponse(
+                valid=False, code=coupon_code, message="El cupón ha expirado."
+            )
+
+        return CouponValidationResponse(
+            valid=True,
+            code=coupon["code"],
+            discount_percentage=coupon["discount_percentage"],
+            message="Cupón aplicado con éxito.",
+        )
+
+    except Exception as e:
+        logger.error(f"Coupon validation error for code {coupon_code}: {e}")
+        # PostgREST throws an error if .single() finds no rows, handle it gracefully
+        if "PostgrestHTTPError" in str(e) and "0 rows" in str(e):
+            return CouponValidationResponse(
+                valid=False, code=coupon_code, message="El cupón no existe."
+            )
+        raise HTTPException(status_code=500, detail="Error al validar el cupón.")
+
+
+class GenerateUploadUrlRequest(BaseModel):
+    file_name: str
+    file_type: str
+
+
+@app.post("/api/s3/generate-upload-url")
+async def generate_upload_url(
+    req: GenerateUploadUrlRequest, user: dict = Depends(get_current_user)
+):
+    """Generate a pre-signed URL for uploading a file to S3."""
+
+    # Optional: Add extra security to check if the user is an admin
+    # For now, we trust the frontend is admin-only.
+
+    object_name = f"videos/{user['id']}/{req.file_name}"
+
+    try:
+        response = s3_client.generate_presigned_post(
+            S3_BUCKET_NAME,
+            object_name,
+            Fields={"Content-Type": req.file_type},
+            Conditions=[{"Content-Type": req.file_type}],
+            ExpiresIn=3600,  # URL expires in 1 hour
+        )
+        return response
+    except NoCredentialsError:
+        raise HTTPException(
+            status_code=500, detail="AWS credentials not configured on the server."
+        )
+    except Exception as e:
+        logger.error(f"S3 URL generation error: {e}")
+        raise HTTPException(status_code=500, detail="Could not generate S3 upload URL.")
 
 
 # ===== MAIN =====
